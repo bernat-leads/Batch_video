@@ -100,12 +100,16 @@ lead-alliances-video-pipeline/     # Root (pnpm workspaces + Turborepo)
 | You want to... | Put it in... |
 |----------------|-------------|
 | Add a new page/route | `apps/react/src/routes/` |
-| Add a React component | `apps/react/src/components/{feature}/` |
+| Add a route-specific component | `apps/react/src/routes/<route>/_components/` |
+| Add a shared component | `apps/react/src/components/<feature>/` |
+| Add a reusable UI primitive | `apps/react/src/components/ui/` |
 | Add a custom hook | `apps/react/src/hooks/` |
+| Add a utility function | `apps/react/src/lib/` |
 | Add a backend endpoint | `apps/api/api/{module}/routes.py` |
 | Add a backend model | `apps/api/api/{module}/models/` |
 | Add a backend schema | `apps/api/api/{module}/schemas.py` |
 | Add a CRUD class | `apps/api/api/{module}/crud.py` |
+| Add a status enum | `apps/api/api/{module}/enums.py` |
 | Add a pipeline task | `apps/api/api/deps/tasks.py` |
 | Add a shared UI component | `packages/ui/src/components/` |
 | Add a backend unit test | `apps/api/__tests__/` |
@@ -125,8 +129,10 @@ Single PostgreSQL database (SQLAlchemy async):
 
 | Table | Purpose |
 |-------|---------|
-| `videos` | Video records (script, status, stage, output URL) |
+| `videos` | Video records (script, prompt, status, stage, costs, output URL) |
 | `shots` | Segments per video (text, image prompt, Ken Burns config, timing) |
+| `batches` | Batch groupings (name, aggregated costs — no status column, derived from videos) |
+| `app_settings` | Singleton settings (master_prompt, retention_days) |
 
 ## Storage (Cloudflare R2)
 

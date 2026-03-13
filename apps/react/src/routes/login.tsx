@@ -60,10 +60,7 @@ function LoginPage() {
   }
 
   return (
-    <div
-      className="flex h-full items-center justify-center px-4"
-      style={{ backgroundColor: "var(--content-bg)" }}
-    >
+    <div className="flex h-full items-center justify-center bg-content-bg px-4">
       <motion.div
         className="w-full max-w-md"
         initial={{ opacity: 0, scale: 0.96, y: 10 }}
@@ -71,38 +68,20 @@ function LoginPage() {
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-full"
-            style={{ backgroundColor: "var(--border-color)" }}
-          >
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-border">
             <img src="/logo.png" alt="Lead Alliances" className="h-8 w-8" />
           </div>
-          <span
-            className="text-lg font-semibold tracking-tight"
-            style={{ color: "var(--text-primary)" }}
-          >
+          <span className="text-lg font-semibold tracking-tight text-text-primary">
             Lead Alliances
           </span>
         </div>
 
-        <div
-          className="rounded-2xl border p-10"
-          style={{
-            backgroundColor: "var(--card-bg)",
-            borderColor: "var(--border-color)",
-          }}
-        >
+        <div className="rounded-2xl border border-border bg-card-bg p-10">
           <div className="mb-6 text-center">
-            <h1
-              className="text-xl font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-xl font-semibold text-text-primary">
               Welcome back
             </h1>
-            <p
-              className="mt-1 text-sm"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <p className="mt-1 text-sm text-text-muted">
               Enter your team password to continue
             </p>
           </div>
@@ -114,7 +93,7 @@ function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel style={{ color: "var(--text-primary)" }}>
+                    <FormLabel className="text-text-primary">
                       Password
                     </FormLabel>
                     <FormControl>
@@ -123,19 +102,13 @@ function LoginPage() {
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter team password"
                           autoFocus
-                          className="h-11 pr-10"
-                          style={{
-                            backgroundColor: "#FFFFFF",
-                            borderColor: "var(--border-color)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="h-11 border-border bg-white pr-10 text-text-primary"
                           {...field}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                          style={{ color: "var(--text-muted)" }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors"
                           tabIndex={-1}
                         >
                           {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -148,8 +121,7 @@ function LoginPage() {
               />
               <Button
                 type="submit"
-                className="h-11 w-full text-white hover:opacity-90"
-                style={{ backgroundColor: "var(--brand)" }}
+                className="h-11 w-full bg-brand text-white hover:opacity-90"
                 disabled={login.isPending}
               >
                 {login.isPending ? "Signing in..." : "Sign in"}
@@ -158,10 +130,7 @@ function LoginPage() {
           </Form>
         </div>
 
-        <p
-          className="mt-4 text-center text-xs"
-          style={{ color: "var(--text-muted)" }}
-        >
+        <p className="mt-4 text-center text-xs text-text-muted">
           Lead Alliances Video Pipeline
         </p>
       </motion.div>

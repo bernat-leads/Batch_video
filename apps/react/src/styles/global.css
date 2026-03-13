@@ -1,6 +1,40 @@
 @import "@packages/ui/styles/global";
 @source "../../node_modules/@packages/ui/src/**/*.{ts,tsx}";
 
+@theme {
+  /* Sidebar */
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* Content */
+  --color-content-bg: var(--content-bg);
+  --color-card-bg: var(--card-bg);
+  --color-border: var(--border-color);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  /* Brand */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+
+  /* Status */
+  --color-status-success: var(--color-success);
+  --color-status-success-light: var(--color-success-light);
+  --color-status-warning: var(--color-warning);
+  --color-status-warning-light: var(--color-warning-light);
+  --color-status-error: var(--color-error);
+  --color-status-error-light: var(--color-error-light);
+  --color-status-info: var(--color-info);
+  --color-status-info-light: var(--color-info-light);
+}
+
 @layer base {
   :root {
     /* Sidebar */
@@ -24,6 +58,12 @@
     /* Brand accent (warm amber) */
     --brand: #A87B50;
     --brand-hover: #946A42;
+
+    /* Override shadcn accent to warm tones */
+    --accent: #F0EBE4;
+    --accent-foreground: #1A1612;
+    --popover: #FFFDF9;
+    --popover-foreground: #1A1612;
 
     /* Status colors */
     --color-success: #5A8C5A;
@@ -54,28 +94,10 @@
 
   #root {
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
   }
 }
 
-/* View Transitions */
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: fade-out 0.15s ease-in;
-  }
-  ::view-transition-new(root) {
-    animation: fade-in 0.15s ease-out;
-  }
-}
-
-@keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
 /* Input focus: subtle shadow instead of ring */
 input:focus-visible,
@@ -86,6 +108,15 @@ textarea:focus-visible,
   --tw-ring-shadow: none !important;
   border-color: var(--border-color) !important;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Sidebar: map shadcn sidebar CSS variables to our theme */
+[data-sidebar="sidebar"] {
+  --sidebar: var(--sidebar-bg);
+  --sidebar-foreground: var(--sidebar-text);
+  --sidebar-accent: var(--sidebar-hover);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--sidebar-border);
 }
 
 /* Sidebar: faster collapse + text fades out instead of being pushed */

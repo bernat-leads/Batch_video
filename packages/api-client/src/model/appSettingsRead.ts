@@ -11,4 +11,8 @@
 export interface AppSettingsRead {
   master_prompt: string;
   retention_days: number;
+  default_script_column: string;
+  default_voice_column: string;
+  default_style_column: string;
+  default_top_text_column: string;
 }

@@ -1,19 +1,12 @@
-import { useLocation, useMatches } from "@tanstack/react-router";
+import { Outlet, useLocation } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef, type ReactNode } from "react";
+import { useRef } from "react";
 
-interface AnimatedOutletProps {
-  children: ReactNode;
-}
-
-export function AnimatedOutlet({ children }: AnimatedOutletProps) {
+export function AnimatedOutlet() {
   const location = useLocation();
-  const matches = useMatches();
   const prevPath = useRef(location.pathname);
   const direction = useRef(1);
 
-  // Determine direction based on route depth
-  const currentDepth = matches.length;
   if (location.pathname !== prevPath.current) {
     const prevDepth = prevPath.current.split("/").filter(Boolean).length;
     const nextDepth = location.pathname.split("/").filter(Boolean).length;
@@ -30,7 +23,7 @@ export function AnimatedOutlet({ children }: AnimatedOutletProps) {
         exit={{ opacity: 0, y: direction.current * -8 }}
         transition={{ duration: 0.15, ease: "easeInOut" }}
       >
-        {children}
+        <Outlet />
       </motion.div>
     </AnimatePresence>
   );

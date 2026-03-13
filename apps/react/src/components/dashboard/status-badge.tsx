@@ -6,57 +6,57 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Pending",
-    bg: "var(--color-info-light)",
-    text: "var(--color-info)",
-    dot: "var(--color-info)",
+    bg: "bg-status-info-light",
+    text: "text-status-info",
+    dot: "bg-status-info",
   },
   queued: {
     label: "Queued",
-    bg: "var(--color-info-light)",
-    text: "var(--color-info)",
-    dot: "var(--color-info)",
+    bg: "bg-status-info-light",
+    text: "text-status-info",
+    dot: "bg-status-info",
   },
   processing: {
     label: "Processing",
-    bg: "var(--color-warning-light)",
-    text: "var(--brand)",
-    dot: "var(--brand)",
+    bg: "bg-status-warning-light",
+    text: "text-brand",
+    dot: "bg-brand",
   },
   tts: {
     label: "Generating Audio",
-    bg: "var(--color-warning-light)",
-    text: "var(--brand)",
-    dot: "var(--brand)",
+    bg: "bg-status-warning-light",
+    text: "text-brand",
+    dot: "bg-brand",
   },
   segmentation: {
     label: "Segmenting",
-    bg: "var(--color-warning-light)",
-    text: "var(--brand)",
-    dot: "var(--brand)",
+    bg: "bg-status-warning-light",
+    text: "text-brand",
+    dot: "bg-brand",
   },
   image_generation: {
     label: "Generating Images",
-    bg: "var(--color-warning-light)",
-    text: "var(--brand)",
-    dot: "var(--brand)",
+    bg: "bg-status-warning-light",
+    text: "text-brand",
+    dot: "bg-brand",
   },
   assembly: {
     label: "Assembling Video",
-    bg: "var(--color-warning-light)",
-    text: "var(--brand)",
-    dot: "var(--brand)",
+    bg: "bg-status-warning-light",
+    text: "text-brand",
+    dot: "bg-brand",
   },
   completed: {
     label: "Completed",
-    bg: "var(--color-success-light)",
-    text: "var(--color-success)",
-    dot: "var(--color-success)",
+    bg: "bg-status-success-light",
+    text: "text-status-success",
+    dot: "bg-status-success",
   },
   failed: {
     label: "Failed",
-    bg: "var(--color-error-light)",
-    text: "var(--color-error)",
-    dot: "var(--color-error)",
+    bg: "bg-status-error-light",
+    text: "text-status-error",
+    dot: "bg-status-error",
   },
 };
 
@@ -68,22 +68,22 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, stage, className }: StatusBadgeProps) {
   const key = status === "processing" && stage ? stage : status;
-  const defaultConfig = { label: "Pending", bg: "var(--color-info-light)", text: "var(--color-info)", dot: "var(--color-info)" };
+  const defaultConfig = { label: "Pending", bg: "bg-status-info-light", text: "text-status-info", dot: "bg-status-info" };
   const config = STATUS_CONFIG[key] ?? defaultConfig;
 
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        config.bg,
+        config.text,
         className,
       )}
-      style={{ backgroundColor: config.bg, color: config.text }}
     >
       <span
-        className={cn("h-1.5 w-1.5 rounded-full", {
+        className={cn("h-1.5 w-1.5 rounded-full", config.dot, {
           "animate-pulse": status === "processing",
         })}
-        style={{ backgroundColor: config.dot }}
       />
       {config.label}
     </span>

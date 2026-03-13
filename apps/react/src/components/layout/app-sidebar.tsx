@@ -1,6 +1,8 @@
 import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useLogoutApiV1AuthLogoutPost } from "@packages/api-client";
 import {
+  LayoutDashboard,
+  Layers,
   Film,
   Settings,
   LogOut,
@@ -13,17 +15,25 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from "@packages/ui/components/shadcn/sidebar";
-
-const NAV_ITEMS = [
-  { label: "Videos", to: "/app" as const, icon: Film },
-  { label: "Settings", to: "/app/settings" as const, icon: Settings },
-];
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@packages/ui/components/shadcn/alert-dialog";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -36,34 +46,25 @@ export function AppSidebar() {
     },
   });
 
+  const isActive = (to: string, fuzzy = true) =>
+    !!matchRoute({ to, fuzzy });
+
   return (
     <Sidebar
       collapsible="icon"
       className="border-r-0"
-      style={
-        {
-          "--sidebar": "var(--sidebar-bg)",
-          "--sidebar-foreground": "var(--sidebar-text)",
-          "--sidebar-accent": "var(--sidebar-hover)",
-          "--sidebar-accent-foreground": "var(--text-primary)",
-          "--sidebar-border": "var(--sidebar-border)",
-        } as React.CSSProperties
-      }
     >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             {state === "expanded" ? (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between overflow-hidden">
                 <Link
                   to="/app"
-                  className="flex items-center gap-2.5 px-2 py-1.5"
+                  className="flex items-center gap-2.5 overflow-hidden px-2 py-1.5"
                 >
                   <img src="/logo.png" alt="" className="h-6 w-6 shrink-0" />
-                  <span
-                    className="text-base font-semibold tracking-tight"
-                    style={{ color: "var(--text-primary)" }}
-                  >
+                  <span className="truncate text-lg font-semibold tracking-tight text-text-primary">
                     Lead Alliances
                   </span>
                 </Link>
@@ -87,47 +88,102 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-
       <SidebarContent>
+        <SidebarSeparator />
+
+        {/* Video Pipeline */}
         <SidebarGroup>
+          <SidebarGroupLabel className="text-text-muted">
+            Video Pipeline
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={
-                      !!matchRoute({
-                        to: item.to,
-                        fuzzy: item.to !== "/app",
-                      })
-                    }
-                    tooltip={item.label}
-                  >
-                    <Link to={item.to}>
-                      <item.icon size={16} />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/app", false) && !matchRoute({ to: "/app/batches", fuzzy: true }) && !matchRoute({ to: "/app/videos", fuzzy: true }) && !matchRoute({ to: "/app/settings", fuzzy: true })}
+                  tooltip="Dashboard"
+                >
+                  <Link to="/app">
+                    <LayoutDashboard size={16} />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/app/batches")}
+                  tooltip="Batches"
+                >
+                  <Link to="/app/batches">
+                    <Layers size={16} />
+                    <span>Batches</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/app/videos")}
+                  tooltip="Videos"
+                >
+                  <Link to="/app/videos">
+                    <Film size={16} />
+                    <span>Videos</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
 
-
       <SidebarFooter>
+        <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => logout.mutate()}
-              tooltip="Sign out"
+              asChild
+              isActive={isActive("/app/settings")}
+              tooltip="Settings"
             >
-              <LogOut size={16} />
-              <span>Sign out</span>
+              <Link to="/app/settings">
+                <Settings size={16} />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <SidebarMenuButton tooltip="Leave">
+                  <LogOut size={16} />
+                  <span>Leave</span>
+                </SidebarMenuButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-text-primary">
+                    Leave?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-text-muted">
+                    You will need to enter the password again to access the dashboard.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-border text-text-secondary">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => logout.mutate()}
+                    className="bg-status-error text-white"
+                  >
+                    Leave
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

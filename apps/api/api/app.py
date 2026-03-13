@@ -7,12 +7,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+from api.auth import auth_router
 from api.core import router as core_router
 from api.deps.sentry import init_sentry
 from api.exceptions import register_exception_handlers
 from api.settings import settings
 from api.settings_module import settings_router
-from api.videos import shots_router, videos_router
+from api.videos import batches_router, shots_router, videos_router
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def create_application() -> FastAPI:
     # TODO: Restrict CORS in production to specific origins instead of allowing all
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -48,6 +49,8 @@ def create_application() -> FastAPI:
 
     API_V1_STR: str = "/api/v1"
 
+    app.include_router(auth_router, prefix=API_V1_STR)
+    app.include_router(batches_router, prefix=API_V1_STR)
     app.include_router(videos_router, prefix=API_V1_STR)
     app.include_router(shots_router, prefix=API_V1_STR)
     app.include_router(settings_router, prefix=API_V1_STR)

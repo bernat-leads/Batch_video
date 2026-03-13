@@ -14,6 +14,9 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
+import { Route as AppVideosIndexRouteImport } from './routes/app/videos/index'
+import { Route as AppBatchesIndexRouteImport } from './routes/app/batches/index'
+import { Route as AppVideosVideoIdRouteImport } from './routes/app/videos/$videoId'
 import { Route as AppBatchesBatchIdRouteImport } from './routes/app/batches/$batchId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -41,6 +44,21 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVideosIndexRoute = AppVideosIndexRouteImport.update({
+  id: '/videos/',
+  path: '/videos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBatchesIndexRoute = AppBatchesIndexRouteImport.update({
+  id: '/batches/',
+  path: '/batches/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVideosVideoIdRoute = AppVideosVideoIdRouteImport.update({
+  id: '/videos/$videoId',
+  path: '/videos/$videoId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBatchesBatchIdRoute = AppBatchesBatchIdRouteImport.update({
   id: '/batches/$batchId',
   path: '/batches/$batchId',
@@ -54,6 +72,9 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/batches/$batchId': typeof AppBatchesBatchIdRoute
+  '/app/videos/$videoId': typeof AppVideosVideoIdRoute
+  '/app/batches/': typeof AppBatchesIndexRoute
+  '/app/videos/': typeof AppVideosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,6 +82,9 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app': typeof AppIndexRoute
   '/app/batches/$batchId': typeof AppBatchesBatchIdRoute
+  '/app/videos/$videoId': typeof AppVideosVideoIdRoute
+  '/app/batches': typeof AppBatchesIndexRoute
+  '/app/videos': typeof AppVideosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,6 +94,9 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/batches/$batchId': typeof AppBatchesBatchIdRoute
+  '/app/videos/$videoId': typeof AppVideosVideoIdRoute
+  '/app/batches/': typeof AppBatchesIndexRoute
+  '/app/videos/': typeof AppVideosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,8 +107,19 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/'
     | '/app/batches/$batchId'
+    | '/app/videos/$videoId'
+    | '/app/batches/'
+    | '/app/videos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app/settings' | '/app' | '/app/batches/$batchId'
+  to:
+    | '/'
+    | '/login'
+    | '/app/settings'
+    | '/app'
+    | '/app/batches/$batchId'
+    | '/app/videos/$videoId'
+    | '/app/batches'
+    | '/app/videos'
   id:
     | '__root__'
     | '/'
@@ -90,6 +128,9 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/'
     | '/app/batches/$batchId'
+    | '/app/videos/$videoId'
+    | '/app/batches/'
+    | '/app/videos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,6 +176,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/videos/': {
+      id: '/app/videos/'
+      path: '/videos'
+      fullPath: '/app/videos/'
+      preLoaderRoute: typeof AppVideosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/batches/': {
+      id: '/app/batches/'
+      path: '/batches'
+      fullPath: '/app/batches/'
+      preLoaderRoute: typeof AppBatchesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/videos/$videoId': {
+      id: '/app/videos/$videoId'
+      path: '/videos/$videoId'
+      fullPath: '/app/videos/$videoId'
+      preLoaderRoute: typeof AppVideosVideoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/batches/$batchId': {
       id: '/app/batches/$batchId'
       path: '/batches/$batchId'
@@ -149,12 +211,18 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBatchesBatchIdRoute: typeof AppBatchesBatchIdRoute
+  AppVideosVideoIdRoute: typeof AppVideosVideoIdRoute
+  AppBatchesIndexRoute: typeof AppBatchesIndexRoute
+  AppVideosIndexRoute: typeof AppVideosIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppBatchesBatchIdRoute: AppBatchesBatchIdRoute,
+  AppVideosVideoIdRoute: AppVideosVideoIdRoute,
+  AppBatchesIndexRoute: AppBatchesIndexRoute,
+  AppVideosIndexRoute: AppVideosIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

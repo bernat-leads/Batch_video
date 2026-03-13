@@ -1,89 +1,124 @@
-import type { VideoRead } from "@packages/api-client";
+import {
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+} from "recharts";
+import type { BatchRead } from "@packages/api-client";
+import { cn } from "@packages/ui/lib/utils";
+import { StatRow } from "@/components/ui/stat-row";
+import { formatDuration, formatCurrency } from "@/lib/format";
 
-interface BatchHeaderProps {
-  batchId: string;
-  videos: VideoRead[];
+interface BatchStatsProps {
+  batch: BatchRead;
 }
 
-export function BatchHeader({ batchId, videos }: BatchHeaderProps) {
-  const total = videos.length;
-  const completed = videos.filter((v) => v.status === "completed").length;
-  const failed = videos.filter((v) => v.status === "failed").length;
-  const processing = videos.filter((v) => v.status === "processing").length;
-  const progressPercent =
-    total > 0 ? Math.round((completed / total) * 100) : 0;
+function CompletionChart({
+  completed,
+  total,
+  hasFailed,
+}: {
+  completed: number;
+  total: number;
+  hasFailed: boolean;
+}) {
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const fill = hasFailed ? "var(--color-error)" : "var(--color-success)";
+  const data = [{ value: percent }];
 
   return (
-    <div
-      className="rounded-xl border p-6"
-      style={{
-        backgroundColor: "var(--card-bg)",
-        borderColor: "var(--border-color)",
-      }}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <h1
-            className="text-2xl font-semibold tracking-tight"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Batch Progress
-          </h1>
-          <p
-            className="mt-1 font-mono text-sm"
-            style={{ color: "var(--text-muted)" }}
-          >
-            {batchId.slice(0, 8)}...
-          </p>
-        </div>
-        <div className="text-right">
-          <p
-            className="text-3xl font-bold"
-            style={{ color: "var(--text-primary)" }}
-          >
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <div className="relative h-[72px] w-[72px]">
+        <RadialBarChart
+          width={72}
+          height={72}
+          cx={36}
+          cy={36}
+          innerRadius={27}
+          outerRadius={33}
+          barSize={6}
+          data={data}
+          startAngle={90}
+          endAngle={-270}
+        >
+          <PolarAngleAxis
+            type="number"
+            domain={[0, 100]}
+            angleAxisId={0}
+            tick={false}
+          />
+          <RadialBar
+            background={{ fill: "var(--border-color)" }}
+            dataKey="value"
+            cornerRadius={3}
+            fill={fill}
+          />
+        </RadialBarChart>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-sm font-semibold text-text-primary">
             {completed}/{total}
-          </p>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            videos complete
-          </p>
+          </span>
         </div>
       </div>
+      <span className="text-xs text-text-muted">Videos Completed</span>
+    </div>
+  );
+}
 
-      <div className="mt-4">
-        <div
-          className="h-2 w-full overflow-hidden rounded-full"
-          style={{ backgroundColor: "var(--border-color)" }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${progressPercent}%`,
-              backgroundColor:
-                failed > 0 && completed + failed === total
-                  ? "var(--color-error)"
-                  : "var(--color-success)",
-            }}
+export function BatchStats({ batch }: BatchStatsProps) {
+  const total = batch.total_videos;
+  const completed = batch.completed ?? 0;
+  const failed = batch.failed ?? 0;
+
+  const totalTokens = batch.tokens_used ?? 0;
+  const totalTime = batch.generation_time_ms ?? 0;
+  const totalCost = batch.total_cost_usd ?? 0;
+
+  return (
+    <div className="flex flex-wrap gap-4">
+      <div className="min-w-[420px] flex-[3] rounded-xl border border-border bg-card-bg p-5">
+        <p className="mb-4 text-sm font-medium text-text-primary">Total</p>
+        <div className="flex items-center gap-5">
+          <div className="flex flex-1 items-center justify-center">
+            <CompletionChart
+              completed={completed}
+              total={total}
+              hasFailed={failed > 0 && completed + failed === total}
+            />
+          </div>
+          <div className="w-px self-stretch bg-border" />
+          <div className="flex-1 space-y-2 text-sm">
+            <StatRow label="Total Videos" value={String(total)} />
+            <StatRow label="Generated" value={String(completed)} />
+            <StatRow
+              label="Failed"
+              value={String(failed)}
+              valueClassName={cn(failed > 0 && "text-status-error")}
+            />
+          </div>
+          <div className="w-px self-stretch bg-border" />
+          <div className="flex-1 space-y-2 text-sm">
+            <StatRow label="Tokens" value={totalTokens.toLocaleString()} />
+            <StatRow label="Video Length" value={formatDuration(totalTime)} />
+            <StatRow label="Cost" value={formatCurrency(totalCost)} />
+          </div>
+        </div>
+      </div>
+      <div className="min-w-[240px] flex-[2] rounded-xl border border-border bg-card-bg p-4">
+        <p className="mb-3 text-sm font-medium text-text-primary">Average per Video</p>
+        <div className="space-y-2 text-sm">
+          <StatRow
+            label="Tokens"
+            value={total > 0 ? Math.round(totalTokens / total).toLocaleString() : "0"}
+          />
+          <StatRow
+            label="Video Length"
+            value={total > 0 ? formatDuration(Math.round(totalTime / total)) : "0s"}
+          />
+          <StatRow
+            label="Cost"
+            value={total > 0 ? formatCurrency(totalCost / total) : "$0.00"}
           />
         </div>
-      </div>
-
-      <div className="mt-4 flex gap-6 text-sm">
-        <span style={{ color: "var(--color-success)" }}>
-          {completed} completed
-        </span>
-        {processing > 0 && (
-          <span style={{ color: "var(--brand)" }}>
-            {processing} processing
-          </span>
-        )}
-        {failed > 0 && (
-          <span style={{ color: "var(--color-error)" }}>{failed} failed</span>
-        )}
-        {total - completed - failed - processing > 0 && (
-          <span style={{ color: "var(--color-info)" }}>
-            {total - completed - failed - processing} queued
-          </span>
-        )}
       </div>
     </div>
   );

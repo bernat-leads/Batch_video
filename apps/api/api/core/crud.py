@@ -1,5 +1,7 @@
 """Base repository with common CRUD operations."""
 
+from __future__ import annotations
+
 import uuid
 from typing import Generic, TypeVar
 
@@ -33,7 +35,7 @@ class BaseCrud(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """Get a record by ID."""
         return await self.db_session.get(self.model, record_id)
 
-    async def get_multi(self, page: int = 1, page_size: int = 50) -> PageResponse:
+    async def get_multi(self, page: int = 1, page_size: int = 50) -> PageResponse[ModelType]:
         """Get multiple records with pagination."""
         total = await self.count()
         offset = (page - 1) * page_size
