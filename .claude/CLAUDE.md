@@ -69,7 +69,8 @@ E2E tests: `apps/react/e2e/` (Playwright)
 ## Git Workflow
 
 - **Commit messages follow Conventional Commits** for semantic-release
-- PR flow: feature branch → `dev` → `main`
+- **Branch naming:** `hyp-123-short-description` (all lowercase, Linear issue ID + description, no username prefix)
+- PR flow: task branch → `dev` → `main`
 
 ## Key Commands
 
