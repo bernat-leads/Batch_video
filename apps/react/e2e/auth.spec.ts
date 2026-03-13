@@ -18,6 +18,21 @@ async function mockUnauthenticated(page: Page) {
   );
 }
 
+/**
+ * Mock dashboard API calls for authenticated pages.
+ */
+async function mockDashboardApis(page: Page) {
+  await page.route("**/api/v1/videos/batches", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
+  await page.route("**/api/v1/settings*", (route) =>
+    route.fulfill({
+      status: 200,
+      json: { master_prompt: "", retention_days: 7 },
+    }),
+  );
+}
+
 test.describe("unauthenticated", () => {
   test.beforeEach(async ({ page }) => {
     await mockUnauthenticated(page);
@@ -31,8 +46,13 @@ test.describe("unauthenticated", () => {
     ).toBeVisible();
   });
 
-  test("redirects to /login when visiting /about", async ({ page }) => {
-    await page.goto("/about");
+  test("redirects to /login when visiting /app", async ({ page }) => {
+    await page.goto("/app");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("redirects to /login when visiting /app/settings", async ({ page }) => {
+    await page.goto("/app/settings");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -49,7 +69,7 @@ test.describe("unauthenticated", () => {
 });
 
 test.describe("login flow", () => {
-  test("successful login redirects to home", async ({ page }) => {
+  test("successful login redirects to /app", async ({ page }) => {
     await mockUnauthenticated(page);
     await page.goto("/login");
 
@@ -61,12 +81,15 @@ test.describe("login flow", () => {
     // After login, /me should return authenticated — unroute first to replace mock
     await page.unroute("**/api/v1/auth/me");
     await mockAuthenticated(page);
+    await mockDashboardApis(page);
 
     await page.getByLabel("Password").fill("correct-password");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await expect(page).toHaveURL("/app");
+    await expect(
+      page.getByRole("heading", { name: "Videos" }),
+    ).toBeVisible();
   });
 
   test("failed login shows error message", async ({ page }) => {
@@ -111,15 +134,18 @@ test.describe("expired session", () => {
     page,
   }) => {
     await mockAuthenticated(page);
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await mockDashboardApis(page);
+    await page.goto("/app");
+    await expect(
+      page.getByRole("heading", { name: "Videos" }),
+    ).toBeVisible();
 
     // Session expires — /me now returns 401
     await page.unroute("**/api/v1/auth/me");
     await mockUnauthenticated(page);
 
     // Navigate to trigger beforeLoad auth check
-    await page.getByRole("link", { name: "About" }).click();
+    await page.getByRole("link", { name: "Settings" }).click();
 
     await expect(page).toHaveURL(/\/login/);
   });
@@ -128,25 +154,23 @@ test.describe("expired session", () => {
     page,
   }) => {
     await mockAuthenticated(page);
+    await mockDashboardApis(page);
 
-    // Mock videos list as initially working
-    await page.route("**/api/v1/videos/*", (route) =>
-      route.fulfill({ status: 200, json: { items: [], total: 0 } }),
-    );
-
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await page.goto("/app");
+    await expect(
+      page.getByRole("heading", { name: "Videos" }),
+    ).toBeVisible();
 
     // Session expires — any API call now returns 401
     await page.unroute("**/api/v1/auth/me");
-    await page.unroute("**/api/v1/videos/*");
-    await page.route("**/api/v1/videos/*", (route) =>
+    await page.unroute("**/api/v1/videos/batches");
+    await page.route("**/api/v1/videos/batches", (route) =>
       route.fulfill({ status: 401, json: { detail: "Not authenticated" } }),
     );
     await mockUnauthenticated(page);
 
     // Trigger an API call by navigating (beforeLoad calls /me which is now 401)
-    await page.getByRole("link", { name: "About" }).click();
+    await page.getByRole("link", { name: "Settings" }).click();
 
     await expect(page).toHaveURL(/\/login/);
   });
@@ -155,28 +179,41 @@ test.describe("expired session", () => {
 test.describe("authenticated", () => {
   test.beforeEach(async ({ page }) => {
     await mockAuthenticated(page);
+    await mockDashboardApis(page);
   });
 
-  test("home page loads when authenticated", async ({ page }) => {
+  test("root redirects to /app when authenticated", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-  });
-
-  test("navigation works when authenticated", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: "About" }).click();
-    await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
-  });
-
-  test("logout button is visible", async ({ page }) => {
-    await page.goto("/");
+    await expect(page).toHaveURL("/app");
     await expect(
-      page.getByRole("button", { name: "Logout" }),
+      page.getByRole("heading", { name: "Videos" }),
     ).toBeVisible();
   });
 
-  test("logout redirects to login", async ({ page }) => {
-    await page.goto("/");
+  test("home page loads when authenticated", async ({ page }) => {
+    await page.goto("/app");
+    await expect(
+      page.getByRole("heading", { name: "Videos" }),
+    ).toBeVisible();
+  });
+
+  test("navigation works when authenticated", async ({ page }) => {
+    await page.goto("/app");
+    await page.getByRole("link", { name: "Settings" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Settings" }),
+    ).toBeVisible();
+  });
+
+  test("sign out button is visible", async ({ page }) => {
+    await page.goto("/app");
+    await expect(
+      page.getByRole("button", { name: "Sign out" }),
+    ).toBeVisible();
+  });
+
+  test("sign out redirects to login", async ({ page }) => {
+    await page.goto("/app");
 
     // Mock logout success
     await page.route("**/api/v1/auth/logout", (route) =>
@@ -187,7 +224,7 @@ test.describe("authenticated", () => {
     await page.unroute("**/api/v1/auth/me");
     await mockUnauthenticated(page);
 
-    await page.getByRole("button", { name: "Logout" }).click();
+    await page.getByRole("button", { name: "Sign out" }).click();
 
     await expect(page).toHaveURL(/\/login/);
     await expect(

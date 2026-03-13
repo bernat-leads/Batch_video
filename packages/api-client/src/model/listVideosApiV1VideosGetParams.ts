@@ -8,4 +8,5 @@
 export type ListVideosApiV1VideosGetParams = {
 page?: number;
 page_size?: number;
+batch_id?: string | null;
 };

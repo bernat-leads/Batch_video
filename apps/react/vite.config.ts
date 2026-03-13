@@ -6,7 +6,11 @@ import { resolve } from "node:path";
 
 export default defineConfig({
   envPrefix: ["VITE_", "PUBLIC_"],
-  plugins: [TanStackRouterVite(), react(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite(),
+    react(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),

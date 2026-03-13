@@ -6,7 +6,10 @@
  */
 import type { VideoReadVoiceId } from './videoReadVoiceId';
 import type { VideoReadStyle } from './videoReadStyle';
+import type { VideoReadTopText } from './videoReadTopText';
 import type { VideoReadBatchId } from './videoReadBatchId';
+import type { VideoStatus } from './videoStatus';
+import type { VideoStage } from './videoStage';
 import type { VideoReadErrorMessage } from './videoReadErrorMessage';
 import type { VideoReadOutputUrl } from './videoReadOutputUrl';
 import type { VideoReadUpdatedAt } from './videoReadUpdatedAt';
@@ -16,14 +19,23 @@ import type { VideoReadUpdatedAt } from './videoReadUpdatedAt';
  */
 export interface VideoRead {
   script_text: string;
+  prompt?: string;
   voice_id?: VideoReadVoiceId;
   style?: VideoReadStyle;
+  top_text?: VideoReadTopText;
   id: string;
   batch_id?: VideoReadBatchId;
-  status: string;
-  current_stage: string;
+  status: VideoStatus;
+  current_stage: VideoStage;
   error_message?: VideoReadErrorMessage;
   output_url?: VideoReadOutputUrl;
+  tokens_used?: number;
+  generation_time_ms?: number;
+  total_cost_usd?: number;
+  avg_cost_per_shot_usd?: number;
+  file_size_bytes?: number;
+  width?: number;
+  height?: number;
   created_at: string;
   updated_at?: VideoReadUpdatedAt;
 }

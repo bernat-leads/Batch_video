@@ -4,5 +4,6 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { VideoStage } from './videoStage';
 
-export type VideoUpdateCurrentStage = string | null;
+export type VideoUpdateCurrentStage = VideoStage | null;

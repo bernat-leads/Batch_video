@@ -5,23 +5,50 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/auth/me", (route) =>
     route.fulfill({ status: 200, json: { authenticated: true } }),
   );
+  // Mock batches list for dashboard
+  await page.route("**/api/v1/videos/batches", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
 });
 
 test("home page loads", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await page.goto("/app");
+  await expect(
+    page.getByRole("heading", { name: "Videos" }),
+  ).toBeVisible();
 });
 
-test("about page loads", async ({ page }) => {
-  await page.goto("/about");
-  await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
+test("settings page loads", async ({ page }) => {
+  // Mock settings endpoint
+  await page.route("**/api/v1/settings*", (route) =>
+    route.fulfill({
+      status: 200,
+      json: { master_prompt: "", retention_days: 7 },
+    }),
+  );
+  await page.goto("/app/settings");
+  await expect(
+    page.getByRole("heading", { name: "Settings" }),
+  ).toBeVisible();
 });
 
 test("navigation between pages", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "About" }).click();
-  await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
+  // Mock settings endpoint
+  await page.route("**/api/v1/settings*", (route) =>
+    route.fulfill({
+      status: 200,
+      json: { master_prompt: "", retention_days: 7 },
+    }),
+  );
 
-  await page.getByRole("link", { name: "Home" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await page.goto("/app");
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Settings" }),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Videos" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Videos" }),
+  ).toBeVisible();
 });

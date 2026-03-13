@@ -1,14 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, redirect } from "@tanstack/react-router";
+import { meApiV1AuthMeGet } from "@packages/api-client";
 
 export const Route = createFileRoute("/")({
-  component: HomePage,
+  beforeLoad: async () => {
+    try {
+      await meApiV1AuthMeGet();
+      throw redirect({ to: "/app" });
+    } catch (e) {
+      if (isRedirect(e)) throw e;
+      throw redirect({ to: "/login" });
+    }
+  },
 });
-
-function HomePage() {
-  return (
-    <div>
-      <h1 className="mb-4 text-3xl font-bold">Home</h1>
-      <p className="text-gray-600">Welcome to the React application.</p>
-    </div>
-  );
-}

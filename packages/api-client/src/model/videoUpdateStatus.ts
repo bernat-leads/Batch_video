@@ -4,5 +4,6 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { VideoStatus } from './videoStatus';
 
-export type VideoUpdateStatus = string | null;
+export type VideoUpdateStatus = VideoStatus | null;

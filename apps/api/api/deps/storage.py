@@ -22,6 +22,7 @@ class StorageService:
         self._bucket = settings.R2_BUCKET_NAME
 
     def upload_file(self, key: str, data: bytes, content_type: str) -> None:
+        """Upload a file to R2 storage."""
         self._client.put_object(
             Bucket=self._bucket,
             Key=key,
@@ -30,10 +31,12 @@ class StorageService:
         )
 
     def download_file(self, key: str) -> bytes:
+        """Download a file from R2 storage."""
         response = self._client.get_object(Bucket=self._bucket, Key=key)
         return response["Body"].read()
 
     def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:
+        """Generate a presigned URL for a file."""
         return self._client.generate_presigned_url(
             "get_object",
             Params={"Bucket": self._bucket, "Key": key},
@@ -41,6 +44,7 @@ class StorageService:
         )
 
     def delete_file(self, key: str) -> None:
+        """Delete a file from R2 storage."""
         self._client.delete_object(Bucket=self._bucket, Key=key)
 
 

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
-def login(body: LoginRequest, serializer: SerializerDep) -> AuthStatus:
+def login(body: LoginRequest, serializer: SerializerDep) -> JSONResponse:
     """Verify password and set signed session cookie."""
     if not hmac.compare_digest(body.password, settings.APP_PASSWORD):
         raise HTTPException(
@@ -37,7 +37,7 @@ def login(body: LoginRequest, serializer: SerializerDep) -> AuthStatus:
 
 
 @router.post("/logout")
-def logout() -> AuthStatus:
+def logout() -> JSONResponse:
     """Clear session cookie."""
     response = JSONResponse(content={"authenticated": False})
     response.delete_cookie(key="session", path="/")

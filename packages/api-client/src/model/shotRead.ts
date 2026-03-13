@@ -21,6 +21,9 @@ export interface ShotRead {
   id: string;
   video_id: string;
   image_url?: ShotReadImageUrl;
+  tokens_used?: number;
+  generation_time_ms?: number;
+  cost_usd?: number;
   created_at: string;
   updated_at?: ShotReadUpdatedAt;
 }

@@ -6,7 +6,10 @@
  */
 import type { VideoReadWithShotsVoiceId } from './videoReadWithShotsVoiceId';
 import type { VideoReadWithShotsStyle } from './videoReadWithShotsStyle';
+import type { VideoReadWithShotsTopText } from './videoReadWithShotsTopText';
 import type { VideoReadWithShotsBatchId } from './videoReadWithShotsBatchId';
+import type { VideoStatus } from './videoStatus';
+import type { VideoStage } from './videoStage';
 import type { VideoReadWithShotsErrorMessage } from './videoReadWithShotsErrorMessage';
 import type { VideoReadWithShotsOutputUrl } from './videoReadWithShotsOutputUrl';
 import type { VideoReadWithShotsUpdatedAt } from './videoReadWithShotsUpdatedAt';
@@ -17,15 +20,26 @@ import type { ShotRead } from './shotRead';
  */
 export interface VideoReadWithShots {
   script_text: string;
+  prompt?: string;
   voice_id?: VideoReadWithShotsVoiceId;
   style?: VideoReadWithShotsStyle;
+  top_text?: VideoReadWithShotsTopText;
   id: string;
   batch_id?: VideoReadWithShotsBatchId;
-  status: string;
-  current_stage: string;
+  status: VideoStatus;
+  current_stage: VideoStage;
   error_message?: VideoReadWithShotsErrorMessage;
   output_url?: VideoReadWithShotsOutputUrl;
+  tokens_used?: number;
+  generation_time_ms?: number;
+  total_cost_usd?: number;
+  avg_cost_per_shot_usd?: number;
+  file_size_bytes?: number;
+  width?: number;
+  height?: number;
   created_at: string;
   updated_at?: VideoReadWithShotsUpdatedAt;
   shots?: ShotRead[];
+  avg_tokens_per_shot?: number;
+  avg_generation_time_per_shot_ms?: number;
 }

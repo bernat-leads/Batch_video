@@ -25,14 +25,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database."""
-    # Tables should be created with Alembic migrations
-    # But if you don't want to use migrations, create
-    # the tables un-commenting the next lines
+    """Initialize database. Tables are created via Alembic migrations."""
     async with engine.begin():
-        # Tables are created via Alembic migrations; uncomment to create from metadata:
-        # from app.core.models import BaseModel
-        # await conn.run_sync(Base.metadata.create_all)
         pass
 
 

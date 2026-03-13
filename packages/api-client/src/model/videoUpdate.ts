@@ -5,8 +5,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VideoUpdateScriptText } from './videoUpdateScriptText';
+import type { VideoUpdatePrompt } from './videoUpdatePrompt';
 import type { VideoUpdateVoiceId } from './videoUpdateVoiceId';
 import type { VideoUpdateStyle } from './videoUpdateStyle';
+import type { VideoUpdateTopText } from './videoUpdateTopText';
 import type { VideoUpdateStatus } from './videoUpdateStatus';
 import type { VideoUpdateCurrentStage } from './videoUpdateCurrentStage';
 import type { VideoUpdateErrorMessage } from './videoUpdateErrorMessage';
@@ -17,8 +19,10 @@ import type { VideoUpdateOutputUrl } from './videoUpdateOutputUrl';
  */
 export interface VideoUpdate {
   script_text?: VideoUpdateScriptText;
+  prompt?: VideoUpdatePrompt;
   voice_id?: VideoUpdateVoiceId;
   style?: VideoUpdateStyle;
+  top_text?: VideoUpdateTopText;
   status?: VideoUpdateStatus;
   current_stage?: VideoUpdateCurrentStage;
   error_message?: VideoUpdateErrorMessage;
