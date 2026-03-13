@@ -36,18 +36,12 @@ class Video(BaseModel):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     output_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    generation_time_ms: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
-    total_cost_usd: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
+    generation_time_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     avg_cost_per_shot_usd: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.0
     )
-    file_size_bytes: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
+    file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     width: Mapped[int] = mapped_column(Integer, nullable=False, default=1080)
     height: Mapped[int] = mapped_column(Integer, nullable=False, default=1920)
 

@@ -18,12 +18,8 @@ class Batch(BaseModel):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     total_videos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    generation_time_ms: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
-    total_cost_usd: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
+    generation_time_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     avg_cost_per_video_usd: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.0
     )

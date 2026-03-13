@@ -34,9 +34,7 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
     async def get_with_shots(self, video_id: uuid.UUID) -> Video | None:
         """Get a video by ID with shots eagerly loaded."""
         stmt = (
-            select(Video)
-            .options(selectinload(Video.shots))
-            .where(Video.id == video_id)
+            select(Video).options(selectinload(Video.shots)).where(Video.id == video_id)
         )
         result = await self.db_session.execute(stmt)
         return result.scalars().first()
@@ -73,9 +71,7 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
                 func.count()
                 .filter(Video.status == VideoStatus.completed)
                 .label("completed"),
-                func.count()
-                .filter(Video.status == VideoStatus.failed)
-                .label("failed"),
+                func.count().filter(Video.status == VideoStatus.failed).label("failed"),
                 func.count()
                 .filter(Video.status == VideoStatus.processing)
                 .label("processing"),
@@ -89,9 +85,7 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
                 func.coalesce(func.sum(Video.generation_time_ms), 0).label(
                     "total_gen_time"
                 ),
-                func.coalesce(func.sum(Video.total_cost_usd), 0.0).label(
-                    "total_cost"
-                ),
+                func.coalesce(func.sum(Video.total_cost_usd), 0.0).label("total_cost"),
             )
         )
         agg = aggs.one()
@@ -189,9 +183,7 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
                 func.count()
                 .filter(Video.status == VideoStatus.completed)
                 .label("completed"),
-                func.count()
-                .filter(Video.status == VideoStatus.failed)
-                .label("failed"),
+                func.count().filter(Video.status == VideoStatus.failed).label("failed"),
                 func.count()
                 .filter(Video.status == VideoStatus.processing)
                 .label("processing"),
@@ -199,7 +191,9 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
                 .filter(Video.status == VideoStatus.pending)
                 .label("pending"),
                 func.coalesce(func.sum(Video.tokens_used), 0).label("sum_tokens"),
-                func.coalesce(func.sum(Video.generation_time_ms), 0).label("sum_gen_time"),
+                func.coalesce(func.sum(Video.generation_time_ms), 0).label(
+                    "sum_gen_time"
+                ),
                 func.coalesce(func.sum(Video.total_cost_usd), 0.0).label("sum_cost"),
             )
             .outerjoin(Video, Video.batch_id == Batch.id)
@@ -210,10 +204,7 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
         row = result.one_or_none()
         if not row:
             return None
-        batch_dict = {
-            c.key: getattr(row.Batch, c.key)
-            for c in Batch.__table__.columns
-        }
+        batch_dict = {c.key: getattr(row.Batch, c.key) for c in Batch.__table__.columns}
         batch_dict["completed"] = row.completed
         batch_dict["failed"] = row.failed
         batch_dict["processing"] = row.processing
@@ -241,9 +232,7 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
                 func.count()
                 .filter(Video.status == VideoStatus.completed)
                 .label("completed"),
-                func.count()
-                .filter(Video.status == VideoStatus.failed)
-                .label("failed"),
+                func.count().filter(Video.status == VideoStatus.failed).label("failed"),
                 func.count()
                 .filter(Video.status == VideoStatus.processing)
                 .label("processing"),
@@ -251,7 +240,9 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
                 .filter(Video.status == VideoStatus.pending)
                 .label("pending"),
                 func.coalesce(func.sum(Video.tokens_used), 0).label("sum_tokens"),
-                func.coalesce(func.sum(Video.generation_time_ms), 0).label("sum_gen_time"),
+                func.coalesce(func.sum(Video.generation_time_ms), 0).label(
+                    "sum_gen_time"
+                ),
                 func.coalesce(func.sum(Video.total_cost_usd), 0.0).label("sum_cost"),
             )
             .outerjoin(Video, Video.batch_id == Batch.id)
@@ -264,8 +255,7 @@ class BatchCrud(BaseCrud[Batch, BatchCreate, BatchUpdate]):
         rows = []
         for row in result.all():
             batch_dict = {
-                c.key: getattr(row.Batch, c.key)
-                for c in Batch.__table__.columns
+                c.key: getattr(row.Batch, c.key) for c in Batch.__table__.columns
             }
             batch_dict["completed"] = row.completed
             batch_dict["failed"] = row.failed

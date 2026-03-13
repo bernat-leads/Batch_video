@@ -66,9 +66,7 @@ async def get_batch(
 
 
 @batches_router.delete("/{batch_id}", status_code=204)
-async def delete_batch(
-    batch_id: uuid.UUID, crud: BatchCrudDep, _auth: AuthDep
-) -> None:
+async def delete_batch(batch_id: uuid.UUID, crud: BatchCrudDep, _auth: AuthDep) -> None:
     """Delete a batch and all its videos."""
     deleted = await crud.delete(batch_id)
     if not deleted:
@@ -81,9 +79,7 @@ async def delete_batch(
 
 
 @videos_router.get("/stats/dashboard", response_model=DashboardResponse)
-async def get_dashboard_stats(
-    crud: VideoCrudDep, _auth: AuthDep
-) -> DashboardResponse:
+async def get_dashboard_stats(crud: VideoCrudDep, _auth: AuthDep) -> DashboardResponse:
     """Get aggregated dashboard statistics."""
     stats = await crud.get_dashboard_stats()
     daily = await crud.get_daily_stats(days=7)
@@ -94,7 +90,9 @@ async def get_dashboard_stats(
 
 
 @videos_router.post("/", response_model=VideoRead, status_code=201)
-async def create_video(video_in: VideoCreate, crud: VideoCrudDep, _auth: AuthDep) -> VideoRead:
+async def create_video(
+    video_in: VideoCreate, crud: VideoCrudDep, _auth: AuthDep
+) -> VideoRead:
     """Create a new video record."""
     return await crud.create(video_in)
 
@@ -114,7 +112,9 @@ async def list_videos(
 
 
 @videos_router.get("/{video_id}", response_model=VideoReadWithShots)
-async def get_video(video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep) -> VideoReadWithShots:
+async def get_video(
+    video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep
+) -> VideoReadWithShots:
     """Get a video by ID, including its shots."""
     video = await crud.get_with_shots(video_id)
     if not video:
@@ -167,7 +167,9 @@ async def create_shot(
 
 
 @shots_router.get("/", response_model=list[ShotRead])
-async def list_shots(video_id: uuid.UUID, db: SessionDep, _auth: AuthDep) -> list[ShotRead]:
+async def list_shots(
+    video_id: uuid.UUID, db: SessionDep, _auth: AuthDep
+) -> list[ShotRead]:
     """List all shots for a video, ordered by sequence."""
     statement = select(Shot).where(Shot.video_id == video_id).order_by(Shot.order)
     result = await db.execute(statement)

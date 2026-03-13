@@ -22,12 +22,8 @@ class AppSettings(BaseModel):
     default_script_column: Mapped[str] = mapped_column(
         String(100), default="script_text"
     )
-    default_voice_column: Mapped[str] = mapped_column(
-        String(100), default="voice_id"
-    )
-    default_style_column: Mapped[str] = mapped_column(
-        String(100), default="style"
-    )
+    default_voice_column: Mapped[str] = mapped_column(String(100), default="voice_id")
+    default_style_column: Mapped[str] = mapped_column(String(100), default="style")
     default_top_text_column: Mapped[str] = mapped_column(
         String(100), default="top_text"
     )
