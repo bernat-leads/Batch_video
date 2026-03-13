@@ -1,1 +1,114 @@
-@import "tailwindcss";
+@import "@packages/ui/styles/global";
+@source "../../node_modules/@packages/ui/src/**/*.{ts,tsx}";
+
+@layer base {
+  :root {
+    /* Sidebar */
+    --sidebar-bg: #F5F1ED;
+    --sidebar-text: #6B5D4D;
+    --sidebar-text-muted: #A89B8C;
+    --sidebar-hover: #EBE5DC;
+    --sidebar-active: #E3DCD2;
+    --sidebar-border: #C2B8AA;
+
+    /* Content area (warm cream) */
+    --content-bg: #FAF8F5;
+    --card-bg: #FFFDF9;
+    --border-color: #E8E0D4;
+
+    /* Text */
+    --text-primary: #1A1612;
+    --text-secondary: #4A3D30;
+    --text-muted: #8C7E6E;
+
+    /* Brand accent (warm amber) */
+    --brand: #A87B50;
+    --brand-hover: #946A42;
+
+    /* Status colors */
+    --color-success: #5A8C5A;
+    --color-success-light: #EFF5EF;
+    --color-warning: #C4956A;
+    --color-warning-light: #FDF6EF;
+    --color-error: #B85C4D;
+    --color-error-light: #FDF0EE;
+    --color-info: #6B8CAE;
+    --color-info-light: #EFF4F8;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--content-bg);
+    color: var(--text-primary);
+    font-feature-settings: "kern" 1, "liga" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    height: 100%;
+    overflow: auto;
+  }
+}
+
+/* View Transitions */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: fade-out 0.15s ease-in;
+  }
+  ::view-transition-new(root) {
+    animation: fade-in 0.15s ease-out;
+  }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Input focus: subtle shadow instead of ring */
+input:focus-visible,
+textarea:focus-visible,
+[role="combobox"]:focus-visible {
+  outline: none !important;
+  ring: none !important;
+  --tw-ring-shadow: none !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Sidebar: faster collapse + text fades out instead of being pushed */
+[data-sidebar="sidebar"] {
+  transition-duration: 100ms !important;
+}
+[data-sidebar="sidebar"] ~ div {
+  transition-duration: 100ms !important;
+}
+
+/* Text labels fade out on collapse */
+[data-collapsible="icon"] [data-sidebar="menu-button"] span:not(:has(svg)),
+[data-collapsible="icon"] [data-sidebar="group-label"] {
+  opacity: 0;
+  transition: opacity 80ms ease-out;
+}
+[data-sidebar="menu-button"] span:not(:has(svg)),
+[data-sidebar="group-label"] {
+  transition: opacity 80ms ease-out;
+}
+
+/* Keep icons in place — don't let them shift */
+[data-sidebar="menu-button"] svg {
+  flex-shrink: 0;
+}
+

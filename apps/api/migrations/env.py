@@ -20,6 +20,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from api.videos.models.video import Video  # noqa: E402, F401
 from api.videos.models.shot import Shot  # noqa: E402, F401
+from api.settings_module.models.app_settings import AppSettings  # noqa: E402, F401
 from api.core.models import BaseModel  # noqa: E402
 
 target_metadata = BaseModel.metadata

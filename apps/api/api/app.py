@@ -11,6 +11,7 @@ from api.core import router as core_router
 from api.deps.sentry import init_sentry
 from api.exceptions import register_exception_handlers
 from api.settings import settings
+from api.settings_module import settings_router
 from api.videos import shots_router, videos_router
 
 logger = logging.getLogger(__name__)
@@ -49,5 +50,6 @@ def create_application() -> FastAPI:
 
     app.include_router(videos_router, prefix=API_V1_STR)
     app.include_router(shots_router, prefix=API_V1_STR)
+    app.include_router(settings_router, prefix=API_V1_STR)
 
     return app

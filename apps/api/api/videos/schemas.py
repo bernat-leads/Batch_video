@@ -103,3 +103,20 @@ class VideoReadWithShots(VideoRead):
     """Schema for reading a video with its shots."""
 
     shots: list[ShotRead] = []
+
+
+# ---------------------------------------------------------------------------
+# Batch schemas
+# ---------------------------------------------------------------------------
+
+
+class BatchSummary(BaseModel):
+    """Aggregate stats for a batch."""
+
+    batch_id: uuid.UUID
+    total: int
+    completed: int
+    failed: int
+    processing: int
+    pending: int
+    created_at: datetime
