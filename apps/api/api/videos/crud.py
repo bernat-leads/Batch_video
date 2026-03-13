@@ -52,9 +52,7 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
                 func.count().label("total"),
                 func.count().filter(Video.status == "completed").label("completed"),
                 func.count().filter(Video.status == "failed").label("failed"),
-                func.count().filter(Video.status == "processing").label(
-                    "processing"
-                ),
+                func.count().filter(Video.status == "processing").label("processing"),
                 func.count().filter(Video.status == "pending").label("pending"),
                 func.min(Video.created_at).label("created_at"),
             )
