@@ -1,5 +1,5 @@
 import secrets
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import (
     AliasChoices,
@@ -7,7 +7,6 @@ from pydantic import (
     HttpUrl,
     PostgresDsn,
     computed_field,
-    model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +17,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         env_ignore_empty=True,
         extra="ignore",
-        env_prefix="API_",  # Env vars: API_DATABASE_URL, API_OPENAI_API_KEY, etc.
+        env_prefix="API_",  # Env vars: API_DATABASE_URL, API_R2_ACCOUNT_ID, etc.
     )
 
     # ─── API ─────────────────────────────────────────────────────────────────
@@ -27,7 +26,6 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     # ─── Database ────────────────────────────────────────────────────────────
-    # API uses its own Postgres database (separate from the Next.js app DB).
     DATABASE_URL: PostgresDsn = PostgresDsn(
         "postgresql+asyncpg://postgres:postgres@localhost:5432/api"
     )
@@ -41,53 +39,23 @@ class Settings(BaseSettings):
     SERVER_LOG_LEVEL: str = "info"
     SWAGGER_HIDE: bool = False
 
-    # ─── OAuth / Better Auth ─────────────────────────────────────────────────
-    OAUTH_PROVIDER_BASE_URL: str = "http://localhost:3002"
-    OAUTH_CLIENT_ID: str = ""
-    OAUTH_CLIENT_SECRET: str = ""
+    # ─── Cloudflare R2 ─────────────────────────────────────────────────────
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = "video-pipeline"
 
-    OAUTH_ISSUER_URL: str = ""
-    OAUTH_AUDIENCE: str = ""
+    # ─── ElevenLabs ────────────────────────────────────────────────────────
+    ELEVENLABS_API_KEY: str = ""
 
-    @model_validator(mode="after")
-    def _default_oauth_fields(self) -> "Settings":
-        if not self.OAUTH_ISSUER_URL:
-            self.OAUTH_ISSUER_URL = self.OAUTH_PROVIDER_BASE_URL
-        if not self.OAUTH_AUDIENCE:
-            self.OAUTH_AUDIENCE = self.OAUTH_PROVIDER_BASE_URL
-        return self
+    # ─── Anthropic (Claude) ───────────────────────────────────────────────
+    ANTHROPIC_API_KEY: str = ""
 
-    @computed_field
-    @property
-    def OAUTH_PROVIDER_JWKS_URL(self) -> str:
-        return f"{self.OAUTH_PROVIDER_BASE_URL.rstrip('/')}/api/auth/jwks"
-
-    @computed_field
-    @property
-    def OAUTH_PROVIDER_URL(self) -> str:
-        return f"{self.OAUTH_PROVIDER_BASE_URL.rstrip('/')}/api/auth/oauth2"
-
-    @computed_field
-    @property
-    def OAUTH_PROVIDER_USERINFO_URL(self) -> str:
-        return f"{self.OAUTH_PROVIDER_BASE_URL.rstrip('/')}/api/auth/oauth2/userinfo"
-
-    # ─── OpenAI ──────────────────────────────────────────────────────────────
-    OPENAI_API_KEY: str = ""
-
-    # ─── Apify ───────────────────────────────────────────────────────────────
-    APIFY_API_TOKEN: str = ""
-
-    # ─── Tavily ─────────────────────────────────────────────────────────────
-    TAVILY_API_KEY: str = ""
+    # ─── Google Gemini ─────────────────────────────────────────────────────
+    GEMINI_API_KEY: str = ""
 
     # ─── File uploads ─────────────────────────────────────────────────────────
     UPLOAD_DIR: str = "./uploads"
-
-    # ─── Langfuse ──────────────────────────────────────────────────────────
-    LANGFUSE_SECRET_KEY: str = ""
-    LANGFUSE_PUBLIC_KEY: str = ""
-    LANGFUSE_BASE_URL: str = "https://cloud.langfuse.com"
 
     # ─── Optional / Observability ────────────────────────────────────────────
     SENTRY_DSN: HttpUrl | None = None
@@ -113,18 +81,6 @@ class Settings(BaseSettings):
     @property
     def openapi_url(self) -> str | None:
         return None if self.SWAGGER_HIDE else "/openapi.json"
-
-    @computed_field
-    @property
-    def swagger_ui_init_oauth(self) -> dict[str, Any] | None:
-        if self.SWAGGER_HIDE or not self.OAUTH_CLIENT_ID:
-            return None
-        return {
-            "clientId": self.OAUTH_CLIENT_ID,
-            "appName": f"{self.PROJECT_NAME} Docs",
-            "usePkceWithAuthorizationCodeGrant": True,
-            "scopes": "openid profile email",
-        }
 
     @computed_field
     @property

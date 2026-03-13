@@ -1,130 +1,110 @@
 # Database Reference
 
-## Two-Database Architecture
+## Single Database Architecture
 
 ```mermaid
 graph TB
-    subgraph "Frontend DB (PostgreSQL :5432)"
+    subgraph "PostgreSQL (:5433)"
         direction TB
-        FDrizzle["Drizzle ORM"]
-        FUsers["users / sessions / accounts"]
-        FCMS["Payload CMS content"]
-        FThreads["chat threads"]
-        FCK["CopilotKit state"]
+        SQLAlchemy["SQLAlchemy 2.0 (async)"]
+        Videos["videos"]
+        Shots["shots"]
 
-        FDrizzle --> FUsers
-        FDrizzle --> FCMS
-        FDrizzle --> FThreads
-        FDrizzle --> FCK
+        SQLAlchemy --> Videos
+        SQLAlchemy --> Shots
     end
 
-    subgraph "Backend DB (PostgreSQL :5433)"
-        direction TB
-        BSQLAlchemy["SQLAlchemy 2.0 (async)"]
-        BItems["items (example domain model)"]
-        BCheckpoints["LangGraph checkpoints"]
-
-        BSQLAlchemy --> BItems
-        BSQLAlchemy --> BCheckpoints
-    end
-
-    NextJS["Next.js + Payload CMS"] --> FDrizzle
-    FastAPI["FastAPI"] --> BSQLAlchemy
+    FastAPI["FastAPI"] --> SQLAlchemy
 ```
 
-| Property | Frontend DB | Backend DB |
-|----------|------------|------------|
-| ORM | Drizzle | SQLAlchemy 2.0 (async) |
-| Migration tool | Drizzle Kit | Alembic |
-| Used by | Next.js, Payload CMS | FastAPI |
-| Config | `apps/nextjs/drizzle.config.ts` | `apps/fastapi/alembic.ini` |
-| Schema location | `apps/nextjs/src/server/db/schemas/` | `apps/fastapi/api/*/models/` |
-| Port (local) | 5432 | 5433 |
+| Property | Value |
+|----------|-------|
+| ORM | SQLAlchemy 2.0 (async) |
+| Migration tool | Alembic |
+| Used by | FastAPI |
+| Config | `apps/api/alembic.ini` |
+| Schema location | `apps/api/api/*/models/` |
+| Port (local) | 5433 |
 
-## Frontend DB Schemas (Drizzle)
-
-Located in `apps/nextjs/src/server/db/schemas/`:
-
-- **payload-schema.ts**: Better Auth tables (users, sessions, accounts, verifications, OAuth) + Payload CMS tables
-- **threads-schema.ts**: Chat thread storage (id, userId, title, timestamps)
-- **copilotkit-schema.ts**: CopilotKit agent state persistence
-
-### Frontend Migration Commands
-```bash
-pnpm db:generate:app    # Generate migration from schema changes
-pnpm db:migrate:app     # Apply migrations
-```
-
-## Backend DB Models (SQLAlchemy)
-
-Located in each module's `models/` directory under `apps/fastapi/api/`:
-
-### Entity Relationship Diagram
+## Entity Relationship Diagram
 
 ```mermaid
 erDiagram
-    items {
+    videos {
         UUID id PK
-        String user_id
-        JSON data
-        Integer version
+        UUID batch_id "nullable, indexed"
+        Text script_text
+        String voice_id "nullable"
+        String style "nullable"
+        String status "pending|processing|completed|failed"
+        String current_stage "queued|tts|segmentation|image_generation|assembly|upload|done"
+        Text error_message "nullable"
+        String output_url "nullable"
         DateTime created_at
         DateTime updated_at
     }
 
-    item_translations {
+    shots {
         UUID id PK
-        UUID item_id FK
-        String user_id
-        String locale
-        Integer version
-        JSON translated_data
+        UUID video_id FK
+        Integer order
+        Text text
+        Text image_prompt
+        JSON ken_burns_config "nullable"
+        Float start_time
+        Float end_time
+        String image_url "nullable"
         DateTime created_at
+        DateTime updated_at
     }
 
-    items ||--o{ item_translations : "has translations"
+    videos ||--o{ shots : "has shots"
 ```
 
-### Models by module
+## Models by Module
 
 | Model | Module | Table |
 |-------|--------|-------|
-| `Item` | `items/` | `items` |
-| `ItemTranslation` | `items/` | `item_translations` |
+| `Video` | `videos/` | `videos` |
+| `Shot` | `videos/` | `shots` |
 
-### Backend Migration Commands
+## Base Model
+
+All models inherit timestamps from `BaseModel`:
+
+```python
+# api/core/models.py
+class BaseModel(DeclarativeBase):
+    __abstract__ = True
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), ...)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), ...)
+```
+
+## Migration Commands
+
 ```bash
-cd apps/fastapi
+cd apps/api
 poetry run alembic revision --autogenerate -m "description"
 poetry run alembic upgrade head
 ```
 
 ## Adding a New Table (TDD)
 
-1. **Write a test first** for the CRUD operations in `apps/fastapi/__tests__/`
+1. **Write a test first** for the CRUD operations in `apps/api/__tests__/`
 2. Create SQLAlchemy model in `api/{module}/models/`
-3. Create Pydantic schemas in `api/{module}/schemas/`
-4. Create CRUD operations in `api/{module}/crud/`
-5. Generate migration: `poetry run alembic revision --autogenerate -m "add {table}"`
-6. Apply migration: `poetry run alembic upgrade head`
-7. **Run tests** — verify they pass
-
-## LangGraph Checkpoints
-
-LangGraph state is persisted in the backend DB via `agents/checkpointer.py` using `AsyncPostgresSaver` from `langgraph-checkpoint-postgres`:
-
-- Connection pool: min 2 / max 10 connections, autocommit, `dict_row` factory
-- Schema created on startup: `CREATE SCHEMA IF NOT EXISTS {DATABASE_SCHEMA}`
-- Tables created via `await saver.setup()`
-- Stores conversation state between requests, enabling multi-turn conversations
+3. Create Pydantic schemas in `api/{module}/schemas.py`
+4. Create CRUD class in `api/{module}/crud.py` (extend `BaseCrud`)
+5. Import model in `migrations/env.py`
+6. Generate migration: `poetry run alembic revision --autogenerate -m "add {table}"`
+7. Apply migration: `poetry run alembic upgrade head`
+8. **Run tests** — verify they pass
 
 ## Naming Conventions
 
-| Layer | Convention | Example |
-|-------|-----------|---------|
-| Frontend (Drizzle) | camelCase columns | `userId`, `createdAt` |
-| Backend (SQLAlchemy) | snake_case columns | `user_id`, `created_at` |
-| Both | UUID primary keys | `id = Column(UUID, primary_key=True)` |
-| Both | Auto timestamps | `created_at`, `updated_at` |
-| Drizzle | `pgTable` definitions | `export const users = pgTable(...)` |
-| SQLAlchemy | Declarative models | `class Item(Base): ...` |
+| Convention | Example |
+|-----------|---------|
+| snake_case columns | `video_id`, `created_at` |
+| UUID primary keys | `id = mapped_column(UUID(as_uuid=True), primary_key=True)` |
+| Auto timestamps | Inherited from `BaseModel` |
+| Declarative models | `class Video(BaseModel): ...` |

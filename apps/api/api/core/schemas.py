@@ -1,23 +1,33 @@
-"""Shared schemas — task responses and common types."""
+"""Shared schemas — pagination, error responses, and common types."""
 
-from enum import StrEnum
-from typing import Any, Literal
+import math
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel
 
-
-class Locale(StrEnum):
-    EN = "en"
-    LT = "lt"
-    RU = "ru"
+T = TypeVar("T")
 
 
-# Task Response Schemas
-class TaskResponseBase(BaseModel):
-    """Base schema for task responses."""
+class PageResponse(BaseModel, Generic[T]):
+    """Paginated response wrapper."""
 
-    status: Literal["success", "error", "created", "exists", "failed"] | None = None
-    message: str | None = None
+    items: list[T]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+    @classmethod
+    def create(
+        cls, items: list[T], total: int, page: int, page_size: int
+    ) -> "PageResponse[T]":
+        return cls(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+            total_pages=math.ceil(total / page_size) if page_size > 0 else 0,
+        )
 
 
 class ErrorResponse(BaseModel):

@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from api.settings import settings
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -18,21 +18,11 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from api.items.models.item import Item  # noqa: E402
+from api.videos.models.video import Video  # noqa: E402, F401
+from api.videos.models.shot import Shot  # noqa: E402, F401
 from api.core.models import BaseModel  # noqa: E402
 
 target_metadata = BaseModel.metadata
-
-# Tables not managed by SQLAlchemy models (e.g. created by LangGraph or other systems).
-# Alembic autogenerate must ignore these so it doesn't try to drop them.
-EXCLUDE_TABLES = {"threads"}
-
-
-def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and name in EXCLUDE_TABLES:
-        return False
-    return True
-
 
 # Set database URL from settings
 config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
@@ -56,7 +46,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -68,7 +57,6 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -88,7 +76,6 @@ async def run_async_migrations() -> None:
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
-        # Note: Alembic's begin_transaction() in do_run_migrations handles the commit
 
     await connectable.dispose()
 
