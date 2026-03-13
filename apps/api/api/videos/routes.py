@@ -36,7 +36,9 @@ async def create_video(video_in: VideoCreate, crud: VideoCrudDep, _auth: AuthDep
 
 
 @videos_router.get("/", response_model=PageResponse[VideoRead])
-async def list_videos(crud: VideoCrudDep, _auth: AuthDep, page: int = 1, page_size: int = 50):
+async def list_videos(
+    crud: VideoCrudDep, _auth: AuthDep, page: int = 1, page_size: int = 50
+):
     """List videos with pagination."""
     return await crud.get_multi(page=page, page_size=page_size)
 
@@ -51,7 +53,9 @@ async def get_video(video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep):
 
 
 @videos_router.patch("/{video_id}", response_model=VideoRead)
-async def update_video(video_id: uuid.UUID, video_in: VideoUpdate, crud: VideoCrudDep, _auth: AuthDep):
+async def update_video(
+    video_id: uuid.UUID, video_in: VideoUpdate, crud: VideoCrudDep, _auth: AuthDep
+):
     """Update a video."""
     video = await crud.update(video_id, video_in)
     if not video:
@@ -95,7 +99,9 @@ async def list_shots(video_id: uuid.UUID, db: SessionDep, _auth: AuthDep):
 
 
 @shots_router.get("/{shot_id}", response_model=ShotRead)
-async def get_shot(video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep):
+async def get_shot(
+    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
+):
     """Get a specific shot."""
     shot = await crud.get(shot_id)
     if not shot or shot.video_id != video_id:

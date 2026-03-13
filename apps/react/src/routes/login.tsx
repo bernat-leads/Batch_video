@@ -1,7 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  isRedirect,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLoginApiV1AuthLoginPost } from "@packages/api-client";
+import {
+  meApiV1AuthMeGet,
+  useLoginApiV1AuthLoginPost,
+} from "@packages/api-client";
 import type { LoginRequest } from "@packages/api-client";
 import { Button } from "@packages/ui/components/shadcn/button";
 import { Input } from "@packages/ui/components/shadcn/input";
@@ -22,6 +30,14 @@ import {
 import { loginSchema } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
+  beforeLoad: async () => {
+    try {
+      await meApiV1AuthMeGet();
+      throw redirect({ to: "/" });
+    } catch (e) {
+      if (isRedirect(e)) throw e;
+    }
+  },
   component: LoginPage,
 });
 
