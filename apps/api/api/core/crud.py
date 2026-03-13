@@ -33,16 +33,16 @@ class BaseCrud(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """Get a record by ID."""
         return await self.db_session.get(self.model, record_id)
 
-    async def get_multi(
-        self, page: int = 1, page_size: int = 50
-    ) -> PageResponse:
+    async def get_multi(self, page: int = 1, page_size: int = 50) -> PageResponse:
         """Get multiple records with pagination."""
         total = await self.count()
         offset = (page - 1) * page_size
         statement = select(self.model).offset(offset).limit(page_size)
         result = await self.db_session.execute(statement)
         items = list(result.scalars().all())
-        return PageResponse.create(items=items, total=total, page=page, page_size=page_size)
+        return PageResponse.create(
+            items=items, total=total, page=page, page_size=page_size
+        )
 
     async def update(
         self, record_id: uuid.UUID, obj_in: UpdateSchemaType

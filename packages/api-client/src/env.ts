@@ -2,11 +2,11 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
-  clientPrefix: "NEXT_PUBLIC_",
+  clientPrefix: "PUBLIC_",
   client: {
-    NEXT_PUBLIC_BACKEND_API_URL: z.string().url().default("http://localhost:8000"),
+    PUBLIC_API_URL: z.string().url().default("http://localhost:8000"),
   },
-  runtimeEnv: process.env,
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  runtimeEnv: import.meta.env,
+  skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
 });

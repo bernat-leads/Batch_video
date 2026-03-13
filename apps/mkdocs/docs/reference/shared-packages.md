@@ -78,6 +78,47 @@ trackEvent(POSTHOG_EVENTS.CHAT_MESSAGE_SENT, { thread_id })
 
 Generated from FastAPI's OpenAPI spec. Provides fully-typed hooks and request functions for all backend endpoints.
 
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `src/generated.ts` | Orval-generated hooks and request functions |
+| `src/model/` | Generated TypeScript types from Pydantic schemas |
+| `src/custom-instance.ts` | Axios instance with `withCredentials: true` |
+| `src/env.ts` | `PUBLIC_API_URL` via t3-env (used as Axios `baseURL`) |
+| `src/index.ts` | Public exports |
+
+**Axios instance:**
+```typescript
+// custom-instance.ts
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: env.PUBLIC_API_URL,
+  withCredentials: true,  // Required for cross-origin cookie auth
+});
+```
+
+`withCredentials: true` ensures cookies are sent with every request. No redirect logic in the transport layer — 401 handling is in the app's QueryClient.
+
+**Environment:**
+```typescript
+// env.ts — uses import.meta.env only (no process.env)
+export const env = createEnv({
+  clientPrefix: "PUBLIC_",
+  client: { PUBLIC_API_URL: z.string().url().default("http://localhost:8000") },
+  runtimeEnv: import.meta.env,
+});
+```
+
+**Generated auth hooks:**
+
+| Hook / Function | Description |
+|----------------|-------------|
+| `useLoginApiV1AuthLoginPost` | Login mutation hook |
+| `loginApiV1AuthLoginPost` | Login request function |
+| `useLogoutApiV1AuthLogoutPost` | Logout mutation hook |
+| `useMeApiV1AuthMeGet` | Session check query hook |
+| `meApiV1AuthMeGet` | Session check request function |
+
 **Regenerate after backend changes:**
 ```bash
 pnpm run generate-api
@@ -85,9 +126,13 @@ pnpm run generate-api
 
 **Usage in app:**
 ```tsx
-import { useGetItemsApiV1ItemsGet } from "@packages/api-client"
+import { useLoginApiV1AuthLoginPost } from "@packages/api-client";
+import type { LoginRequest } from "@packages/api-client";
 
-const { data, isLoading } = useGetItemsApiV1ItemsGet()
+const login = useLoginApiV1AuthLoginPost({
+  mutation: { onSuccess: () => navigate({ to: "/" }) },
+});
+login.mutate({ data: { password: "..." } });
 ```
 
 ## @packages/sentry — Sentry Configuration

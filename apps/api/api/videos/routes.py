@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from api.core.schemas import PageResponse
+from api.deps.auth import AuthDep
 from api.deps.db import SessionDep
 from api.videos.crud import ShotCrudDep, VideoCrudDep
 from api.videos.models.shot import Shot
@@ -29,19 +30,21 @@ shots_router = APIRouter(prefix="/videos/{video_id}/shots", tags=["shots"])
 
 
 @videos_router.post("/", response_model=VideoRead, status_code=201)
-async def create_video(video_in: VideoCreate, crud: VideoCrudDep):
+async def create_video(video_in: VideoCreate, crud: VideoCrudDep, _auth: AuthDep):
     """Create a new video record."""
     return await crud.create(video_in)
 
 
 @videos_router.get("/", response_model=PageResponse[VideoRead])
-async def list_videos(crud: VideoCrudDep, page: int = 1, page_size: int = 50):
+async def list_videos(
+    crud: VideoCrudDep, _auth: AuthDep, page: int = 1, page_size: int = 50
+):
     """List videos with pagination."""
     return await crud.get_multi(page=page, page_size=page_size)
 
 
 @videos_router.get("/{video_id}", response_model=VideoReadWithShots)
-async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
+async def get_video(video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep):
     """Get a video by ID, including its shots."""
     video = await crud.get(video_id)
     if not video:
@@ -51,7 +54,7 @@ async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
 
 @videos_router.patch("/{video_id}", response_model=VideoRead)
 async def update_video(
-    video_id: uuid.UUID, video_in: VideoUpdate, crud: VideoCrudDep
+    video_id: uuid.UUID, video_in: VideoUpdate, crud: VideoCrudDep, _auth: AuthDep
 ):
     """Update a video."""
     video = await crud.update(video_id, video_in)
@@ -61,7 +64,7 @@ async def update_video(
 
 
 @videos_router.delete("/{video_id}", status_code=204)
-async def delete_video(video_id: uuid.UUID, crud: VideoCrudDep) -> None:
+async def delete_video(video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep) -> None:
     """Delete a video and its shots."""
     deleted = await crud.delete(video_id)
     if not deleted:
@@ -79,6 +82,7 @@ async def create_shot(
     shot_in: ShotCreate,
     video_crud: VideoCrudDep,
     shot_crud: ShotCrudDep,
+    _auth: AuthDep,
 ):
     """Create a shot for a video."""
     if not await video_crud.exists(video_id):
@@ -87,20 +91,16 @@ async def create_shot(
 
 
 @shots_router.get("/", response_model=list[ShotRead])
-async def list_shots(video_id: uuid.UUID, db: SessionDep):
+async def list_shots(video_id: uuid.UUID, db: SessionDep, _auth: AuthDep):
     """List all shots for a video, ordered by sequence."""
-    statement = (
-        select(Shot)
-        .where(Shot.video_id == video_id)
-        .order_by(Shot.order)
-    )
+    statement = select(Shot).where(Shot.video_id == video_id).order_by(Shot.order)
     result = await db.execute(statement)
     return list(result.scalars().all())
 
 
 @shots_router.get("/{shot_id}", response_model=ShotRead)
 async def get_shot(
-    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep
+    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
 ):
     """Get a specific shot."""
     shot = await crud.get(shot_id)
@@ -115,6 +115,7 @@ async def update_shot(
     shot_id: uuid.UUID,
     shot_in: ShotUpdate,
     crud: ShotCrudDep,
+    _auth: AuthDep,
 ):
     """Update a shot."""
     shot = await crud.get(shot_id)
@@ -125,7 +126,7 @@ async def update_shot(
 
 @shots_router.delete("/{shot_id}", status_code=204)
 async def delete_shot(
-    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep
+    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
 ) -> None:
     """Delete a shot."""
     shot = await crud.get(shot_id)

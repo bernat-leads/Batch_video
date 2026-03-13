@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
+    # ─── Auth ──────────────────────────────────────────────────────────────
+    APP_PASSWORD: str = ""
+    SESSION_MAX_AGE: int = 86400 * 7  # 7 days
+    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+
     # ─── Database ────────────────────────────────────────────────────────────
     DATABASE_URL: PostgresDsn = PostgresDsn(
         "postgresql+asyncpg://postgres:postgres@localhost:5432/api"

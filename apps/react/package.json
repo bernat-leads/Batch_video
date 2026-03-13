@@ -14,25 +14,30 @@
     "test:e2e:install": "playwright install --with-deps"
   },
   "dependencies": {
-    "react": "catalog:react-v19",
-    "react-dom": "catalog:react-v19",
+    "@hookform/resolvers": "^5.2.2",
+    "@packages/api-client": "workspace:*",
+    "@packages/ui": "workspace:*",
+    "@t3-oss/env-core": "catalog:default",
+    "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.131.50",
     "@tanstack/react-router-devtools": "^1.131.50",
-    "@t3-oss/env-core": "catalog:default",
+    "react": "catalog:react-v19",
+    "react-dom": "catalog:react-v19",
+    "react-hook-form": "^7.71.2",
     "zod": "catalog:default"
   },
   "devDependencies": {
-    "@tooling/typescript-config": "workspace:*",
-    "@tooling/eslint-config": "workspace:*",
-    "@vitejs/plugin-react": "catalog:keycloak",
-    "vite": "catalog:build",
-    "typescript": "catalog:default",
+    "@playwright/test": "^1.52.0",
+    "@tailwindcss/vite": "catalog:tailwind",
     "@tanstack/router-plugin": "catalog:tanstack",
+    "@tooling/eslint-config": "workspace:*",
+    "@tooling/typescript-config": "workspace:*",
     "@types/react": "catalog:react-v19",
     "@types/react-dom": "catalog:react-v19",
+    "@vitejs/plugin-react": "catalog:keycloak",
     "tailwindcss": "catalog:tailwind",
-    "@tailwindcss/vite": "catalog:tailwind",
-    "@playwright/test": "^1.52.0"
+    "typescript": "catalog:default",
+    "vite": "catalog:build"
   },
   "prettier": "@tooling/prettier-config"
 }

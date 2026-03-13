@@ -22,9 +22,10 @@
 ```
 apps/api/
 ├── api/              # FastAPI HTTP server (routes, modules, deps)
+│   ├── auth/         # Authentication (login, logout, session check)
 │   ├── core/         # Base models, CRUD, health routes
 │   ├── videos/       # Video pipeline domain (models, routes, schemas, crud)
-│   └── deps/         # Shared dependencies (db, storage, celery, sentry)
+│   └── deps/         # Shared dependencies (db, storage, celery, sentry, auth)
 ├── __tests__/        # pytest tests
 ├── migrations/       # Alembic migrations
 └── pyproject.toml    # Poetry config + CLI scripts
@@ -67,7 +68,7 @@ module_name/
 └── __init__.py
 ```
 
-**Current modules:** `videos/`, `core/`, `deps/`
+**Current modules:** `videos/`, `auth/`, `core/`, `deps/`
 
 ## Where to Put New Code
 
@@ -290,6 +291,7 @@ def my_background_task(self, **kwargs) -> None:
 | Router | Prefix | Tags | Source |
 |--------|--------|------|--------|
 | `core_router` | `/` | core | `api/core/routes.py` — health check, root |
+| `auth_router` | `/api/v1/auth` | auth | `api/auth/routes.py` — login, logout, session check |
 | `videos_router` | `/api/v1/videos` | videos | `api/videos/routes.py` |
 | `shots_router` | `/api/v1/videos/{video_id}/shots` | shots | `api/videos/routes.py` |
 
@@ -300,6 +302,7 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 | Category | Variables |
 |----------|-----------|
 | Core | `API_PROJECT_NAME`, `API_SECRET_KEY`, `API_ENVIRONMENT` (local/staging/production) |
+| Auth | `API_APP_PASSWORD`, `API_SESSION_MAX_AGE` (default: 7 days), `API_CORS_ORIGINS` |
 | Database | `API_DATABASE_URL` (postgresql+asyncpg) |
 | Server | `API_SERVER_HOST`, `API_SERVER_PORT`, `API_SERVER_LOG_LEVEL`, `API_SWAGGER_HIDE` |
 | Cloudflare R2 | `API_R2_ACCOUNT_ID`, `API_R2_ACCESS_KEY_ID`, `API_R2_SECRET_ACCESS_KEY`, `API_R2_BUCKET_NAME` |
@@ -313,7 +316,7 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 
 | Entity | Pattern | Example |
 |--------|---------|---------|
-| Dependency alias | `XyzDep = Annotated[Xyz, Depends()]` | `VideoCrudDep`, `SessionDep` |
+| Dependency alias | `XyzDep = Annotated[Xyz, Depends()]` | `VideoCrudDep`, `SessionDep`, `AuthDep`, `SerializerDep` |
 | CRUD class | `{Model}Crud` | `VideoCrud`, `ShotCrud` |
 | Read schema | `{Model}Read` | `VideoRead`, `ShotRead` |
 | Create/Update schema | `{Model}Create` / `{Model}Update` | `VideoCreate`, `VideoUpdate` |
@@ -331,6 +334,7 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 | Celery | Task queue | `api/deps/celery.py` |
 | Redis | Broker + result backend | `api/deps/celery.py` |
 | boto3 | Cloudflare R2 (S3-compatible) | `api/deps/storage.py` |
+| itsdangerous | Signed cookie sessions | `api/deps/auth.py` |
 | Sentry SDK | Error tracking | `api/deps/sentry.py` |
 
 ## Running
