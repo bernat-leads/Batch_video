@@ -1,4 +1,8 @@
-"""Pytest configuration and shared fixtures."""
+"""Pytest configuration and shared fixtures.
+
+Provides reusable test fixtures for FastAPI test clients, mock database sessions,
+and application instances used across the test suite.
+"""
 
 from __future__ import annotations
 
@@ -8,31 +12,18 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from agents.checkpointer import get_checkpointer
 from api.app import create_application
 from api.core import router as core_router
-from api.deps.auth import User, get_user
 
 
 # ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-FAKE_USER = User(
-    id="user-test-123",
-    email="test@example.com",
-    name="Test User",
-)
-
-
-# ---------------------------------------------------------------------------
-# Core-only fixtures (existing)
+# Core-only fixtures
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def app_core_only() -> FastAPI:
-    """Minimal FastAPI app with only core routes (no DB/lifespan). Use for unit tests."""
+    """Create a minimal FastAPI app with only core routes (no DB/lifespan)."""
     app = FastAPI(title="Test API")
     app.include_router(core_router)
     return app
@@ -40,7 +31,7 @@ def app_core_only() -> FastAPI:
 
 @pytest.fixture
 def client(app_core_only: FastAPI) -> TestClient:
-    """Test client for the core-only app. No database required."""
+    """Provide a test client for the core-only app. No database required."""
     return TestClient(app_core_only)
 
 
@@ -51,29 +42,13 @@ def client(app_core_only: FastAPI) -> TestClient:
 
 @pytest.fixture
 def app() -> FastAPI:
-    """Full application with all routers. Checkpointer is mocked to avoid real DB pool."""
-    application = create_application()
-    application.dependency_overrides[get_checkpointer] = lambda: AsyncMock()
-    return application
-
-
-@pytest.fixture
-def fake_user() -> User:
-    return FAKE_USER
+    """Create a full application instance with all routers."""
+    return create_application()
 
 
 @pytest.fixture
 def authed_client(app: FastAPI) -> TestClient:
-    """TestClient with auth dependency overridden to return fake user."""
-    app.dependency_overrides[get_user] = lambda: FAKE_USER
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def unauthed_client(app: FastAPI) -> TestClient:
-    """TestClient with NO auth override — requests hit real auth and fail."""
+    """Provide a test client with no auth restrictions."""
     client = TestClient(app)
     yield client
 
@@ -85,7 +60,7 @@ def unauthed_client(app: FastAPI) -> TestClient:
 
 @pytest.fixture
 def mock_session() -> AsyncMock:
-    """Mocked AsyncSession for CRUD unit tests."""
+    """Provide a mocked AsyncSession with standard DB operations stubbed."""
     session = AsyncMock()
     session.commit = AsyncMock()
     session.refresh = AsyncMock()

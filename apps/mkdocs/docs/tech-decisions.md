@@ -6,73 +6,65 @@
 
 ## Architecture
 
-### Separate Frontend and Backend Databases
-- **Decision:** Two PostgreSQL databases — one for Next.js/Payload, one for FastAPI
-- **Rationale:** Clean separation of concerns. Frontend DB handles auth, CMS, and sessions. Backend DB handles domain models. Each uses its native ORM (Drizzle vs SQLAlchemy).
+### Single Database (not two)
+- **Decision:** One PostgreSQL database for the FastAPI backend (SQLAlchemy async)
+- **Rationale:** This is an internal tool, not a SaaS. No separate frontend DB needed — React is a pure SPA that talks to FastAPI. All data (batches, jobs, artifacts) lives in one place.
 
-### Better Auth as OIDC Provider
-- **Decision:** Better Auth handles all user-facing auth; FastAPI trusts it via OIDC/JWKS
-- **Rationale:** Single source of truth for user identity. FastAPI doesn't manage users — it validates JWTs. This avoids auth duplication.
+### Shared Password Auth (not per-user)
+- **Decision:** Single password (`APP_PASSWORD` env var) protects the app. No individual accounts.
+- **Rationale:** Small marketing team, internal tool. Shared password is simplest. Session via cookie/token after login.
 
-### LangGraph for Agent Orchestration
-- **Decision:** LangGraph state machine with conversation + tools loop
-- **Rationale:** The agent requires tool-calling (background task dispatch, web search, data fetching). LangGraph's graph model with `ToolNode` makes the conversation → tools → conversation loop clean and extensible.
+### Celery for Pipeline Orchestration
+- **Decision:** Celery task chains process each video sequentially; workers handle different videos in parallel
+- **Rationale:** Each pipeline stage (TTS → segmentation → image gen → assembly) must run in order, but multiple videos can process simultaneously. Celery chains + worker pool is the natural fit.
 
-### CopilotKit for Chat UI
-- **Decision:** CopilotKit + AG-UI protocol for frontend-to-agent communication
-- **Rationale:** Provides streaming, tool rendering, and state management out of the box. The agent endpoint follows the AG-UI spec for real-time response streaming.
+### Cloudflare R2 for Storage
+- **Decision:** All artifacts (audio, images, videos) stored in Cloudflare R2
+- **Rationale:** S3-compatible, no egress fees. Videos served via presigned URLs. 7-day lifecycle auto-cleanup.
+
+### Remotion for Video Assembly
+- **Decision:** Remotion renders final MP4 videos with Ken Burns effects, synced audio, and burned-in captions
+- **Rationale:** Programmatic video composition in TypeScript. Ken Burns pan/zoom on AI images, word-synced captions, audio overlay — all defined as React components rendered to MP4.
 
 ### Orval for API Client Generation
 - **Decision:** Auto-generate TypeScript client from FastAPI's OpenAPI spec
-- **Rationale:** Type safety between frontend and backend. Changes to FastAPI schemas automatically propagate to frontend types. Run `pnpm run generate-api` to regenerate.
+- **Rationale:** Type safety between frontend and backend. Run `pnpm run generate-api` to regenerate.
 
-### Payload CMS for Content Management
-- **Decision:** Payload CMS (embedded in Next.js) for all marketing/content pages
-- **Rationale:** Provides admin UI, localization, block-based page building, media management, and live preview. All landing pages, blog posts, and site settings are CMS-managed.
+---
 
-### CMS-Driven Landing Pages with Block System
-- **Decision:** Landing pages built from composable Payload blocks, rendered by `BlocksRenderer`
-- **Rationale:** Non-developers can edit landing pages via Payload admin. Each block has a Payload schema (fields) and a React component (renderer). New block types are easy to add.
+## Pipeline
 
-### Page Templates for Header/Footer
-- **Decision:** Header and footer blocks stored in `page-templates` collection, rendered by public layout
-- **Rationale:** Consistent site chrome across all public pages. Editable via CMS admin without code changes.
+### ElevenLabs for TTS
+- **Decision:** ElevenLabs API for text-to-speech with word-level timestamps
+- **Rationale:** High-quality voices, word-level timing data needed for caption sync.
+
+### Claude for Script Segmentation
+- **Decision:** Claude claude-sonnet-4-6 segments scripts into 5-8s visual segments with image prompts and Ken Burns directions
+- **Rationale:** LLM understands narrative flow — can decide where to break visually, what imagery fits each segment, and how the camera should move.
+
+### Gemini Imagen 3 for Image Generation
+- **Decision:** Google Gemini Imagen 3 generates 1080x1920 images per segment
+- **Rationale:** High-quality image generation at the required portrait aspect ratio.
+
+### Intermediate Artifact Storage
+- **Decision:** Each pipeline stage stores its output in R2 before passing to the next stage
+- **Rationale:** Enables retry of individual stages without re-running the whole pipeline. Failed stage can restart from last successful artifact.
 
 ---
 
 ## Frontend
 
-### Next.js App Router (not Pages Router)
-- **Decision:** Use App Router with React Server Components
-- **Rationale:** Better data fetching patterns, server actions, and layout nesting. All new pages should use App Router patterns.
+### React SPA with Vite + TanStack Router (not Next.js)
+- **Decision:** Client-side React SPA, not SSR
+- **Rationale:** Internal tool — no SEO, no public pages. Vite for fast dev, TanStack Router for type-safe file-based routing.
 
-### tRPC for Internal Queries
-- **Decision:** tRPC for Next.js server-to-client communication
-- **Rationale:** Type-safe API layer without code generation. Used for data that lives in the frontend DB.
-
-### Server Actions for Mutations
-- **Decision:** Use Next.js server actions for auth, subscriptions, and email
-- **Rationale:** Collocated server logic, automatic form integration, no API route boilerplate.
-
-### @tanstack/react-form for Forms
-- **Decision:** Use @tanstack/react-form with Zod validators (not react-hook-form)
-- **Rationale:** First-class TypeScript support, built-in Zod integration via `validators: { onChange: schema }`, field-level validation, and clean API with `form.Field` render props.
+### shadcn/ui for Components
+- **Decision:** shadcn/ui (Radix + Tailwind) for all UI components
+- **Rationale:** Accessible, customizable, consistent. Shared via `packages/ui/`.
 
 ### @tanstack/react-query for Server State
-- **Decision:** Use @tanstack/react-query for API calls and mutations (including orval-generated hooks)
-- **Rationale:** Provides caching, invalidation, infinite queries, and mutation state management. Orval generates query hooks that use react-query under the hood.
-
-### unstable_cache for CMS Data
-- **Decision:** Use Next.js `unstable_cache` with tags and revalidation for CMS data fetching
-- **Rationale:** ISR-like caching for Payload CMS queries. Tagged with collection names for targeted revalidation. 1-hour TTL default.
-
-### DataProvider Context for Domain Pages
-- **Decision:** Shared context provider wraps domain data pages
-- **Rationale:** Domain data fetched once and shared across all related pages via React context. Avoids redundant API calls.
-
-### SubscriptionGuard (Client-Side Redirect)
-- **Decision:** Client component that redirects unsubscribed users to `/subscription`
-- **Rationale:** Protected layout checks subscription server-side and passes `hasSubscription` prop. Guard handles client-side redirect with exemptions for settings/subscription pages.
+- **Decision:** react-query for API calls and polling
+- **Rationale:** Built-in polling (`refetchInterval`) for real-time batch progress. Caching and invalidation for download URLs.
 
 ---
 
@@ -83,44 +75,24 @@
 - **Rationale:** Non-blocking I/O for concurrent requests. All DB operations use `async_session`.
 
 ### Module-per-domain Structure
-- **Decision:** Each domain has its own routes, models, schemas, and crud module
-- **Rationale:** Clear boundaries. New features get their own module following this pattern.
+- **Decision:** Each domain (batches, jobs, pipeline) has its own routes, models, schemas, and crud module
+- **Rationale:** Clear boundaries. New features get their own module.
 
 ### Generic BaseCrud Pattern
 - **Decision:** `BaseCrud[ModelType, CreateSchemaType, UpdateSchemaType]` generic base class
-- **Rationale:** DRY CRUD operations. Subclasses inject model type and add custom queries. All methods async.
+- **Rationale:** DRY CRUD operations. Subclasses inject model type and add custom queries.
 
 ### Typed Dependencies (Annotated + Depends)
 - **Decision:** All dependencies use `XyzDep = Annotated[Xyz, Depends(Xyz)]` pattern
-- **Rationale:** Clean function signatures, auto-resolved by FastAPI. Services, CRUD classes, auth, and DB sessions all use this pattern consistently.
-
-### Service Layer for Complex Modules
-- **Decision:** Service classes orchestrate multiple CRUD operations and external services
-- **Rationale:** Routes stay thin (just HTTP concerns). Business logic lives in services. Services get dependencies injected via constructor.
+- **Rationale:** Clean function signatures, auto-resolved by FastAPI.
 
 ### Alembic for Migrations
-- **Decision:** Alembic (not raw SQL) for backend DB migrations
-- **Rationale:** Version-controlled, reversible migrations. Auto-generated from SQLAlchemy model changes.
+- **Decision:** Alembic for database migrations
+- **Rationale:** Version-controlled, reversible migrations auto-generated from SQLAlchemy model changes.
 
-### API Module Structure (Flat Top-Level Packages)
-- **Decision:** Split into `api/` (HTTP), `agents/` (LangGraph), and `worker/` (Celery) as separate top-level packages
-- **Rationale:** Clean separation of concerns. Each is a distinct runtime. Shared via imports, separate entry points via Poetry scripts.
-
-### Langfuse for Tracing (Prompts Are Local)
-- **Decision:** Langfuse is used for LLM tracing and observability. Prompts are **local Python constants** in `agents/prompts/` (not fetched from Langfuse cloud).
-- **Rationale:** Local prompts give better version control, code review, and IDE support. Langfuse cloud prompt management added latency and made prompt changes harder to track in git. Tracing remains in Langfuse for cost/latency monitoring.
-
-### Celery for Background Processing
-- **Decision:** Celery + Redis for async background task processing
-- **Rationale:** Long-running tasks are too slow for synchronous response. Background processing with tool-triggered dispatch keeps the agent responsive.
-
-### Sentry for Error Tracking
-- **Decision:** Sentry SDK on both frontend (client/server/edge) and backend (FastAPI/SQLAlchemy/Celery)
-- **Rationale:** Production visibility into errors and performance. Optional via DSN — no-op when unconfigured.
-
-### PostHog for Product Analytics
-- **Decision:** PostHog via `@packages/analytics` shared package, proxied through Next.js rewrites
-- **Rationale:** First-party analytics proxy avoids ad blockers. Centralized event constants ensure consistency.
+### Retry with Backoff
+- **Decision:** Failed pipeline stages retry 3x before marking job as failed
+- **Rationale:** External API calls (ElevenLabs, Claude, Gemini) can have transient failures. Retries avoid losing progress on temporary issues.
 
 ---
 
@@ -130,9 +102,9 @@
 - **Decision:** Strict TypeScript everywhere in frontend
 - **Rationale:** Catch errors at compile time. No `any` types unless absolutely necessary.
 
-### Biome for Linting
-- **Decision:** Biome (not ESLint alone) for fast linting and formatting
-- **Rationale:** Faster than ESLint, handles both linting and formatting. See `biome.json` at root.
+### Conventional Commits
+- **Decision:** All commits follow Conventional Commits format
+- **Rationale:** Semantic versioning and changelog generation via semantic-release.
 
 ---
 

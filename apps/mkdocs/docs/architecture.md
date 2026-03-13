@@ -5,226 +5,150 @@
 ```mermaid
 graph LR
     Browser["Browser"]
-    NextJS["Next.js 15<br/>(React 19, SSR/RSC)"]
+    React["React SPA<br/>(Vite + TanStack Router)"]
     FastAPI["FastAPI<br/>(Python 3.12)"]
-    Agent["LangGraph Agent"]
     Celery["Celery Worker"]
-    FrontDB[("Frontend DB<br/>PostgreSQL")]
-    BackDB[("Backend DB<br/>PostgreSQL")]
+    DB[("PostgreSQL")]
     Redis[("Redis")]
-    OpenAI["OpenAI API"]
-    Traefik["Traefik<br/>(Reverse Proxy)"]
+    R2[("Cloudflare R2")]
+    ElevenLabs["ElevenLabs API"]
+    Claude["Claude API"]
+    Gemini["Gemini Imagen 3"]
 
-    Browser -->|"HTTP/WS"| Traefik
-    Traefik --> NextJS
-    Traefik --> FastAPI
-    NextJS -->|"tRPC"| FrontDB
-    NextJS -->|"Axios (generated)"| FastAPI
-    NextJS -->|"CopilotKit (AG-UI)"| FastAPI
-    FastAPI --> BackDB
-    FastAPI -->|"JWT via JWKS"| NextJS
-    FastAPI --> Agent
-    Agent -->|"dispatch task"| Celery
-    Agent -->|"LLM calls"| OpenAI
-    Celery --> BackDB
+    Browser -->|"HTTP"| React
+    React -->|"REST (generated client)"| FastAPI
+    FastAPI --> DB
+    FastAPI -->|"dispatch jobs"| Celery
     Celery -->|"broker"| Redis
+    Celery --> DB
+    Celery -->|"TTS"| ElevenLabs
+    Celery -->|"segmentation"| Claude
+    Celery -->|"image gen"| Gemini
+    Celery -->|"store artifacts"| R2
+    React -->|"poll status"| FastAPI
+    FastAPI -->|"presigned URLs"| R2
+```
+
+## Video Pipeline Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as React Frontend
+    participant API as FastAPI
+    participant Q as Celery Queue
+    participant W as Worker
+    participant EL as ElevenLabs
+    participant CL as Claude
+    participant GI as Gemini Imagen
+    participant RM as Remotion
+    participant R2 as Cloudflare R2
+
+    U->>FE: Upload Excel file
+    FE->>API: POST /batches (multipart)
+    API->>API: Parse & validate Excel
+    API->>Q: Dispatch job per script row
+
+    loop Per video
+        W->>EL: Script text → TTS audio + timestamps
+        EL-->>W: Audio file + word timings
+        W->>CL: Script + timestamps → segments + image prompts
+        CL-->>W: Segments with Ken Burns directions
+        W->>GI: Image prompts → 1080x1920 images (parallel)
+        GI-->>W: Generated images
+        W->>RM: Audio + images + captions → MP4
+        RM-->>W: Finished 9:16 video
+        W->>R2: Upload MP4
+        W->>API: Update job status → done
+    end
+
+    FE->>API: Poll batch progress
+    API-->>FE: Per-video status + download URLs
+    U->>FE: Download videos
+    FE->>R2: Presigned URL download
 ```
 
 ## Monorepo Structure
 
 ```
-app/                        # Root (pnpm workspaces + Turborepo)
+lead-alliances-video-pipeline/     # Root (pnpm workspaces + Turborepo)
 ├── apps/
-│   ├── nextjs/             # Next.js 15 frontend (React 19, TypeScript)
-│   │   ├── src/
-│   │   │   ├── app/                # App Router (i18n: [locale])
-│   │   │   │   ├── (app)/[locale]/(protected)/   # Auth-required pages
-│   │   │   │   ├── (app)/[locale]/(auth)/        # Public auth pages
-│   │   │   │   └── (payload)/admin/              # Payload CMS admin
-│   │   │   ├── components/         # React components
-│   │   │   ├── hooks/              # Custom hooks
-│   │   │   ├── server/             # Server-side code
-│   │   │   │   ├── auth/           # Better Auth setup
-│   │   │   │   ├── db/             # Drizzle ORM (schemas, migrations)
-│   │   │   │   ├── trpc/           # tRPC client setup
-│   │   │   │   └── api/            # tRPC routers
-│   │   │   ├── lib/                # Utilities
-│   │   │   │   ├── api/            # Generated FastAPI client (orval)
-│   │   │   │   └── copilotkit/     # CopilotKit integration
-│   │   │   └── actions/            # Server actions
-│   │   ├── sentry.*.config.ts      # Sentry configs (client, server, edge)
-│   │   └── drizzle.config.ts       # DB config
-│   ├── fastapi/            # FastAPI backend (Python 3.12)
-│   │   ├── api/            # HTTP layer (FastAPI routers + domain modules)
-│   │   ├── agents/         # LangGraph agent (state machine, nodes, prompts)
-│   │   ├── worker/         # Celery background tasks
-│   │   ├── __tests__/      # pytest tests
-│   │   ├── migrations/     # Alembic migrations
-│   │   └── pyproject.toml  # Poetry dependencies + CLI scripts
-│   ├── astro/              # Astro landing page
-│   ├── mkdocs/             # MkDocs documentation site
-│   ├── storybook/          # Storybook component library
-│   ├── keycloak-theme/     # Keycloak theme
-│   └── email/              # Email templates
+│   ├── react/                     # React SPA (Vite + TanStack Router)
+│   │   └── src/
+│   │       ├── routes/            # TanStack Router file-based routes
+│   │       ├── components/        # React components
+│   │       └── lib/               # Utilities, API client
+│   ├── api/                       # FastAPI backend (Python 3.12)
+│   │   ├── api/                   # HTTP layer (routers, models, schemas, crud)
+│   │   │   ├── core/              # Base models, CRUD, health routes
+│   │   │   ├── videos/            # Video pipeline domain
+│   │   │   └── deps/              # Dependencies (db, storage, celery, sentry)
+│   │   ├── __tests__/             # pytest tests
+│   │   └── migrations/            # Alembic migrations
+│   ├── mkdocs/                    # Developer documentation
+│   └── storybook/                 # UI component dev
 ├── packages/
-│   ├── ui/                 # shadcn/ui design system (Radix + Tailwind)
-│   ├── analytics/          # PostHog analytics (client provider, event constants)
-│   ├── email/              # React Email templates + Resend client
-│   ├── api-client/         # Generated FastAPI client (Orval)
-│   ├── sentry/             # Shared Sentry config
-│   ├── eslint-config/      # Shared ESLint
-│   ├── prettier-config/    # Shared Prettier
-│   └── typescript-config/  # Shared TypeScript
-└── e2e/                    # Playwright E2E tests (root level)
+│   ├── ui/                        # shadcn/ui (Radix + Tailwind)
+│   ├── analytics/                 # PostHog
+│   ├── api-client/                # Generated FastAPI client (Orval)
+│   └── sentry/                    # Shared Sentry config
+└── tooling/                       # Shared configs (TS, ESLint, Prettier)
 ```
 
 ## Where to Put New Code
 
 | You want to... | Put it in... |
 |----------------|-------------|
-| Add a new page | `apps/nextjs/src/app/(app)/[locale]/(protected)/` or `(auth)/` |
-| Add a React component | `apps/nextjs/src/components/{feature}/` |
-| Add a server action | `apps/nextjs/src/actions/` |
-| Add a tRPC router | `apps/nextjs/src/server/api/routers/` |
-| Add a custom hook | `apps/nextjs/src/hooks/` |
-| Add a backend endpoint | `apps/fastapi/api/{module}/routes.py` |
-| Add a backend model | `apps/fastapi/api/{module}/models/` |
-| Add a backend schema | `apps/fastapi/api/{module}/schemas/` |
-| Add a CRUD operation | `apps/fastapi/api/{module}/crud/` |
-| Add an agent node | `apps/fastapi/agents/nodes/` |
-| Add an agent prompt | `apps/fastapi/agents/prompts/` |
-| Add a Celery task | `apps/fastapi/worker/tasks.py` |
+| Add a new page/route | `apps/react/src/routes/` |
+| Add a React component | `apps/react/src/components/{feature}/` |
+| Add a custom hook | `apps/react/src/hooks/` |
+| Add a backend endpoint | `apps/api/api/{module}/routes.py` |
+| Add a backend model | `apps/api/api/{module}/models/` |
+| Add a backend schema | `apps/api/api/{module}/schemas.py` |
+| Add a CRUD class | `apps/api/api/{module}/crud.py` |
+| Add a pipeline task | `apps/api/api/deps/tasks.py` |
 | Add a shared UI component | `packages/ui/src/components/` |
-| Add an analytics event | `packages/analytics/src/constants.ts` |
-| Add an email template | `packages/email/templates/` |
-| Add an E2E test | `e2e/{project}/` |
-| Add a backend unit test | `apps/fastapi/__tests__/` |
-
-## Communication Flows
-
-### Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant N as Next.js
-    participant BA as Better Auth
-    participant F as FastAPI
-
-    B->>N: Sign in (email/password or Google)
-    N->>BA: Authenticate user
-    BA-->>N: JWT token + session
-    N-->>B: Set session cookie
-
-    B->>N: Request protected page
-    N->>BA: Validate session
-    BA-->>N: User data
-
-    B->>N: Call backend API
-    N->>F: Axios request + JWT Bearer
-    F->>BA: Validate JWT via JWKS
-    BA-->>F: Token valid
-    F-->>N: API response
-    N-->>B: Rendered page
-```
-
-### Chat Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant CK as CopilotKit
-    participant AG as LangGraph Agent
-    participant R as Router Node
-    participant C as Conversation Node
-    participant W as Celery Worker
-    participant DB as Backend DB
-
-    U->>CK: Send message
-    CK->>AG: AG-UI stream request
-    AG->>R: Classify message intent
-    R-->>AG: Route decision
-
-    AG->>C: Route to conversation node
-    C->>DB: Fetch context
-    C-->>CK: Stream response
-
-    AG->>W: Dispatch background task
-    W->>DB: Process and persist result
-```
-
-### Subscription & Paywall Flow
-
-```mermaid
-flowchart TD
-    A[User visits protected route] --> B{Has session?}
-    B -->|No| C[Redirect to /sign-in]
-    B -->|Yes| D{Active subscription?}
-    D -->|No| E[Render Paywall component]
-    D -->|Yes| F[Render dashboard with sidebar]
-    E --> G[User selects plan]
-    G --> H[Polar checkout]
-    H --> I[Webhook → Better Auth]
-    I --> J[Sync to user_subscriptions]
-    J --> F
-```
-
-## Two Databases
-
-```mermaid
-graph LR
-    subgraph "Frontend DB (Drizzle)"
-        Users["users"]
-        Sessions["sessions"]
-        CMS["CMS content"]
-        Threads["chat threads"]
-        CKState["CopilotKit state"]
-    end
-
-    subgraph "Backend DB (SQLAlchemy)"
-        Items["items (example module)"]
-        Checkpoints["LangGraph checkpoints"]
-    end
-
-    NextJS["Next.js"] --> Users
-    NextJS --> Sessions
-    NextJS --> CMS
-    NextJS --> Threads
-    NextJS --> CKState
-
-    FastAPI["FastAPI"] --> Items
-    FastAPI --> Checkpoints
-```
-
-| Database | ORM | Used By | Contains |
-|----------|-----|---------|----------|
-| Frontend DB | Drizzle | Next.js + Payload CMS | Users, sessions, OAuth, CMS content, threads, CopilotKit state |
-| Backend DB | SQLAlchemy | FastAPI | Application domain data, LangGraph checkpoints |
+| Add a backend unit test | `apps/api/__tests__/` |
+| Add an E2E test | `apps/react/e2e/` |
 
 ## Authentication
 
-1. Better Auth (Next.js) handles registration, login, email verification, Google OAuth
-2. Better Auth acts as OIDC provider — issues JWTs
-3. FastAPI validates JWTs against Better Auth's JWKS endpoint (`/api/auth/.well-known/jwks.json`)
-4. All FastAPI endpoints require Bearer token (except /health)
+Simple shared-password auth for the marketing team:
+- Single password set via `APP_PASSWORD` env var
+- No individual user accounts
+- Session persists via cookie/token
+- All API endpoints reject unauthenticated requests
+
+## Database
+
+Single PostgreSQL database (SQLAlchemy async):
+
+| Table | Purpose |
+|-------|---------|
+| `videos` | Video records (script, status, stage, output URL) |
+| `shots` | Segments per video (text, image prompt, Ken Burns config, timing) |
+
+## Storage (Cloudflare R2)
+
+- Intermediate artifacts stored per pipeline stage
+- Finished MP4s served via presigned URLs
+- Auto-cleanup after 7 days (R2 lifecycle rules or Celery beat)
+- Batch records retained in DB after file expiry (marked as expired)
 
 ## Key Technologies
 
-| Layer | Tech | Key Files |
-|-------|------|-----------|
-| Frontend framework | Next.js 15 + React 19 | `apps/nextjs/next.config.ts` |
-| Backend framework | FastAPI | `apps/fastapi/api/app.py` |
-| Reverse proxy | Traefik | `traefik/` |
-| Frontend DB | Drizzle ORM | `apps/nextjs/src/server/db/` |
-| Backend DB | SQLAlchemy 2.0 (async) | `apps/fastapi/api/deps/db.py` |
-| AI Agent | LangGraph + LangChain | `apps/fastapi/agents/graph.py` |
-| Chat UI | CopilotKit | `apps/nextjs/src/lib/copilotkit/` |
-| Auth | Better Auth | `apps/nextjs/src/server/auth/auth.ts` |
-| Payments | Polar | `apps/nextjs/src/actions/fetch-all-plans.ts` |
-| UI Library | shadcn/ui (Radix) | `packages/ui/` |
-| API Client | orval (generated) | `packages/api-client/` |
-| Email | Resend + React Email | `packages/email/` |
-| Analytics | PostHog | `packages/analytics/` |
-| Error Tracking | Sentry | `apps/nextjs/sentry.*.config.ts` + `apps/fastapi/api/deps/sentry.py` |
-| Task Queue | Celery + Redis | `apps/fastapi/worker/` |
-| Monorepo | Turborepo + pnpm | `turbo.json`, `pnpm-workspace.yaml` |
+| Layer | Tech |
+|-------|------|
+| Frontend | React + Vite + TanStack Router |
+| UI Library | shadcn/ui (Radix + Tailwind) |
+| Backend | FastAPI (Python 3.12) |
+| Database | PostgreSQL + SQLAlchemy 2.0 (async) |
+| Task Queue | Celery + Redis |
+| Storage | Cloudflare R2 |
+| TTS | ElevenLabs API |
+| Script Analysis | Claude claude-sonnet-4-6 |
+| Image Generation | Gemini Imagen 3 |
+| Video Assembly | Remotion |
+| API Client | Orval (generated) |
+| Monorepo | Turborepo + pnpm |
+| Deployment | Docker on VPS |

@@ -23,3 +23,14 @@ def mock_scalar_count(count: int, *, session: AsyncMock):
     mock_result = MagicMock()
     mock_result.scalar_one.return_value = count
     session.execute.return_value = mock_result
+
+
+def mock_paginated_result(items: list, total: int, *, session: AsyncMock):
+    """Mock session.execute() for paginated queries (count + select)."""
+    count_result = MagicMock()
+    count_result.scalar_one.return_value = total
+
+    items_result = MagicMock()
+    items_result.scalars.return_value.all.return_value = items
+
+    session.execute = AsyncMock(side_effect=[count_result, items_result])

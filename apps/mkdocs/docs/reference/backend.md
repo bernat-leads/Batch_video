@@ -4,31 +4,27 @@
 
 | Area | Path |
 |------|------|
-| App factory | `apps/fastapi/api/app.py` |
-| Uvicorn entry point | `apps/fastapi/api/main.py` |
-| Settings | `apps/fastapi/api/settings.py` |
-| Agent graph | `apps/fastapi/agents/graph.py` |
-| Agent nodes | `apps/fastapi/agents/nodes/` |
-| Agent tools | `apps/fastapi/agents/tools.py` |
-| Agent routes (CopilotKit) | `apps/fastapi/api/agents/routes.py` |
-| Items module (example) | `apps/fastapi/api/items/` |
-| Dependencies (auth, db, langfuse) | `apps/fastapi/api/deps/` |
-| Sentry integration | `apps/fastapi/api/deps/sentry.py` |
-| Langfuse integration | `apps/fastapi/api/deps/langfuse.py` |
-| Core (health, base models, CRUD) | `apps/fastapi/api/core/` |
-| Celery worker | `apps/fastapi/worker/` |
-| Migrations | `apps/fastapi/migrations/versions/` |
-| Tests | `apps/fastapi/__tests__/` |
+| App factory | `apps/api/api/app.py` |
+| Uvicorn entry point | `apps/api/api/main.py` |
+| Settings | `apps/api/api/settings.py` |
+| Videos module | `apps/api/api/videos/` |
+| Dependencies (db, storage, celery) | `apps/api/api/deps/` |
+| Sentry integration | `apps/api/api/deps/sentry.py` |
+| R2 storage | `apps/api/api/deps/storage.py` |
+| Celery config + worker | `apps/api/api/deps/celery.py` |
+| Celery tasks | `apps/api/api/deps/tasks.py` |
+| Core (health, base models, CRUD) | `apps/api/api/core/` |
+| Migrations | `apps/api/migrations/versions/` |
+| Tests | `apps/api/__tests__/` |
 
 ## Project Layout
 
-The backend is split into four top-level Python packages, each a distinct runtime:
-
 ```
-apps/fastapi/
+apps/api/
 ├── api/              # FastAPI HTTP server (routes, modules, deps)
-├── agents/           # LangGraph agent (graph, nodes, prompts, state)
-├── worker/           # Celery background tasks
+│   ├── core/         # Base models, CRUD, health routes
+│   ├── videos/       # Video pipeline domain (models, routes, schemas, crud)
+│   └── deps/         # Shared dependencies (db, storage, celery, sentry)
 ├── __tests__/        # pytest tests
 ├── migrations/       # Alembic migrations
 └── pyproject.toml    # Poetry config + CLI scripts
@@ -36,15 +32,12 @@ apps/fastapi/
 
 ## App Factory Pattern
 
-The FastAPI app is created via a factory function with lifespan context manager:
-
 ```python
 # api/app.py
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Startup: init Sentry + LangGraph checkpointer."""
+    """Startup: init Sentry."""
     init_sentry()
-    await init_checkpointer()
     yield
 
 def create_application() -> FastAPI:
@@ -56,9 +49,8 @@ def create_application() -> FastAPI:
     )
     app.add_middleware(CORSMiddleware, ...)
     app.include_router(core_router)
-    app.include_router(agent_router)
-    app.include_router(items_router, prefix="/api/v1")
-    # ... register all routers + exception handlers
+    app.include_router(videos_router, prefix="/api/v1")
+    app.include_router(shots_router, prefix="/api/v1")
     return app
 ```
 
@@ -68,15 +60,14 @@ Every domain module under `api/` follows this structure:
 
 ```
 module_name/
-├── routes.py           # Thin FastAPI router (delegates to service/crud)
-├── models/             # SQLAlchemy models (or models.py)
-├── schemas/            # Pydantic request/response models (or schemas.py)
-├── crud/               # Database operations (or crud.py)
-├── service.py          # Business logic (optional — for complex modules)
+├── routes.py           # FastAPI router (delegates to crud)
+├── models/             # SQLAlchemy models
+├── schemas.py          # Pydantic request/response schemas
+├── crud.py             # CRUD dependency classes (extend BaseCrud)
 └── __init__.py
 ```
 
-**Current modules:** `items/`, `agents/`, `core/`, `deps/`
+**Current modules:** `videos/`, `core/`, `deps/`
 
 ## Where to Put New Code
 
@@ -84,58 +75,71 @@ module_name/
 |-------------|-------------|
 | A new API endpoint | `api/{module}/routes.py` → register in `api/app.py` |
 | A new database table | `api/{module}/models/` → generate Alembic migration |
-| Request/response types | `api/{module}/schemas/` |
-| Database queries | `api/{module}/crud/` (extend `BaseCrud` for class-based) |
-| Business logic | `api/{module}/service.py` |
+| Request/response types | `api/{module}/schemas.py` |
+| Database queries | `api/{module}/crud.py` (extend `BaseCrud`) |
 | A shared dependency | `api/deps/` |
-| A new Celery task | `worker/tasks.py` |
-| A new agent node | `agents/nodes/` → wire in `agents/graph.py` |
-| A new agent tool | `agents/tools.py` → add to `TOOLS` list |
-| An agent prompt | `agents/prompts/` (local constants) |
-| A test | `__tests__/test_{name}.py` |
+| A new Celery task | `api/deps/tasks.py` |
+| A test | `__tests__/{module}/test_{name}.py` |
 
 ---
 
 ## Core Patterns
 
+### Base Model (SQLAlchemy)
+
+All models inherit `created_at` and `updated_at` from `BaseModel`:
+
+```python
+# api/core/models.py
+class BaseModel(DeclarativeBase):
+    __abstract__ = True
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=False),
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+        nullable=True,
+    )
+```
+
+### SQLAlchemy Model Pattern
+
+```python
+# api/videos/models/video.py
+class Video(BaseModel):
+    __tablename__ = "videos"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    script_text: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
+    # ... created_at and updated_at inherited from BaseModel
+```
+
+**Conventions:** UUID primary keys, timestamps inherited from BaseModel (UTC, no tzinfo), snake_case table and column names, indexed foreign keys.
+
 ### Typed Dependencies
 
-All dependencies use the `Annotated[..., Depends(...)]` pattern for clean injection:
+All dependencies use the `Annotated[..., Depends(...)]` pattern:
 
 ```python
 # Define typed dependency alias
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
-AuthenticatedUserDep = Annotated[User, Depends(get_user)]
-ItemServiceDep = Annotated[ItemService, Depends(ItemService)]
-ItemCrudDep = Annotated[ItemCrud, Depends(ItemCrud)]
+VideoCrudDep = Annotated[VideoCrud, Depends()]
+ShotCrudDep = Annotated[ShotCrud, Depends()]
+StorageDep = Annotated[StorageService, Depends(get_storage)]
 
 # Use in route handlers
-@router.get("/me")
-async def get_my_item(
-    service: ItemServiceDep,
-    current_user: AuthenticatedUserDep,
-    locale: Locale = Query(Locale.EN),
-) -> ItemResponse | None:
-    return await service.get_item(current_user.id, locale)
-```
-
-### Authentication
-
-JWT validated against Better Auth's JWKS endpoint:
-
-```python
-# api/deps/auth.py
-@lru_cache
-def get_jwks_client() -> PyJWKClient:
-    return PyJWKClient(str(settings.OAUTH_PROVIDER_JWKS_URL), cache_keys=True)
-
-async def get_user(request: Request, jwks_client: PyJWKClient = Depends(get_jwks_client)) -> User:
-    """Validate Bearer JWT and return user."""
-    # Extract token from Authorization header
-    # Get signing key from JWKS
-    # Decode with algorithms: EdDSA, RS256, ES256
-    # Validate issuer and audience
-    # Return User model_validate(payload)
+@router.get("/{video_id}", response_model=VideoReadWithShots)
+async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
+    video = await crud.get(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return video
 ```
 
 ### Database Session
@@ -170,15 +174,15 @@ class BaseCrud(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
 
     async def create(self, obj_in: CreateSchemaType) -> ModelType:
-        obj_data = {k: v for k, v in obj_in.model_dump().items() if v is not None}
+        obj_data = obj_in.model_dump(exclude_unset=True)
         db_obj = self.model(**obj_data)
         await save(self.db_session, db_obj)
         return db_obj
 
     async def get(self, id: UUID) -> ModelType | None: ...
     async def get_multi(self, *, skip: int = 0, limit: int = 100) -> list[ModelType]: ...
-    async def update(self, id: UUID, obj_in: UpdateSchemaType) -> ModelType: ...
-    async def delete(self, id: UUID) -> None: ...
+    async def update(self, id: UUID, obj_in: UpdateSchemaType) -> ModelType | None: ...
+    async def delete(self, id: UUID) -> bool: ...
     async def count(self) -> int: ...
     async def exists(self, id: UUID) -> bool: ...
 ```
@@ -186,104 +190,39 @@ class BaseCrud(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 ### CRUD Subclass Pattern
 
 ```python
-# api/items/crud/item.py
-class ItemCrud(
-    BaseCrud[Item, ItemCreate, ItemUpdate]
-):
-    def __init__(self, session: SessionDep):
-        super().__init__(session, Item)
+# api/videos/crud.py
+class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
+    def __init__(self, session: SessionDep) -> None:
+        super().__init__(session=session, model=Video)
 
-    async def get_by_user_id(self, user_id: str) -> Item | None:
-        statement = select(Item).where(
-            Item.user_id == user_id
-        )
-        result = await self.db_session.execute(statement)
-        return result.scalar_one_or_none()
+class ShotCrud(BaseCrud[Shot, ShotCreate, ShotUpdate]):
+    def __init__(self, session: SessionDep) -> None:
+        super().__init__(session=session, model=Shot)
 
-# Typed dependency
-ItemCrudDep = Annotated[ItemCrud, Depends(ItemCrud)]
-```
-
-### SQLAlchemy Model Pattern
-
-```python
-# api/items/models/item.py
-class Item(BaseModel):
-    __tablename__ = "items"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    user_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
-    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False),
-        default=lambda: datetime.now(UTC).replace(tzinfo=None),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
-```
-
-**Conventions:** UUID primary keys, `created_at`/`updated_at` timestamps (UTC, no tzinfo), snake_case table and column names, indexed foreign keys.
-
-### Service Layer Pattern
-
-For modules with business logic beyond simple CRUD:
-
-```python
-# api/items/service.py
-class ItemService:
-    def __init__(
-        self,
-        session: SessionDep,
-        item_crud: ItemCrudDep,
-    ):
-        self.session = session
-        self.item_crud = item_crud
-
-    async def get_item(
-        self, user_id: str, locale: Locale = Locale.EN
-    ) -> ItemResponse | None:
-        item = await self.item_crud.get_by_user_id(user_id)
-        if not item:
-            return None
-        return ItemResponse.model_validate(item)
-
-    async def delete_item(self, user_id: str) -> None:
-        item = await self.item_crud.get_by_user_id(user_id)
-        if not item:
-            raise ValueError("Item not found")
-        await self.item_crud.delete(item.id)
-
-ItemServiceDep = Annotated[ItemService, Depends(ItemService)]
+# Typed dependencies — inject directly into route handlers
+VideoCrudDep = Annotated[VideoCrud, Depends()]
+ShotCrudDep = Annotated[ShotCrud, Depends()]
 ```
 
 ### Route Pattern
 
 ```python
-# api/items/routes.py
-router = APIRouter(
-    prefix="/items",
-    tags=["items"],
-    dependencies=[Depends(get_user)],  # Auth required for all routes
-)
+# api/videos/routes.py
+videos_router = APIRouter(prefix="/videos", tags=["videos"])
+shots_router = APIRouter(prefix="/videos/{video_id}/shots", tags=["shots"])
 
-@router.get("/me", response_model=ItemResponse | None)
-async def get_my_item(
-    service: ItemServiceDep,
-    current_user: AuthenticatedUserDep,
-    locale: Locale = Query(Locale.EN),
-) -> ItemResponse | None:
-    return await service.get_item(current_user.id, locale)
+@videos_router.post("/", response_model=VideoRead, status_code=201)
+async def create_video(video_in: VideoCreate, crud: VideoCrudDep):
+    """Create a new video record."""
+    return await crud.create(video_in)
 
-@router.delete("/me", status_code=204)
-async def delete_my_item(
-    service: ItemServiceDep,
-    current_user: AuthenticatedUserDep,
-) -> None:
-    try:
-        await service.delete_item(current_user.id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+@videos_router.get("/{video_id}", response_model=VideoReadWithShots)
+async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
+    """Get a video by ID, including its shots."""
+    video = await crud.get(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return video
 ```
 
 ### Exception Handling
@@ -296,37 +235,19 @@ async def delete_my_item(
 
 ---
 
-## Langfuse Integration
-
-Langfuse is used for **LLM tracing and observability** (not prompt management). All prompts are local Python constants — see `agents/prompts/`.
+## Cloudflare R2 Storage
 
 ```python
-# api/deps/langfuse.py
+# api/deps/storage.py
+class StorageService:
+    """S3-compatible client for Cloudflare R2."""
 
-@lru_cache(maxsize=1)
-def get_langfuse_client() -> Langfuse:
-    return Langfuse(
-        public_key=settings.LANGFUSE_PUBLIC_KEY,
-        secret_key=settings.LANGFUSE_SECRET_KEY,
-        base_url=settings.LANGFUSE_BASE_URL,
-        environment=settings.ENVIRONMENT,
-    )
+    def upload_file(self, key: str, data: bytes, content_type: str) -> None: ...
+    def download_file(self, key: str) -> bytes: ...
+    def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str: ...
+    def delete_file(self, key: str) -> None: ...
 
-@contextmanager
-def langfuse_trace(*, user_id: str = "", session_id: str = "", **metadata) -> Generator[dict, None, None]:
-    """Establish Langfuse trace context and yield a LangChain config dict."""
-    with propagate_attributes(user_id=user_id, session_id=session_id, metadata=metadata):
-        yield {
-            "callbacks": [CallbackHandler()],
-            "tags": [settings.ENVIRONMENT],
-        }
-```
-
-**Usage in LLM calls:**
-
-```python
-async with langfuse_trace(user_id=user_id) as config:
-    response = await model.ainvoke([HumanMessage(content=prompt)], config=config)
+StorageDep = Annotated[StorageService, Depends(get_storage)]
 ```
 
 ---
@@ -334,7 +255,7 @@ async with langfuse_trace(user_id=user_id) as config:
 ## Background Processing (Celery)
 
 ```python
-# worker/app.py — Celery configuration
+# api/deps/celery.py — Celery app config + worker entry point
 celery_app = Celery("worker")
 celery_app.conf.update(
     task_serializer="json",
@@ -349,13 +270,13 @@ celery_app.conf.update(
     result_expires=3600,
 )
 
-# worker/tasks.py
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
-def my_background_task(self, user_id: str, **kwargs) -> None:
-    async def _run() -> None:
-        # Perform async work here
-        pass
+def main() -> None:
+    """Run Celery worker (concurrency=1 locally)."""
+    celery_app.worker_main(argv=["worker", "--loglevel=info", "--concurrency=1", "--pool=solo", "--events"])
 
+# api/deps/tasks.py
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
+def my_background_task(self, **kwargs) -> None:
     try:
         asyncio.run(_run())
     except Exception as exc:
@@ -366,11 +287,11 @@ def my_background_task(self, user_id: str, **kwargs) -> None:
 
 ## Registered Routes
 
-| Router | Prefix | Source |
-|--------|--------|--------|
-| `core_router` | `/` (root) | `api/core/routes.py` — health check, root |
-| `agent_router` | `/` (root) | `api/agents/routes.py` — CopilotKit endpoint |
-| `items_router` | `/api/v1/items` | `api/items/routes.py` |
+| Router | Prefix | Tags | Source |
+|--------|--------|------|--------|
+| `core_router` | `/` | core | `api/core/routes.py` — health check, root |
+| `videos_router` | `/api/v1/videos` | videos | `api/videos/routes.py` |
+| `shots_router` | `/api/v1/videos/{video_id}/shots` | shots | `api/videos/routes.py` |
 
 ## Settings
 
@@ -381,9 +302,10 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 | Core | `API_PROJECT_NAME`, `API_SECRET_KEY`, `API_ENVIRONMENT` (local/staging/production) |
 | Database | `API_DATABASE_URL` (postgresql+asyncpg) |
 | Server | `API_SERVER_HOST`, `API_SERVER_PORT`, `API_SERVER_LOG_LEVEL`, `API_SWAGGER_HIDE` |
-| OAuth | `API_OAUTH_PROVIDER_URL`, `API_OAUTH_CLIENT_ID`, `API_OAUTH_CLIENT_SECRET` |
-| OpenAI | `API_OPENAI_API_KEY` |
-| Langfuse | `API_LANGFUSE_PUBLIC_KEY`, `API_LANGFUSE_SECRET_KEY`, `API_LANGFUSE_BASE_URL` |
+| Cloudflare R2 | `API_R2_ACCOUNT_ID`, `API_R2_ACCESS_KEY_ID`, `API_R2_SECRET_ACCESS_KEY`, `API_R2_BUCKET_NAME` |
+| ElevenLabs | `API_ELEVENLABS_API_KEY` |
+| Anthropic | `API_ANTHROPIC_API_KEY` |
+| Gemini | `API_GEMINI_API_KEY` |
 | Celery | `API_CELERY_BROKER_URL`, `API_CELERY_RESULT_BACKEND` (Redis) |
 | Sentry | `API_SENTRY_DSN`, `API_SENTRY_TRACES_SAMPLE_RATE`, `API_SENTRY_PROFILES_SAMPLE_RATE` |
 
@@ -391,14 +313,12 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 
 | Entity | Pattern | Example |
 |--------|---------|---------|
-| Dependency alias | `XyzDep = Annotated[Xyz, Depends(Xyz)]` | `SessionDep`, `AuthenticatedUserDep` |
-| Service class | `{Domain}Service` | `ItemService` |
-| CRUD class | `{Model}Crud` | `ItemCrud` |
-| Response schema | `{Model}Response` | `ItemResponse` |
-| Create/Update schema | `{Model}Create` / `{Model}Update` | `ItemCreate`, `ItemUpdate` |
-| Enum | `StrEnum` | `Locale.EN`, `Locale.LT` |
-| Router variable | `router` | Included via `app.include_router(router)` |
-| Table name | snake_case | `items`, `item_translations` |
+| Dependency alias | `XyzDep = Annotated[Xyz, Depends()]` | `VideoCrudDep`, `SessionDep` |
+| CRUD class | `{Model}Crud` | `VideoCrud`, `ShotCrud` |
+| Read schema | `{Model}Read` | `VideoRead`, `ShotRead` |
+| Create/Update schema | `{Model}Create` / `{Model}Update` | `VideoCreate`, `VideoUpdate` |
+| Router variable | `{domain}_router` | `videos_router`, `shots_router` |
+| Table name | snake_case | `videos`, `shots` |
 
 ## Key Libraries
 
@@ -406,13 +326,11 @@ Configured via Pydantic `BaseSettings` in `api/settings.py` with `API_` prefix:
 |---------|---------|---------|
 | FastAPI | HTTP framework | `api/` |
 | SQLAlchemy 2.0 | Async ORM | `api/*/models/` |
-| Pydantic | Schema validation | `api/*/schemas/` |
+| Pydantic | Schema validation | `api/*/schemas.py` |
 | Alembic | DB migrations | `migrations/` |
-| LangGraph | Agent orchestration | `agents/` |
-| LangChain | LLM integration | `agents/nodes/` |
-| Langfuse | LLM tracing + observability | `api/deps/langfuse.py` |
-| Celery | Task queue | `worker/` |
-| Redis | Broker + cache | `worker/settings.py` |
+| Celery | Task queue | `api/deps/celery.py` |
+| Redis | Broker + result backend | `api/deps/celery.py` |
+| boto3 | Cloudflare R2 (S3-compatible) | `api/deps/storage.py` |
 | Sentry SDK | Error tracking | `api/deps/sentry.py` |
 
 ## Running

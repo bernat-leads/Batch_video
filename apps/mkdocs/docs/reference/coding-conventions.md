@@ -27,7 +27,7 @@ graph LR
 ### Backend Testing (pytest)
 
 ```python
-# apps/fastapi/__tests__/items/test_items.py
+# apps/api/__tests__/items/test_items.py
 import pytest
 from httpx import AsyncClient
 
@@ -45,7 +45,7 @@ async def test_get_item_returns_200(
     assert "data" in data
 ```
 
-**Test location:** `apps/fastapi/__tests__/`
+**Test location:** `apps/api/__tests__/`
 **Run:** `poetry run pytest` | **Single file:** `poetry run pytest __tests__/items/test_items.py` | **Verbose:** `poetry run pytest -v -s`
 
 ### E2E Testing (Playwright)
@@ -95,7 +95,7 @@ test('user can navigate to dashboard', async ({ page }) => {
 |------|-------|--------|
 | Biome | JS/TS linting + formatting | `biome.json` (root) |
 | Prettier | Import sorting, Tailwind class sorting | `prettier.config.js` (root) |
-| Ruff/Black | Python formatting | `pyproject.toml` (apps/fastapi) |
+| Ruff/Black | Python formatting | `pyproject.toml` (apps/api) |
 
 ---
 
@@ -253,27 +253,30 @@ module_name/
 ### Typed Dependency Injection
 
 ```python
-# Define: XyzDep = Annotated[Xyz, Depends(Xyz)]
+# Define: XyzDep = Annotated[Xyz, Depends()]
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
-AuthenticatedUserDep = Annotated[User, Depends(get_user)]
-MyServiceDep = Annotated[MyService, Depends(MyService)]
+VideoCrudDep = Annotated[VideoCrud, Depends()]
+StorageDep = Annotated[StorageService, Depends(get_storage)]
 
 # Use in route handlers — FastAPI auto-resolves the dependency chain
-@router.get("/endpoint")
-async def my_endpoint(service: MyServiceDep, user: AuthenticatedUserDep):
-    return await service.do_something(user.id)
+@router.get("/{video_id}")
+async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
+    video = await crud.get(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return video
 ```
 
 ### Adding a New Backend Module
 
-1. Write tests first (`apps/fastapi/__tests__/test_{module}.py`)
-2. Create module directory under `apps/fastapi/api/`
+1. Write tests first (`apps/api/__tests__/{module}/`)
+2. Create module directory under `apps/api/api/`
 3. Define SQLAlchemy model in `models/`
-4. Define Pydantic schemas in `schemas/`
-5. Write CRUD operations in `crud/` (extend `BaseCrud`)
-6. Create service in `service.py` (if complex business logic)
-7. Create router in `routes.py`
-8. Register router in `apps/fastapi/api/app.py`
+4. Define Pydantic schemas in `schemas.py`
+5. Write CRUD class in `crud.py` (extend `BaseCrud`)
+6. Create router in `routes.py`
+7. Register router in `apps/api/api/app.py`
+8. Import model in `migrations/env.py`
 9. Create Alembic migration: `poetry run alembic revision --autogenerate -m "description"`
 10. Regenerate frontend client: `pnpm run generate-api`
 
