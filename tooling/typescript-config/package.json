@@ -1,0 +1,14 @@
+{
+  "name": "@tooling/typescript-config",
+  "private": true,
+  "version": "0.1.0",
+  "exports": {
+    "./base": "./base.json",
+    "./react": "./react.json",
+    "./astro": "./astro.json",
+    "./internal-package": "./internal-package.json"
+  },
+  "files": [
+    "*.json"
+  ]
+}

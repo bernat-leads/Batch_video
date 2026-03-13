@@ -1,0 +1,83 @@
+site_name: Developer Documentation
+site_description: Internal developer documentation for the SaaS template
+
+nav:
+  - Home:
+    - Overview: index.md
+    - Architecture: architecture.md
+    - Tech Decisions: tech-decisions.md
+    - Current Work: current-work.md
+  - Reference:
+    - Backend (FastAPI): reference/backend.md
+    - Frontend (Next.js): reference/frontend.md
+    - Database: reference/database.md
+    - Agent System (LangGraph): reference/agent-system.md
+    - Shared Packages: reference/shared-packages.md
+    - Infrastructure: reference/infrastructure.md
+    - Coding Conventions: reference/coding-conventions.md
+    - Shell Aliases: reference/shell-aliases.md
+
+theme:
+  name: material
+  features:
+    - search.suggest
+    - toc.integrate
+    - navigation.tabs
+    - navigation.expand
+    - navigation.sections
+    - navigation.instant
+    - navigation.instant.prefetch
+    - content.tooltips
+    - content.tabs.link
+    - content.code.copy
+    - navigation.footer
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: custom
+      accent: custom
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: custom
+      accent: custom
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    logo: material/brain
+  favicon: assets/favicon.png
+
+extra:
+  generator: true
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.critic
+  - def_list
+  - pymdownx.keys
+  - tables

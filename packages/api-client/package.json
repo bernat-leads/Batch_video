@@ -1,0 +1,31 @@
+{
+  "name": "@packages/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "orval --config ./orval.config.mjs",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./model": "./src/model/index.ts",
+    "./custom-instance": "./src/custom-instance.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "catalog:",
+    "axios": "^1.9.0",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tooling/typescript-config": "workspace:*",
+    "orval": "^7.16.1"
+  },
+  "prettier": "@tooling/prettier-config"
+}

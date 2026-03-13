@@ -1,0 +1,43 @@
+{
+  "name": "storybook",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "storybook build",
+    "chromatic": "chromatic --exit-zero-on-changes",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "dependencies": {
+    "@packages/ui": "workspace:*",
+    "@storybook/addon-actions": "catalog:storybook",
+    "@t3-oss/env-core": "catalog:",
+    "cmdk": "catalog:shadcn-v2",
+    "date-fns": "catalog:shadcn-v2",
+    "input-otp": "catalog:shadcn-v2",
+    "lucide-react": "catalog:default",
+    "next": "catalog:nextjs-v15",
+    "react-hook-form": "catalog:shadcn-v2",
+    "recharts": "catalog:default",
+    "sonner": "catalog:shadcn-v2",
+    "zod": "catalog:default"
+  },
+  "devDependencies": {
+    "@tooling/typescript-config": "workspace:*",
+    "@storybook/nextjs": "catalog:storybook",
+    "@storybook/react": "catalog:storybook",
+    "@types/node": "catalog:default",
+    "@types/react": "catalog:react-v19",
+    "@types/react-dom": "catalog:react-v19",
+    "chromatic": "catalog:storybook",
+    "postcss": "catalog:tailwind",
+    "storybook": "catalog:storybook",
+    "tailwindcss": "catalog:tailwind",
+    "typescript": "catalog:default"
+  }
+}

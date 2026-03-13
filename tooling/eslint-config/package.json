@@ -1,0 +1,40 @@
+{
+  "name": "@tooling/eslint-config",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "exports": {
+    "./base": "./config/base.js",
+    "./react": "./config/react.js",
+    "./next": "./config/nextjs.js",
+    "./typescript": "./config/typescript.js"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo node_modules",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eslint/compat": "^2.0.0",
+    "@eslint/js": "^9.39.1",
+    "@next/eslint-plugin-next": "^16.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-turbo": "^2.6.1",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.47.0",
+    "zod-validation-error": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tooling/prettier-config": "workspace:*",
+    "@tooling/typescript-config": "workspace:*",
+    "eslint": "catalog:default",
+    "prettier": "catalog:default",
+    "typescript": "catalog:default"
+  },
+  "prettier": "@tooling/prettier-config"
+}

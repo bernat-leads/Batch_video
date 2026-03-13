@@ -1,0 +1,24 @@
+# Traefik file-provider routing for local development.
+
+http:
+  routers:
+    react:
+      rule: "Host(`localhost`)"
+      service: react
+      entryPoints:
+        - web
+    fastapi:
+      rule: "Host(`api.localhost`)"
+      service: fastapi
+      entryPoints:
+        - web
+
+  services:
+    react:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:5173"
+    fastapi:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8000"

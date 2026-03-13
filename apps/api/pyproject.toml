@@ -1,0 +1,142 @@
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = "FastAPI backend"
+authors = []
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+fastapi = ">=0.115.0,<0.116.0"
+uvicorn = "^0.37.0"
+pydantic = "^2.11.9"
+pydantic-settings = "^2.11.0"
+python-multipart = "^0.0.20"
+python-dotenv = "^1.1.1"
+alembic = "^1.16.5"
+sqlalchemy = "^2.0.43"
+asyncpg = "^0.30.0"
+greenlet = "^3.1.1"
+uvloop = "^0.21.0"
+httptools = "^0.6.4"
+tenacity = "^9.1.2"
+brevo-python = "^1.2.0"
+ag-ui-langgraph = "0.0.7"
+ag-ui-protocol = "0.1.7"
+langgraph = ">=0.6.5"
+langgraph-checkpoint-postgres = "^3.0.0"
+langchain = "0.3.21"
+langchain-openai = ">=0.3.30"
+langfuse = "^3.14.0"
+openai = ">=1.68.2"
+numpy = "^2.0.0"
+copilotkit = "0.1.60"
+celery = "^5.4.0"
+redis = "^5.2.0"
+httpx = "^0.28.1"
+pyjwt = {extras = ["crypto"], version = "^2.10.0"}
+itsdangerous = "^2.2.0"
+psycopg = {extras = ["binary"], version = "^3.2.12"}
+pgvector = "^0.4.1"
+crawl4ai = "^0.7.0"
+pypdf = "^5.0.0"
+python-docx = "^1.1.0"
+apify-client = "^1.10.0"
+sentry-sdk = {extras = ["fastapi"], version = "^2.53.0"}
+pytest-cov = "^7.0.0"
+polar-sdk = "^0.28.4"
+tavily-python = "^0.5"
+
+[tool.poetry.scripts]
+start = "api.main:main"
+celery-worker = "worker.main:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+mypy = "^1.18.2"
+ruff = "^0.13.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+strict = true
+exclude = ["venv", ".venv", "alembic"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+exclude = ["alembic", "migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "ARG",  # unused arguments
+    "T",    # flake8-print
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PIE",  # flake8-pie
+    "A",    # flake8-builtins
+    "COM",  # flake8-commas
+    "DTZ",  # flake8-datetimez
+    "Q",    # flake8-quotes
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+    "COM812", # missing trailing comma
+    "COM819", # prohibited trailing comma
+    "RUF001", # ambiguous unicode (en dashes in prompts/descriptions are intentional)
+    "RUF003", # ambiguous unicode in comments
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__tests__/**" = ["ARG"]  # unused args are common in test fixtures
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "graphs", "__tests__"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.coverage.run]
+source = ["api", "graphs"]
+dynamic_context = "test_function"
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.pytest.ini_options]
+testpaths = ["__tests__"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short -m 'not eval and not benchmark'"
+markers = [
+    "eval: LLM-based evaluation tests (require OPENAI_API_KEY, slow)",
+    "benchmark: Quality benchmark tests comparing against reference profiles (slow, requires LLM)",
+]
+
+[tool.pylint]
+ignore-paths = ["alembic"]

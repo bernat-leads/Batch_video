@@ -1,0 +1,13 @@
+{
+  "name": "docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "mkdocs serve -a 0.0.0.0:8001",
+    "build": "mkdocs build",
+    "install": "pip install mkdocs-material[imaging]",
+    "serve": "mkdocs serve -a 0.0.0.0:8001"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

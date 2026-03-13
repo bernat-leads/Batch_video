@@ -1,0 +1,23 @@
+{
+  "name": "@packages/analytics",
+  "version": "0.0.0",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "exports": {
+    "./client": "./src/client/client.tsx",
+    "./env": "./src/env.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "catalog:",
+    "posthog-js": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "prettier": "@tooling/prettier-config"
+}

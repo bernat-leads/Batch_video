@@ -1,0 +1,124 @@
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === Node / JS ===
+node_modules/
+.pnp
+.pnp.js
+*.tsbuildinfo
+next-env.d.ts
+.npm
+.eslintcache
+.stylelintcache
+*.tgz
+
+# === Next.js ===
+.next/
+out/
+
+# === Astro ===
+.astro/
+
+# === Storybook ===
+storybook-static/
+
+# === React Email ===
+.react-email/
+
+# === Turborepo ===
+.turbo/
+
+# === Logs ===
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+.env.client-*
+.env.sentry-build-plugin
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+.Python
+build/
+dist/
+*.whl
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.deepeval/
+
+# === Alembic ===
+alembic/versions/*.py
+!alembic/versions/__init__.py
+
+# === Celery ===
+celerybeat-schedule
+celerybeat.pid
+
+# === Testing ===
+coverage/
+playwright-report/
+test-results/
+**/playwright/.auth/
+
+# === Keycloak ===
+**/dist_keycloak/
+
+# === Build outputs ===
+/build/
+
+# === Sentry ===
+.sentryclirc
+
+# === Vercel ===
+.vercel
+
+# === BaseHub ===
+.basehub
+
+# === AI Rules (project-specific, not template) ===
+.cursorrules
+.github/copilot-instructions.md
+
+# === Cache ===
+**/.cache/
+
+# === Claude Code ===
+.claude/
+!.claude/CLAUDE.md
+!.claude/commands/
+!.claude/commands/**
+!.claude/skills/
+!.claude/skills/**
+!.claude/.mcp.json
+
+# === Misc ===
+uploads/
+public/avatars/

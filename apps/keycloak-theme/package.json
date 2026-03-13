@@ -1,0 +1,48 @@
+{
+    "name": "keycloak-theme",
+    "version": "0.0.0",
+    "description": "Starter for Keycloakify 11",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build-react": "tsc && vite build",
+        "build": "pnpm run build-react && keycloakify build",
+        "storybook": "storybook dev -p 6006",
+        "type-check": "tsc --noEmit",
+        "format": "prettier . --write",
+        "lint": "eslint ."
+    },
+    "license": "MIT",
+    "keywords": [],
+    "peerDependencies": {
+        "react": "^19.1.1",
+        "react-dom": "^19.1.1"
+    },
+    "dependencies": {
+        "keycloakify": "catalog:keycloak",
+        "@tailwindcss/vite": "catalog:tailwind",
+        "@packages/ui": "workspace:*"
+    },
+    "devDependencies": {
+        "@eslint/js": "catalog:linting",
+        "storybook": "catalog:storybook",
+        "@storybook/react": "catalog:storybook",
+        "@storybook/react-vite": "catalog:storybook",
+        "@types/react": "catalog:react-v19",
+        "@types/react-dom": "catalog:react-v19",
+        "@vitejs/plugin-react": "catalog:keycloak",
+        "@tooling/eslint-config": "workspace:*",
+        "eslint": "catalog:default",
+        "eslint-config-prettier": "catalog:eslint",
+        "eslint-plugin-storybook": "catalog:storybook",
+        "globals": "catalog:linting",
+        "prettier": "catalog:keycloak",
+        "typescript": "catalog:default",
+        "typescript-eslint": "catalog:linting",
+        "vite": "catalog:build",
+        "tailwindcss": "catalog:tailwind"
+    },
+    "engines": {
+        "node": "^18.0.0 || >=20.0.0"
+    }
+}

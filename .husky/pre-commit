@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+# Security check for secrets
+gitleaks protect --staged --verbose
+
+# Format staged files
+turbo format
+
+# Lint staged files (includes TypeScript type checking)
+# pnpm lint

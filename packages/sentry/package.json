@@ -1,0 +1,26 @@
+{
+  "name": "@packages/sentry",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./sentry.client.config": "./src/sentry.client.config.ts",
+    "./sentry.server.config": "./src/sentry.server.config.ts",
+    "./sentry.edge.config": "./src/sentry.edge.config.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@sentry/core": "^10.39.0",
+    "@t3-oss/env-core": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@sentry/nextjs": "^10.0.0"
+  },
+  "prettier": "@tooling/prettier-config"
+}

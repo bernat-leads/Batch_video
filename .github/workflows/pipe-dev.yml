@@ -1,0 +1,39 @@
+name: "[DEPLOY] Develop Pipeline"
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+jobs:
+
+  deploy-to-coolify:
+    name: Deploy to Coolify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Coolify
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
+
+  sentry-release:
+    name: Sentry Release
+    needs: deploy-to-coolify
+    runs-on: ubuntu-latest
+    if: ${{ vars.SENTRY_ORG != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+        with:
+          projects: ${{ vars.SENTRY_PROJECT_FRONTEND }} ${{ vars.SENTRY_PROJECT_BACKEND }}
+          version: ${{ github.sha }}
+          environment: staging
+          set_commits: auto

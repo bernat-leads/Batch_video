@@ -1,0 +1,42 @@
+name: "[RELEASE] Semantic Release"
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PNPM_VERSION: 10.11.0
+  NODE_VERSION: 22
+
+jobs:
+  semantic-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter "."
+
+      - name: Run semantic-release
+        run: pnpm semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_RELEASE_TOKEN }}
+          HUSKY: 0

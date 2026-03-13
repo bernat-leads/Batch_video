@@ -1,0 +1,95 @@
+name: "[CI] Test Suite"
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main, dev]
+
+env:
+  PNPM_VERSION: "10.11.0"
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
+  POETRY_VERSION: "2.2.1"
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  API_DB_NAME: api_test
+  API_DB_PORT: "5432"
+
+jobs:
+
+  # ─── Git Leaks Scan ───────────────────────────────────────────────────────
+  gitleaks:
+    name: GitLeaks Scan
+    uses: ./.github/workflows/gitleaks.yml
+    secrets: inherit
+
+  # ─── Backend Tests (pytest) ──────────────────────────────────────────────
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: ${{ env.API_DB_NAME }}
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+        ports:
+          - ${{ env.API_DB_PORT }}:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      API_DATABASE_URL: postgresql+asyncpg://${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@localhost:${{ env.API_DB_PORT }}/${{ env.API_DB_NAME }}
+      API_ENVIRONMENT: local
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        run: pip install poetry==${{ env.POETRY_VERSION }}
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: poetry install
+
+      - name: Run pytest
+        working-directory: apps/api
+        run: poetry run pytest --cov --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: apps/api/coverage.xml
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ─── Frontend Lint & Type Check ────────────────────────────────────────────
+  frontend-lint:
+    name: Frontend Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm build

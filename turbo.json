@@ -1,0 +1,76 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "ui": "tui",
+  "envMode": "loose",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        ".astro/**",
+        "!.astro/cache/**",
+        "dist/**",
+        ".basehub/**",
+        "**/generated/**",
+        "storybook-static/**",
+        ".react-email/**",
+        "dist/**",
+        "dist_keycloak/**"
+      ],
+      "inputs": ["src/**", "public/**", "astro.config.*", "next.config.*", "package.json", "tsconfig.json"]
+    },
+    "test": {
+      "dependsOn": ["^build", "^test"]
+    },
+    "lint": {
+      "dependsOn": [],
+      "inputs": ["src/**", ".eslintrc.*", "eslint.config.*"]
+    },
+    "format": {
+      "dependsOn": [],
+      "inputs": ["src/**", "*.{js,ts,tsx,json,md,astro}", ".prettierrc*", "prettier.config.*", "*.py", "pyproject.toml"],
+      "cache": false
+    },
+    "format:check": {
+      "dependsOn": [],
+      "inputs": ["src/**", "*.{js,ts,tsx,json,md,astro}", ".prettierrc*", "prettier.config.*", "*.py", "pyproject.toml"],
+      "cache": false
+    },
+    "analyze": {
+      "dependsOn": ["^build", "^analyze"]
+    },
+    "dev:types": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^dev:types"]
+    },
+    "translate": {
+      "dependsOn": ["^translate"],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    }
+  },
+  "globalEnv": [
+    "DATABASE_URL",
+    "AUTH_DISCORD_ID",
+    "AUTH_DISCORD_SECRET",
+    "AUTH_REDIRECT_PROXY_URL",
+    "AUTH_SECRET",
+    "PORT",
+    "PUBLIC_TRPC_API",
+    "PUBLIC_POSTHOG_KEY",
+    "PUBLIC_POSTHOG_HOST"
+  ],
+  "globalPassThroughEnv": ["NODE_ENV", "CI", "VERCEL", "VERCEL_ENV", "VERCEL_URL", "npm_lifecycle_event"]
+}

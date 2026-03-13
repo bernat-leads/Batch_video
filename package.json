@@ -1,0 +1,57 @@
+{
+  "name": "internal-tool-template",
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo run lint",
+    "test": "turbo test",
+    "bump-deps": "npx npm-check-updates --deep -u",
+    "db:generate": "pnpm --filter fastapi db:generate",
+    "db:migrate": "pnpm --filter fastapi db:migrate",
+    "generate-api": "pnpm --filter @packages/api-client generate",
+    "clean": "git clean -xdf node_modules",
+    "prepare": "husky",
+    "semantic-release": "semantic-release",
+    "semantic-release:dry-run": "semantic-release --dry-run"
+  },
+  "devDependencies": {
+    "@auto-it/first-time-contributor": "^11.3.6",
+    "@biomejs/biome": "2.3.7",
+    "@tooling/prettier-config": "workspace:*",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.2",
+    "@turbo/gen": "^2.6.1",
+    "@types/node": "^20.0.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2",
+    "semantic-release": "^25.0.2",
+    "turbo": "^2.6.1",
+    "typescript": "catalog:",
+    "ultracite": "^6.3.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "commander": "^14.0.2"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "zod": "4",
+        "dotenv": "17",
+        "react": "19",
+        "react-dom": "19"
+      }
+    }
+  }
+}

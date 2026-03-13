@@ -1,0 +1,60 @@
+name: "[REUSABLE] GitHub Release"
+
+on:
+  workflow_call:
+    inputs:
+      scope:
+        description: 'Turbo scope for building'
+        required: true
+        type: string
+      tag_name:
+        description: 'Release tag name'
+        required: true
+        type: string
+      release_name:
+        description: 'Release name'
+        required: true
+        type: string
+      files:
+        description: 'Exact files to include in release (comma-separated paths)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PNPM_VERSION: 10.11.0
+      NODE_VERSION: 22
+      APP_NAME: ${{ inputs.app_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter='!backend'
+
+      - name: Build application
+        run: pnpm dlx turbo run build --filter=${{ inputs.scope }}
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: ${{ inputs.release_name }}
+          files: ${{ inputs.files }}
+          overwrite_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}

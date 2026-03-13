@@ -1,0 +1,98 @@
+# Production docker-compose
+#
+# All configuration is passed via environment variables.
+
+x-api-env: &api-env
+  API_ENVIRONMENT: ${API_ENVIRONMENT:-production}
+  API_SECRET_KEY: ${API_SECRET_KEY}
+  API_SERVER_HOST: "0.0.0.0"
+  API_SERVER_PORT: "8000"
+  API_SWAGGER_HIDE: ${API_SWAGGER_HIDE:-true}
+  API_DATABASE_URL: ${API_DATABASE_URL}
+  API_CELERY_BROKER_URL: ${API_CELERY_BROKER_URL}
+  API_CELERY_RESULT_BACKEND: ${API_CELERY_RESULT_BACKEND}
+  API_UPLOAD_DIR: /data/uploads
+  API_SENTRY_DSN: ${API_SENTRY_DSN:-}
+  API_SENTRY_TRACES_SAMPLE_RATE: ${API_SENTRY_TRACES_SAMPLE_RATE:-0.1}
+  API_SENTRY_PROFILES_SAMPLE_RATE: ${API_SENTRY_PROFILES_SAMPLE_RATE:-0.1}
+
+services:
+
+  # ── Reverse proxy ────────────────────────────────────────────────────────
+  traefik:
+    image: traefik:3.6
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+    restart: unless-stopped
+
+  # ── FastAPI backend ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      <<: *api-env
+    volumes:
+      - api_uploads:/data/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Celery background worker (optional) ────────────────────────────────────
+  # celery-worker:
+  #   build:
+  #     context: ./apps/api
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     <<: *api-env
+  #   command: ["celery-worker"]
+  #   restart: unless-stopped
+
+  # ── React frontend (nginx) ─────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: apps/react/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+    restart: unless-stopped
+
+volumes:
+  api_uploads:
+  traefik_letsencrypt:

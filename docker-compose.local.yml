@@ -1,0 +1,50 @@
+services:
+
+  # ── Reverse proxy ──────────────────────────────────────────────────────────
+  traefik:
+    image: traefik:3.6
+    command:
+      - --api.insecure=true
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8090:8080"
+    volumes:
+      - ./traefik/local-dynamic.yml:/etc/traefik/dynamic.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ── Data stores ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=api
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # ── Email catcher ──────────────────────────────────────────────────────────
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
