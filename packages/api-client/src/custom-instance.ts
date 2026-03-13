@@ -3,10 +3,11 @@ import { env } from "./env";
 
 /**
  * Shared Axios instance for API calls.
- * Base URL is read from NEXT_PUBLIC_BACKEND_API_URL via the package env.
+ * Base URL is read from PUBLIC_API_URL via the package env.
  */
 export const AXIOS_INSTANCE = Axios.create({
-  baseURL: env.NEXT_PUBLIC_BACKEND_API_URL,
+  baseURL: env.PUBLIC_API_URL,
+  withCredentials: true,
 });
 
 export const customInstance = <T>(

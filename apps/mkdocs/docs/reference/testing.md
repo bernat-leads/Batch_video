@@ -33,6 +33,8 @@ poetry run pytest -v -s
 apps/api/__tests__/
 ├── conftest.py          # Shared fixtures (app, client, mock_session)
 ├── helpers.py           # Mock utilities (fake_db_obj, mock_scalars_result, etc.)
+├── auth/                # Auth route tests (login, logout, session, route protection)
+│   └── test_auth_routes.py
 └── core/                # Core CRUD and route tests
     ├── test_crud.py     # BaseCrud unit tests (using Video model)
     └── test_routes.py   # Health check and root endpoint tests
@@ -82,11 +84,74 @@ class TestBaseCrudCreate:
         mock_save.assert_awaited_once()
 ```
 
+## Auth Tests
+
+### Backend (`__tests__/auth/test_auth_routes.py`)
+
+21 parametrized tests covering login, logout, session validation, and route protection.
+
+**Pattern — parametrized route protection:**
+
+```python
+PROTECTED_ROUTES = [
+    ("GET", "/api/v1/videos/"),
+    ("POST", "/api/v1/videos/"),
+    # ... all video/shot routes + /auth/me
+]
+
+PUBLIC_ROUTES = [
+    ("GET", "/"), ("GET", "/health"),
+    ("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/logout"),
+]
+
+@pytest.mark.parametrize("method,path", PROTECTED_ROUTES)
+def test_protected_route_rejects_unauthenticated(method, path, client):
+    response = getattr(client, method.lower())(path)
+    assert response.status_code == 401
+```
+
+Adding a new protected route? Just add it to `PROTECTED_ROUTES` — the test automatically covers it.
+
+**Helper — signing test cookies:**
+
+```python
+def _auth_cookie(client):
+    """Authenticate via login and return cookie jar for subsequent requests."""
+    response = client.post("/api/v1/auth/login", json={"password": TEST_PASSWORD})
+    assert response.status_code == 200
+    return response.cookies
+```
+
+### Frontend E2E (`apps/react/e2e/auth.spec.ts`)
+
+12 Playwright tests using **route interception** — no running backend needed:
+
+```typescript
+await page.route("**/api/v1/auth/me", (route) =>
+  route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ detail: "Not authenticated" }),
+  })
+);
+```
+
+**Covered scenarios:** unauthenticated redirects, login success/failure/loading state, expired session on navigation, expired session mid-API-call, authenticated access, logout.
+
+!!! tip "Run E2E from the right directory"
+    Playwright tests must be run from `apps/react/` (not the monorepo root) so `baseURL` resolves correctly:
+    ```bash
+    cd apps/react && pnpm test:e2e
+    ```
+
+---
+
 ## E2E Tests (Playwright)
 
 E2E tests live in `apps/react/e2e/` and use Playwright.
 
 ```bash
+cd apps/react
 pnpm test:e2e           # Run all E2E tests
 pnpm test:e2e:debug     # Debug mode with browser visible
 ```
@@ -99,3 +164,8 @@ pnpm test:e2e:debug     # Debug mode with browser visible
 2. Test CRUD operations with mocked DB sessions
 3. Test route handlers with test client
 4. Run `poetry run pytest` to verify
+
+### For a new protected route:
+
+1. Add the route tuple to `PROTECTED_ROUTES` in `test_auth_routes.py`
+2. The parametrized test automatically verifies 401 for unauthenticated requests

@@ -1,7 +1,10 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { requireAuth } from "@/lib/auth";
+import { LogoutButton } from "@/components/logout-button";
 
 export const Route = createRootRoute({
+  beforeLoad: ({ location }) => requireAuth(location.pathname),
   component: RootLayout,
 });
 
@@ -22,6 +25,9 @@ function RootLayout() {
           >
             About
           </Link>
+          <div className="ml-auto">
+            <LogoutButton />
+          </div>
         </nav>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-8">

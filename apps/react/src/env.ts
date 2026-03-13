@@ -1,13 +1,10 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+import { env as apiClientEnv } from "@packages/api-client/env";
 
 export const env = createEnv({
+  extends: [apiClientEnv],
   clientPrefix: "PUBLIC_",
-  server: {
-    NODE_ENV: z
-      .enum(["development", "test", "production"])
-      .default("development"),
-  },
   client: {
     PUBLIC_SITE_URL: z.string().url().default("http://localhost:5173"),
   },

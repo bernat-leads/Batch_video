@@ -78,8 +78,10 @@ test('user can navigate to dashboard', async ({ page }) => {
 ### TypeScript (Frontend)
 
 - **Strict mode** everywhere — no `any` unless absolutely necessary
-- **Server Components by default** — only add `"use client"` when needed (interactivity, hooks, browser APIs)
 - **Zod** for runtime validation at system boundaries (env vars, form data)
+- **Orval-generated hooks** for all API calls — never write raw `fetch`/`axios` to the backend
+- **React Hook Form + Zod + shadcn Form** for all forms — use `satisfies z.ZodType<T>` to tie Zod schemas to generated types
+- **t3-env** for environment variables — `import.meta.env` only, never `process.env`
 - **No `console.log`** in production code — use proper error boundaries and Sentry
 
 ### Python (Backend)
@@ -103,12 +105,9 @@ test('user can navigate to dashboard', async ({ page }) => {
 
 | Layer | Convention | Example |
 |-------|-----------|---------|
-| Frontend pages | kebab-case directories | `settings/profile/page.tsx` |
-| Frontend components | kebab-case files | `chat-message.tsx` |
-| Frontend hooks | kebab-case with `use-` prefix | `use-track-event.ts` |
-| Frontend actions | kebab-case | `fetch-all-plans.ts` |
-| Payload blocks | kebab-case | `hero-block.ts` (schema), `hero-block.tsx` (renderer) |
-| Payload collections | PascalCase | `Posts.ts`, `Pages.ts` |
+| Frontend routes | kebab-case | `login.tsx`, `about.tsx` |
+| Frontend components | kebab-case files | `logout-button.tsx` |
+| Frontend lib/utils | kebab-case | `query-client.ts`, `auth.ts` |
 | Backend modules | snake_case directories | `items/` |
 | Backend files | snake_case | `item_service.py` |
 | Backend tests | `test_` prefix | `test_items.py` |
@@ -124,113 +123,79 @@ test('user can navigate to dashboard', async ({ page }) => {
 
 | Question | Answer |
 |----------|--------|
-| Is it a generic UI primitive (button, card, dialog)? | Import from `@packages/ui/components/*` |
-| Is it app-specific? | Create in `src/components/{feature}/` |
-| Is it a CMS block renderer? | Create in `src/components/content/blocks/` |
-| Does it need interactivity/hooks? | Add `"use client"` directive |
-| Is it purely presentational with no hooks? | Keep as Server Component (default) |
+| Is it a generic UI primitive (button, card, dialog)? | Import from `@packages/ui/components/shadcn/*` |
+| Is it app-specific? | Create in `src/components/{feature}/` or `src/components/{name}.tsx` |
+| Does it need its own file? | Yes — one component per file, extract early |
 
 ### Import Conventions
 
 ```tsx
 // 1. UI primitives from shared package
-import { Button } from "@packages/ui/components/button"
-import { Card } from "@packages/ui/components/card"
+import { Button } from "@packages/ui/components/shadcn/button"
+import { Card } from "@packages/ui/components/shadcn/card"
 
 // 2. Generated API client (never hand-write fetch to FastAPI)
-import { getMyItem } from "@/lib/api/generated"
+import { useLoginApiV1AuthLoginPost } from "@packages/api-client"
+import type { LoginRequest } from "@packages/api-client"
 
-// 3. i18n (all user-facing strings)
-import { getTranslations } from "next-intl/server"  // Server components
-import { useTranslations } from "next-intl"          // Client components
+// 3. App utilities via path alias
+import { requireAuth } from "@/lib/auth"
+import { env } from "@/env"
 
-// 4. Payload CMS data
-import { getPayload } from "payload"
-
-// 5. Tailwind: use utility classes, follow design system tokens
+// 4. Tailwind: use utility classes, follow design system tokens
 ```
 
 ### Data Fetching
 
 | Source | Method | When to Use |
 |--------|--------|-------------|
-| Frontend DB | tRPC | Threads, CopilotKit state, internal data |
-| Backend API | Generated Axios client | Domain items from FastAPI |
-| Payload CMS | `getPayload` + `unstable_cache` | Pages, posts, categories, plans, settings |
-| Auth | Better Auth client | Session, user info |
-| Server-only | Server Actions | Mutations (auth, email, subscriptions) |
+| Backend API | Orval-generated hooks (`@packages/api-client`) | All FastAPI endpoints |
+| Auth | `meApiV1AuthMeGet()` function in route guards | Session validation |
 
-### Form Pattern (@tanstack/react-form + Zod)
+### Form Pattern (React Hook Form + Zod + shadcn)
 
 ```tsx
-"use client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormField, FormControl, FormItem, FormLabel, FormMessage } from "@packages/ui/components/shadcn/form";
 
+// Tie Zod schema to Orval-generated type with `satisfies`
 const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+  password: z.string().min(1, "Required"),
+}) satisfies z.ZodType<LoginRequest>;
 
 export function MyForm() {
-  const form = useForm({
-    defaultValues: { email: "", password: "" },
-    validators: { onChange: schema },
-    onSubmit: async ({ value }) => {
-      // Handle submission
+  const form = useForm<LoginRequest>({
+    resolver: zodResolver(schema),
+    defaultValues: { password: "" },
+  });
+
+  const mutation = useLoginApiV1AuthLoginPost({
+    mutation: {
+      onSuccess: () => navigate({ to: "/" }),
+      onError: () => form.setError("password", { message: "Invalid" }),
     },
   });
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
-      <form.Field name="email">
-        {field => (
-          <FieldGroup>
-            <FieldLabel>Email</FieldLabel>
-            <Input {...field.getInputProps()} />
-            <FieldError>{field.state.meta.errors?.[0]}</FieldError>
-          </FieldGroup>
-        )}
-      </form.Field>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((v) => mutation.mutate({ data: v }))}>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </form>
+    </Form>
   );
-}
-```
-
-### Server Action Caching Pattern
-
-```typescript
-"use server";
-
-export async function fetchSomething({ slug, locale }: Params) {
-  return unstable_cache(
-    async () => {
-      const payload = await getPayload({ config });
-      return await payload.find({ collection: "...", where: { ... }, locale, depth: 2 });
-    },
-    [`cache-key-${slug}-${locale}`],
-    { tags: ["collection-name"], revalidate: 3600 }
-  )();
-}
-```
-
-### Context Provider Pattern
-
-```tsx
-"use client";
-
-const MyContext = createContext<MyData | null>(null);
-
-export function useMyData() {
-  const data = useContext(MyContext);
-  if (!data) throw new Error("useMyData must be used within MyProvider");
-  return data;
-}
-
-export function MyProvider({ children }: { children: ReactNode }) {
-  const { data, isLoading } = useQuery(...);
-  if (isLoading) return <LoadingSpinner />;
-  if (!data) return <EmptyState />;
-
-  return <MyContext.Provider value={data}>{children}</MyContext.Provider>;
 }
 ```
 
@@ -280,14 +245,6 @@ async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
 9. Create Alembic migration: `poetry run alembic revision --autogenerate -m "description"`
 10. Regenerate frontend client: `pnpm run generate-api`
 
-### Adding a New CMS Block
-
-1. Define Payload block schema in `src/payload/blocks/{name}.ts`
-2. Register in page collection's block array
-3. Create React renderer in `src/components/content/blocks/{name}.tsx`
-4. Add case to `BlocksRenderer` switch statement
-5. Add to seed scripts if needed
-
 ---
 
 ## Git
@@ -296,12 +253,11 @@ async def get_video(video_id: uuid.UUID, crud: VideoCrudDep):
 
 - `main` — production, protected
 - `dev` — integration branch
-- **Every task gets its own branch** with the Linear task number as prefix:
-    - `HYP-123-add-user-search` — feature task
-    - `HYP-456-fix-login-redirect` — bug fix task
-    - `HYP-789-update-dependencies` — maintenance task
-- Branch naming format: `<LINEAR-TASK-NUMBER>-<short-kebab-description>`
-- Branch names: lowercase, kebab-case after the task number
+- **Every task gets its own branch** named after the Linear issue:
+    - `hyp-123-add-user-search` — feature task
+    - `hyp-456-fix-login-redirect` — bug fix task
+    - `hyp-789-update-dependencies` — maintenance task
+- Branch naming format: `<linear-issue-id>-<short-kebab-description>` (all lowercase, no username prefix)
 - PR workflow: task branch → `dev` → `main`
 
 ### Commit Messages (Conventional Commits + Semantic Release)
@@ -342,7 +298,7 @@ We use **Linear** for task management. Linear is integrated via MCP server in Cl
 
 **Workflow:**
 1. Create or pick a task in Linear
-2. Create a branch using the Linear task number: `HYP-123-short-description`
+2. Create a branch: `hyp-123-short-description`
 3. Reference the task in PR descriptions
 4. PRs automatically link to Linear tasks when the branch name includes the task number
 
@@ -354,7 +310,7 @@ We use **Linear** for task management. Linear is integrated via MCP server in Cl
 flowchart TD
     A["Pick or create Linear task"] --> B["/plan — Create implementation plan"]
     B --> C["Review & approve plan"]
-    C --> D["Create task branch: HYP-123-description"]
+    C --> D["Create task branch: hyp-123-description"]
     D --> E["Write tests first (TDD)"]
     E --> F["Implement to pass tests"]
     F --> G["Refactor while green"]
