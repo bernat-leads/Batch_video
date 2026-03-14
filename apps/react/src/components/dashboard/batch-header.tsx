@@ -66,8 +66,8 @@ function CompletionChart({
 
 export function BatchStats({ batch }: BatchStatsProps) {
   const total = batch.total_videos;
-  const completed = batch.completed ?? 0;
-  const failed = batch.failed ?? 0;
+  const completed = batch.completed_count ?? 0;
+  const failed = batch.failed_count ?? 0;
 
   const totalTokens = batch.tokens_used ?? 0;
   const totalTime = batch.generation_time_ms ?? 0;
@@ -75,49 +75,53 @@ export function BatchStats({ batch }: BatchStatsProps) {
 
   return (
     <div className="flex flex-wrap gap-4">
-      <div className="min-w-[420px] flex-[3] rounded-xl border border-border bg-card-bg p-5">
-        <p className="mb-4 text-sm font-medium text-text-primary">Total</p>
-        <div className="flex items-center gap-5">
-          <div className="flex flex-1 items-center justify-center">
-            <CompletionChart
-              completed={completed}
-              total={total}
-              hasFailed={failed > 0 && completed + failed === total}
-            />
-          </div>
-          <div className="w-px self-stretch bg-border" />
-          <div className="flex-1 space-y-2 text-sm">
-            <StatRow label="Total Videos" value={String(total)} />
-            <StatRow label="Generated" value={String(completed)} />
-            <StatRow
-              label="Failed"
-              value={String(failed)}
-              valueClassName={cn(failed > 0 && "text-status-error")}
-            />
-          </div>
-          <div className="w-px self-stretch bg-border" />
-          <div className="flex-1 space-y-2 text-sm">
-            <StatRow label="Tokens" value={totalTokens.toLocaleString()} />
-            <StatRow label="Video Length" value={formatDuration(totalTime)} />
-            <StatRow label="Cost" value={formatCurrency(totalCost)} />
+      <div className="min-w-[420px] flex-[3] flex flex-col gap-2">
+        <p className="text-sm font-medium text-text-primary">Total</p>
+        <div className="flex-1 rounded-xl border border-border bg-card-bg p-5">
+          <div className="flex items-center gap-5">
+            <div className="flex flex-1 items-center justify-center">
+              <CompletionChart
+                completed={completed}
+                total={total}
+                hasFailed={failed > 0 && completed + failed === total}
+              />
+            </div>
+            <div className="w-px self-stretch bg-border" />
+            <div className="flex-1 space-y-2 text-sm">
+              <StatRow label="Total Videos" value={String(total)} />
+              <StatRow label="Generated" value={String(completed)} />
+              <StatRow
+                label="Failed"
+                value={String(failed)}
+                valueClassName={cn(failed > 0 && "text-status-error")}
+              />
+            </div>
+            <div className="w-px self-stretch bg-border" />
+            <div className="flex-1 space-y-2 text-sm">
+              <StatRow label="Tokens" value={totalTokens.toLocaleString()} />
+              <StatRow label="Video Length" value={formatDuration(totalTime)} />
+              <StatRow label="Cost" value={formatCurrency(totalCost)} />
+            </div>
           </div>
         </div>
       </div>
-      <div className="min-w-[240px] flex-[2] rounded-xl border border-border bg-card-bg p-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Average per Video</p>
-        <div className="space-y-2 text-sm">
-          <StatRow
-            label="Tokens"
-            value={total > 0 ? Math.round(totalTokens / total).toLocaleString() : "0"}
-          />
-          <StatRow
-            label="Video Length"
-            value={total > 0 ? formatDuration(Math.round(totalTime / total)) : "0s"}
-          />
-          <StatRow
-            label="Cost"
-            value={total > 0 ? formatCurrency(totalCost / total) : "$0.00"}
-          />
+      <div className="min-w-[240px] flex-[2] flex flex-col gap-2">
+        <p className="text-sm font-medium text-text-primary">Average per Video</p>
+        <div className="flex-1 flex items-center rounded-xl border border-border bg-card-bg p-4">
+          <div className="w-full space-y-2 text-sm">
+            <StatRow
+              label="Tokens"
+              value={total > 0 ? Math.round(totalTokens / total).toLocaleString() : "0"}
+            />
+            <StatRow
+              label="Video Length"
+              value={total > 0 ? formatDuration(Math.round(totalTime / total)) : "0s"}
+            />
+            <StatRow
+              label="Cost"
+              value={total > 0 ? formatCurrency(totalCost / total) : "$0.00"}
+            />
+          </div>
         </div>
       </div>
     </div>

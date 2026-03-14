@@ -47,9 +47,19 @@ class StorageService:
         """Delete a file from R2 storage."""
         self._client.delete_object(Bucket=self._bucket, Key=key)
 
+    def delete_prefix(self, prefix: str) -> int:
+        """Delete all files under a prefix. Returns count of deleted objects."""
+        deleted = 0
+        paginator = self._client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            objects = page.get("Contents", [])
+            if not objects:
+                continue
+            self._client.delete_objects(
+                Bucket=self._bucket,
+                Delete={"Objects": [{"Key": obj["Key"]} for obj in objects]},
+            )
+            deleted += len(objects)
+        return deleted
 
-def get_storage() -> StorageService:
-    return StorageService()
-
-
-StorageDep = Annotated[StorageService, Depends(get_storage)]
+StorageDep = Annotated[StorageService, Depends(StorageService)]

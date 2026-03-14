@@ -117,7 +117,9 @@ function VideoDetailPage() {
               stage={video.current_stage}
             />
           </div>
-          <p className="mt-1 text-sm text-text-secondary">{scriptPreview}</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            {scriptPreview} — Created {new Date(video.created_at).toLocaleDateString()}
+          </p>
         </div>
         <div className="flex items-center gap-2 pt-1">
           {video.status === "completed" && video.output_url && (
@@ -207,10 +209,6 @@ function VideoDetailPage() {
                 valueClassName="max-w-[120px] truncate"
               />
               <StatRow label="Top Text" value={video.top_text ?? "\u2014"} />
-              <StatRow
-                label="Created"
-                value={new Date(video.created_at).toLocaleDateString()}
-              />
             </div>
 
             <div className="my-4 h-px bg-border" />

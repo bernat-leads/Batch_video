@@ -64,6 +64,7 @@ function BatchesPage() {
         <EmptyState
           title="No batches yet"
           description="Upload an Excel file to start generating videos"
+          action={<CreateBatchDialog onBatchCreated={handleBatchCreated} />}
         />
       ) : (
         <BatchTable

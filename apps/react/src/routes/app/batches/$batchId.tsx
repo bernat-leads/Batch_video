@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Download, Trash2 } from "lucide-react";
+import { AlertCircle, Download, Trash2 } from "lucide-react";
 import type { VideoRead } from "@packages/api-client";
 import {
   useGetBatchApiV1BatchesBatchIdGet,
@@ -97,6 +97,15 @@ function BatchDetailPage() {
         </>
       ) : (
         <>
+          {batch?.error_message && (
+            <div className="flex items-start gap-3 rounded-xl border border-status-error/30 bg-status-error-light p-4">
+              <AlertCircle size={18} className="mt-0.5 shrink-0 text-status-error" />
+              <div>
+                <p className="text-sm font-medium text-status-error">Processing failed</p>
+                <p className="mt-1 text-sm text-text-secondary">{batch.error_message}</p>
+              </div>
+            </div>
+          )}
           {batch && <BatchStats batch={batch} />}
           <p className="text-sm font-medium text-text-primary">Videos</p>
           <VideoTable

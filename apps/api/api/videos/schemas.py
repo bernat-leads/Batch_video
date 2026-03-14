@@ -1,61 +1,12 @@
-"""Pydantic schemas for Video, Shot, and Batch API endpoints."""
+"""Pydantic schemas for Video API endpoints."""
 
 import uuid
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel
 
+from api.shots.schemas import ShotRead
 from api.videos.enums import VideoStage, VideoStatus
-
-
-# ---------------------------------------------------------------------------
-# Shot schemas
-# ---------------------------------------------------------------------------
-
-
-class ShotBase(BaseModel):
-    """Shared fields for shot schemas."""
-
-    order: int
-    text: str
-    image_prompt: str
-    ken_burns_config: dict[str, Any] | None = None
-    start_time: float
-    end_time: float
-
-
-class ShotCreate(ShotBase):
-    """Schema for creating a shot."""
-
-    video_id: uuid.UUID
-
-
-class ShotUpdate(BaseModel):
-    """Schema for updating a shot (all fields optional)."""
-
-    order: int | None = None
-    text: str | None = None
-    image_prompt: str | None = None
-    ken_burns_config: dict[str, Any] | None = None
-    start_time: float | None = None
-    end_time: float | None = None
-    image_url: str | None = None
-
-
-class ShotRead(ShotBase):
-    """Schema for reading a shot."""
-
-    id: uuid.UUID
-    video_id: uuid.UUID
-    image_url: str | None = None
-    tokens_used: int = 0
-    generation_time_ms: int = 0
-    cost_usd: float = 0.0
-    created_at: datetime
-    updated_at: datetime | None = None
-
-    model_config = {"from_attributes": True}
 
 
 # ---------------------------------------------------------------------------
@@ -159,55 +110,3 @@ class DashboardResponse(BaseModel):
 
     stats: DashboardStats
     daily: list[DailyStats]
-
-
-# ---------------------------------------------------------------------------
-# Batch schemas
-# ---------------------------------------------------------------------------
-
-
-class BatchVideoItem(BaseModel):
-    """Schema for a video item within a batch creation request."""
-
-    script_text: str
-    prompt: str = ""
-    voice_id: str | None = None
-    style: str | None = None
-    top_text: str | None = None
-
-
-class BatchCreate(BaseModel):
-    """Schema for creating a batch with videos."""
-
-    name: str
-    videos: list[BatchVideoItem] = []
-
-
-class BatchUpdate(BaseModel):
-    """Schema for updating a batch (all fields optional)."""
-
-    name: str | None = None
-    tokens_used: int | None = None
-    generation_time_ms: int | None = None
-    total_cost_usd: float | None = None
-    avg_cost_per_video_usd: float | None = None
-
-
-class BatchRead(BaseModel):
-    """Schema for reading a batch with computed video stats."""
-
-    id: uuid.UUID
-    name: str
-    total_videos: int
-    tokens_used: int = 0
-    generation_time_ms: int = 0
-    total_cost_usd: float = 0.0
-    avg_cost_per_video_usd: float = 0.0
-    completed: int = 0
-    failed: int = 0
-    processing: int = 0
-    pending: int = 0
-    created_at: datetime
-    updated_at: datetime | None = None
-
-    model_config = {"from_attributes": True}

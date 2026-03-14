@@ -63,6 +63,7 @@ function VideosPage() {
         <EmptyState
           title="No videos yet"
           description="Create a batch to start generating videos"
+          action={<CreateVideoDialog />}
         />
       ) : (
         <VideoTable

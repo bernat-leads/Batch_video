@@ -238,7 +238,11 @@ export function VideoTable({ videos, batches, showIndex = true, toolbar, paginat
     columnHelper.display({
       id: "actions",
       header: "",
-      cell: ({ row }) => <VideoActions video={row.original} onDelete={onDelete} />,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <VideoActions video={row.original} onDelete={onDelete} />
+        </div>
+      ),
       enableSorting: false,
     }),
   ];
@@ -321,12 +325,12 @@ export function VideoTable({ videos, batches, showIndex = true, toolbar, paginat
                 key={row.id}
                 data-state={row.getIsSelected() ? "selected" : undefined}
                 className="cursor-pointer border-border"
-                onClick={() => {
+                onClick={() =>
                   navigate({
                     to: "/app/videos/$videoId",
                     params: { videoId: row.original.id },
-                  });
-                }}
+                  })
+                }
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

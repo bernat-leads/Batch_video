@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Float, Integer, String
+from sqlalchemy import Float, Integer, JSON, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,12 +17,21 @@ class Batch(BaseModel):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     total_videos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    processing_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pending_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     generation_time_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     avg_cost_per_video_usd: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.0
     )
+
+    column_mapping: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    file_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    file_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     videos: Mapped[list["Video"]] = relationship(  # noqa: F821
         back_populates="batch",

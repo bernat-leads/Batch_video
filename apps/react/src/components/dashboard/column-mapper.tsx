@@ -39,24 +39,28 @@ const FIELDS = [
     key: "script_text" as const,
     label: "Script Text",
     description: "The ad script / video text",
+    required: true,
     autoMatch: ["script_text", "script", "text", "content", "copy", "ad_text"],
   },
   {
     key: "voice_id" as const,
     label: "Voice ID",
     description: "ElevenLabs voice identifier",
+    required: true,
     autoMatch: ["voice_id", "voice", "voiceid"],
   },
   {
     key: "style" as const,
     label: "Style",
     description: "Visual style (professional, energetic, etc.)",
+    required: false,
     autoMatch: ["style", "visual_style", "theme"],
   },
   {
     key: "top_text" as const,
     label: "Top Text",
     description: "Text overlay at top of video",
+    required: false,
     autoMatch: ["top_text", "toptext", "overlay", "banner"],
   },
 ] as const;
@@ -111,7 +115,9 @@ export function ColumnMapper({
     top_text: initialMapping?.top_text ?? autoMapped["top_text"] ?? UNMAPPED,
   });
 
-  const isValid = Object.values(mapping).every((v) => v !== UNMAPPED);
+  const isValid = FIELDS.filter((f) => f.required).every(
+    (f) => mapping[f.key] !== UNMAPPED,
+  );
 
   const getSamples = (columnName: string): string[] => {
     if (columnName === UNMAPPED) return [];
@@ -160,7 +166,7 @@ export function ColumnMapper({
                   <td className="border-border px-3 py-4 align-top">
                     <p className="font-medium text-text-primary">
                       {field.label}
-                      <span className="text-status-error"> *</span>
+                      {field.required && <span className="text-status-error"> *</span>}
                     </p>
                     <p className="text-xs text-text-muted">
                       {field.description}

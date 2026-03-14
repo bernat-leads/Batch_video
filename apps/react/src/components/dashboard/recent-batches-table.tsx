@@ -75,7 +75,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-text-secondary">
-                      {batch.completed}/{batch.total_videos} done
+                      {batch.completed_count}/{batch.total_videos} done
                     </span>
                   </TableCell>
                   <TableCell>

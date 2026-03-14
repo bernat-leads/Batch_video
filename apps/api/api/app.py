@@ -8,12 +8,14 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from api.auth import auth_router
+from api.batches.routes import batches_router
 from api.core import router as core_router
 from api.deps.sentry import init_sentry
 from api.exceptions import register_exception_handlers
 from api.settings import settings
 from api.settings_module import settings_router
-from api.videos import batches_router, shots_router, videos_router
+from api.shots.routes import shots_router
+from api.videos.routes import videos_router
 
 logger = logging.getLogger(__name__)
 

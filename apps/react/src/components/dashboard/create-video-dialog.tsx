@@ -53,7 +53,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
 
   const [scriptText, setScriptText] = useState("");
   const [voiceId, setVoiceId] = useState("");
-  const [style, setStyle] = useState("professional");
+  const [style, setStyle] = useState("");
   const [topText, setTopText] = useState("");
   const [prompt, setPrompt] = useState<string | null>(null);
 
@@ -80,13 +80,13 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
     setStep("details");
     setScriptText("");
     setVoiceId("");
-    setStyle("professional");
+    setStyle("");
     setTopText("");
     setPrompt(null);
   };
 
   const handleNext = () => {
-    if (!scriptText.trim()) return;
+    if (!scriptText.trim() || !voiceId.trim()) return;
     if (prompt === null) {
       setPrompt(settings?.master_prompt ?? "");
     }
@@ -151,11 +151,12 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
               <label className="mb-1.5 block text-sm font-medium text-text-primary">
                 Style
               </label>
-              <Select value={style} onValueChange={setStyle}>
+              <Select value={style || "none"} onValueChange={(v) => setStyle(v === "none" ? "" : v)}>
                 <SelectTrigger className="h-9 w-full border-border bg-content-bg text-text-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   {STYLE_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -168,7 +169,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                  Voice ID
+                  Voice ID <span className="text-status-error">*</span>
                 </label>
                 <input
                   value={voiceId}
@@ -193,10 +194,10 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
             <div className="flex justify-end pt-1">
               <Button
                 onClick={handleNext}
-                disabled={!scriptText.trim()}
+                disabled={!scriptText.trim() || !voiceId.trim()}
                 className={cn(
                   "bg-brand text-white",
-                  !scriptText.trim() && "opacity-50",
+                  (!scriptText.trim() || !voiceId.trim()) && "opacity-50",
                 )}
               >
                 Next

@@ -70,15 +70,15 @@ services:
       retries: 3
       start_period: 40s
 
-  # ── Celery background worker (optional) ────────────────────────────────────
-  # celery-worker:
-  #   build:
-  #     context: ./apps/api
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     <<: *api-env
-  #   command: ["celery-worker"]
-  #   restart: unless-stopped
+  # ── Celery background worker ──────────────────────────────────────────────
+  celery-worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      <<: *api-env
+    command: ["celery-worker"]
+    restart: unless-stopped
 
   # ── React frontend (nginx) ─────────────────────────────────────────────────
   app:

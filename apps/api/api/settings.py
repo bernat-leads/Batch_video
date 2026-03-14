@@ -61,6 +61,9 @@ class Settings(BaseSettings):
 
     # ─── File uploads ─────────────────────────────────────────────────────────
     UPLOAD_DIR: str = "./uploads"
+    UPLOAD_ALLOWED_EXTENSIONS: list[str] = [".xlsx", ".xls", ".csv"]
+    UPLOAD_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
+
 
     # ─── Optional / Observability ────────────────────────────────────────────
     SENTRY_DSN: HttpUrl | None = None

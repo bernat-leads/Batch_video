@@ -239,7 +239,7 @@ export function BatchTable({ batches, toolbar, pagination, onSelectionChange, on
         const b = row.original;
         return (
           <span className="text-sm text-text-secondary">
-            {b.completed}/{b.total_videos} done
+            {b.completed_count}/{b.total_videos} done
           </span>
         );
       },
@@ -267,11 +267,13 @@ export function BatchTable({ batches, toolbar, pagination, onSelectionChange, on
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <BatchActions
-          batch={row.original}
-          onRename={() => setRenamingBatch(row.original)}
-          onDelete={onDelete}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <BatchActions
+            batch={row.original}
+            onRename={() => setRenamingBatch(row.original)}
+            onDelete={onDelete}
+          />
+        </div>
       ),
       enableSorting: false,
     }),

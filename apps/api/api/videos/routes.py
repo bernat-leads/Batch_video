@@ -1,24 +1,14 @@
-"""Video, Shot, and Batch API routes."""
+"""Video API routes."""
 
 import uuid
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import select
 
 from api.core.schemas import PageResponse
 from api.deps.auth import AuthDep
-from api.deps.db import SessionDep
-from api.videos.crud import BatchCrudDep, ShotCrudDep, VideoCrudDep
-from api.videos.models.shot import Shot
+from api.videos.crud import VideoCrudDep
 from api.videos.schemas import (
-    BatchCreate,
-    BatchRead,
-    DailyStats,
     DashboardResponse,
-    DashboardStats,
-    ShotCreate,
-    ShotRead,
-    ShotUpdate,
     VideoCreate,
     VideoRead,
     VideoReadWithShots,
@@ -26,66 +16,14 @@ from api.videos.schemas import (
 )
 
 videos_router = APIRouter(prefix="/videos", tags=["videos"])
-shots_router = APIRouter(prefix="/videos/{video_id}/shots", tags=["shots"])
-batches_router = APIRouter(prefix="/batches", tags=["batches"])
-
-
-# ---------------------------------------------------------------------------
-# Batches
-# ---------------------------------------------------------------------------
-
-
-@batches_router.post("/", response_model=BatchRead, status_code=201)
-async def create_batch(
-    batch_in: BatchCreate, crud: BatchCrudDep, _auth: AuthDep
-) -> BatchRead:
-    """Create a new batch with videos."""
-    return await crud.create_with_videos(batch_in)
-
-
-@batches_router.get("/", response_model=PageResponse[BatchRead])
-async def list_batches(
-    crud: BatchCrudDep,
-    _auth: AuthDep,
-    page: int = 1,
-    page_size: int = 50,
-) -> PageResponse[BatchRead]:
-    """List batches with computed video stats (paginated)."""
-    return await crud.get_all_with_stats(page=page, page_size=page_size)
-
-
-@batches_router.get("/{batch_id}", response_model=BatchRead)
-async def get_batch(
-    batch_id: uuid.UUID, crud: BatchCrudDep, _auth: AuthDep
-) -> BatchRead:
-    """Get a batch by ID with computed video stats."""
-    batch = await crud.get_with_stats(batch_id)
-    if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found")
-    return batch
-
-
-@batches_router.delete("/{batch_id}", status_code=204)
-async def delete_batch(batch_id: uuid.UUID, crud: BatchCrudDep, _auth: AuthDep) -> None:
-    """Delete a batch and all its videos."""
-    deleted = await crud.delete(batch_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
-
-# ---------------------------------------------------------------------------
-# Videos
-# ---------------------------------------------------------------------------
 
 
 @videos_router.get("/stats/dashboard", response_model=DashboardResponse)
 async def get_dashboard_stats(crud: VideoCrudDep, _auth: AuthDep) -> DashboardResponse:
     """Get aggregated dashboard statistics."""
-    stats = await crud.get_dashboard_stats()
-    daily = await crud.get_daily_stats(days=7)
     return DashboardResponse(
-        stats=DashboardStats(**stats),
-        daily=[DailyStats(**d) for d in daily],
+        stats=await crud.get_dashboard_stats(),
+        daily=await crud.get_daily_stats(days=7),
     )
 
 
@@ -145,69 +83,3 @@ async def delete_video(video_id: uuid.UUID, crud: VideoCrudDep, _auth: AuthDep) 
     deleted = await crud.delete(video_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Video not found")
-
-
-# ---------------------------------------------------------------------------
-# Shots
-# ---------------------------------------------------------------------------
-
-
-@shots_router.post("/", response_model=ShotRead, status_code=201)
-async def create_shot(
-    video_id: uuid.UUID,
-    shot_in: ShotCreate,
-    video_crud: VideoCrudDep,
-    shot_crud: ShotCrudDep,
-    _auth: AuthDep,
-) -> ShotRead:
-    """Create a shot for a video."""
-    if not await video_crud.exists(video_id):
-        raise HTTPException(status_code=404, detail="Video not found")
-    return await shot_crud.create(shot_in)
-
-
-@shots_router.get("/", response_model=list[ShotRead])
-async def list_shots(
-    video_id: uuid.UUID, db: SessionDep, _auth: AuthDep
-) -> list[ShotRead]:
-    """List all shots for a video, ordered by sequence."""
-    statement = select(Shot).where(Shot.video_id == video_id).order_by(Shot.order)
-    result = await db.execute(statement)
-    return list(result.scalars().all())
-
-
-@shots_router.get("/{shot_id}", response_model=ShotRead)
-async def get_shot(
-    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
-) -> ShotRead:
-    """Get a specific shot."""
-    shot = await crud.get(shot_id)
-    if not shot or shot.video_id != video_id:
-        raise HTTPException(status_code=404, detail="Shot not found")
-    return shot
-
-
-@shots_router.patch("/{shot_id}", response_model=ShotRead)
-async def update_shot(
-    video_id: uuid.UUID,
-    shot_id: uuid.UUID,
-    shot_in: ShotUpdate,
-    crud: ShotCrudDep,
-    _auth: AuthDep,
-) -> ShotRead:
-    """Update a shot."""
-    shot = await crud.get(shot_id)
-    if not shot or shot.video_id != video_id:
-        raise HTTPException(status_code=404, detail="Shot not found")
-    return await crud.update(shot_id, shot_in)
-
-
-@shots_router.delete("/{shot_id}", status_code=204)
-async def delete_shot(
-    video_id: uuid.UUID, shot_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
-) -> None:
-    """Delete a shot."""
-    shot = await crud.get(shot_id)
-    if not shot or shot.video_id != video_id:
-        raise HTTPException(status_code=404, detail="Shot not found")
-    await crud.delete(shot_id)

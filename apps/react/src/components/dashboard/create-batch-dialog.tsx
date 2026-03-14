@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import {
-  useCreateBatchApiV1BatchesPost,
+  useUploadBatchApiV1BatchesUploadPost,
   useGetSettingsApiV1SettingsGet,
   getListVideosApiV1VideosGetQueryKey,
   getListBatchesApiV1BatchesGetQueryKey,
@@ -54,7 +54,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: settings } = useGetSettingsApiV1SettingsGet();
-  const createBatch = useCreateBatchApiV1BatchesPost();
+  const uploadBatch = useUploadBatchApiV1BatchesUploadPost();
 
   const reset = () => {
     setStep("upload");
@@ -80,27 +80,13 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
     setIsSubmitting(true);
 
     const finalName = batchName.trim() || parsedFile.fileName.replace(/\.(xlsx|xls|csv)$/i, "");
-    const scriptColIdx = parsedFile.headers.indexOf(mapping.script_text);
-    const voiceColIdx = parsedFile.headers.indexOf(mapping.voice_id);
-    const styleColIdx = parsedFile.headers.indexOf(mapping.style);
-    const topTextColIdx = parsedFile.headers.indexOf(mapping.top_text);
-    const masterPrompt = settings?.master_prompt ?? "";
-
-    const videoRows = parsedFile.rows.filter(
-      (row) => scriptColIdx >= 0 && String(row[scriptColIdx]).trim() !== "",
-    );
 
     try {
-      const batch = await createBatch.mutateAsync({
+      const batch = await uploadBatch.mutateAsync({
         data: {
-          name: finalName,
-          videos: videoRows.map((row) => ({
-            script_text: String(row[scriptColIdx]).trim(),
-            prompt: masterPrompt,
-            voice_id: voiceColIdx >= 0 ? String(row[voiceColIdx] ?? "").trim() || undefined : undefined,
-            style: styleColIdx >= 0 ? String(row[styleColIdx] ?? "").trim() || undefined : undefined,
-            top_text: topTextColIdx >= 0 ? String(row[topTextColIdx] ?? "").trim() || undefined : undefined,
-          })),
+          file: parsedFile.file,
+          batch_name: finalName,
+          column_mapping: JSON.stringify(mapping),
         },
       });
 
@@ -108,11 +94,11 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
       queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
       setOpen(false);
       reset();
-      toast.success(`Batch "${finalName}" created with ${videoRows.length} videos`);
+      toast.success(`Batch "${finalName}" uploaded — processing started`);
       onBatchCreated?.();
       navigate({ to: "/app/batches/$batchId", params: { batchId: batch.id } });
     } catch {
-      toast.error("Failed to create batch");
+      toast.error("Failed to upload batch");
       setIsSubmitting(false);
     }
   };
@@ -172,6 +158,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
             onBatchNameChange={setBatchName}
             onBack={() => setStep("map")}
             onConfirm={handleConfirm}
+            isSubmitting={isSubmitting}
           />
         )}
       </DialogContent>
@@ -186,6 +173,7 @@ function ReviewStep({
   onBatchNameChange,
   onBack,
   onConfirm,
+  isSubmitting,
 }: {
   parsedFile: ParsedFile;
   mapping: ColumnMapping;
@@ -193,6 +181,7 @@ function ReviewStep({
   onBatchNameChange: (name: string) => void;
   onBack: () => void;
   onConfirm: () => void;
+  isSubmitting: boolean;
 }) {
   const scriptColIdx = parsedFile.headers.indexOf(mapping.script_text);
   const totalVideos = parsedFile.rows.filter(
@@ -281,14 +270,16 @@ function ReviewStep({
           variant="outline"
           onClick={onBack}
           className="border-border text-text-secondary"
+          disabled={isSubmitting}
         >
           Back
         </Button>
         <Button
           onClick={onConfirm}
           className="bg-brand text-white"
+          disabled={isSubmitting}
         >
-          Create Batch
+          {isSubmitting ? "Uploading..." : "Create Batch"}
         </Button>
       </div>
     </div>

@@ -4,6 +4,9 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { BatchReadColumnMapping } from './batchReadColumnMapping';
+import type { BatchReadFileName } from './batchReadFileName';
+import type { BatchReadErrorMessage } from './batchReadErrorMessage';
 import type { BatchReadUpdatedAt } from './batchReadUpdatedAt';
 
 /**
@@ -17,10 +20,13 @@ export interface BatchRead {
   generation_time_ms?: number;
   total_cost_usd?: number;
   avg_cost_per_video_usd?: number;
-  completed?: number;
-  failed?: number;
-  processing?: number;
-  pending?: number;
+  completed_count?: number;
+  failed_count?: number;
+  processing_count?: number;
+  pending_count?: number;
+  column_mapping?: BatchReadColumnMapping;
+  file_name?: BatchReadFileName;
+  error_message?: BatchReadErrorMessage;
   created_at: string;
   updated_at?: BatchReadUpdatedAt;
 }

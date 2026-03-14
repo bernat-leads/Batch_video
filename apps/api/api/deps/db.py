@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends
@@ -43,3 +44,13 @@ async def save(session: AsyncSession, db_object: object) -> None:
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+@asynccontextmanager
+async def async_session_factory() -> AsyncGenerator[AsyncSession, None]:
+    """Create a standalone async session for use outside FastAPI (e.g., Celery tasks)."""
+    async with AsyncSession(engine) as session:
+        try:
+            yield session
+        finally:
+            await session.close()

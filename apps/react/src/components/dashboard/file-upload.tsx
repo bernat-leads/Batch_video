@@ -7,6 +7,7 @@ export interface ParsedFile {
   fileName: string;
   headers: string[];
   rows: string[][];
+  file: File;
 }
 
 interface FileUploadProps {
@@ -58,7 +59,7 @@ export function FileUpload({ onFileParsed }: FileUploadProps) {
             setError("No data rows found");
             return;
           }
-          onFileParsed({ fileName: file.name, headers, rows });
+          onFileParsed({ fileName: file.name, headers, rows, file });
         } catch {
           setError("Failed to parse file. Make sure it's a valid Excel or CSV file.");
         }

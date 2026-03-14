@@ -27,8 +27,8 @@ import type {
   AppSettingsRead,
   AppSettingsUpdate,
   AuthStatus,
-  BatchCreate,
   BatchRead,
+  BodyUploadBatchApiV1BatchesUploadPost,
   DashboardResponse,
   HTTPValidationError,
   HealthCheckHealthGet200,
@@ -256,7 +256,7 @@ export const loginApiV1AuthLoginPost = (
 ) => {
       
       
-      return customInstance<AuthStatus>(
+      return customInstance<unknown>(
       {url: `/api/v1/auth/login`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: loginRequest, signal
@@ -322,7 +322,7 @@ export const logoutApiV1AuthLogoutPost = (
 ) => {
       
       
-      return customInstance<AuthStatus>(
+      return customInstance<unknown>(
       {url: `/api/v1/auth/logout`, method: 'POST', signal
     },
       options);
@@ -471,30 +471,34 @@ export function useMeApiV1AuthMeGet<TData = Awaited<ReturnType<typeof meApiV1Aut
 
 
 /**
- * Create a new batch with videos.
- * @summary Create Batch
+ * Upload an Excel/CSV file to create a batch. Processing happens in background.
+ * @summary Upload Batch
  */
-export const createBatchApiV1BatchesPost = (
-    batchCreate: BodyType<BatchCreate>,
+export const uploadBatchApiV1BatchesUploadPost = (
+    bodyUploadBatchApiV1BatchesUploadPost: BodyType<BodyUploadBatchApiV1BatchesUploadPost>,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
-      
+      const formData = new FormData();
+formData.append(`batch_name`, bodyUploadBatchApiV1BatchesUploadPost.batch_name)
+formData.append(`column_mapping`, bodyUploadBatchApiV1BatchesUploadPost.column_mapping)
+formData.append(`file`, bodyUploadBatchApiV1BatchesUploadPost.file)
+
       return customInstance<BatchRead>(
-      {url: `/api/v1/batches/`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: batchCreate, signal
+      {url: `/api/v1/batches/upload`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData, signal
     },
       options);
     }
   
 
 
-export const getCreateBatchApiV1BatchesPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext> => {
+export const getUploadBatchApiV1BatchesUploadPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext> => {
 
-const mutationKey = ['createBatchApiV1BatchesPost'];
+const mutationKey = ['uploadBatchApiV1BatchesUploadPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -504,10 +508,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, {data: BodyType<BatchCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, {data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createBatchApiV1BatchesPost(data,requestOptions)
+          return  uploadBatchApiV1BatchesUploadPost(data,requestOptions)
         }
 
         
@@ -515,29 +519,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateBatchApiV1BatchesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>>
-    export type CreateBatchApiV1BatchesPostMutationBody = BodyType<BatchCreate>
-    export type CreateBatchApiV1BatchesPostMutationError = ErrorType<HTTPValidationError>
+    export type UploadBatchApiV1BatchesUploadPostMutationResult = NonNullable<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>>
+    export type UploadBatchApiV1BatchesUploadPostMutationBody = BodyType<BodyUploadBatchApiV1BatchesUploadPost>
+    export type UploadBatchApiV1BatchesUploadPostMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Create Batch
+ * @summary Upload Batch
  */
-export const useCreateBatchApiV1BatchesPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUploadBatchApiV1BatchesUploadPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>,
+        Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>,
         TError,
-        {data: BodyType<BatchCreate>},
+        {data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>},
         TContext
       > => {
 
-      const mutationOptions = getCreateBatchApiV1BatchesPostMutationOptions(options);
+      const mutationOptions = getUploadBatchApiV1BatchesUploadPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
     
 /**
- * List batches with computed video stats (paginated).
+ * List batches (paginated).
  * @summary List Batches
  */
 export const listBatchesApiV1BatchesGet = (
@@ -632,7 +636,7 @@ export function useListBatchesApiV1BatchesGet<TData = Awaited<ReturnType<typeof 
 
 
 /**
- * Get a batch by ID with computed video stats.
+ * Get a batch by ID.
  * @summary Get Batch
  */
 export const getBatchApiV1BatchesBatchIdGet = (

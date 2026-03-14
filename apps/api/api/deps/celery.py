@@ -8,7 +8,7 @@ celery_app = Celery(
     "worker",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["api.deps.tasks"],
+    include=["api.deps.tasks", "api.batches.tasks"],
 )
 
 celery_app.conf.update(
