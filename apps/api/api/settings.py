@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = Field(
         default=8000,
-        validation_alias=AliasChoices("API_SERVER_PORT", "PORT"),
+        validation_alias=AliasChoices("PORT", "API_SERVER_PORT"),
     )
     SERVER_LOG_LEVEL: str = "info"
     SWAGGER_HIDE: bool = False
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
 
     # ─── Google Gemini ─────────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
+    GEMINI_IMAGEN_MODEL: str = "imagen-3.0-generate-002"
 
     # ─── OpenAI ──────────────────────────────────────────────────────────
     OPENAI_API_KEY: str = ""

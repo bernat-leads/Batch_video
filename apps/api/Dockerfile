@@ -39,7 +39,6 @@ COPY --chown=appuser apps/api/ .
 
 RUN chmod +x docker-entrypoint.sh
 
-ENV PORT=8000
 EXPOSE 8000
 
 ENTRYPOINT ["/home/appuser/docker-entrypoint.sh"]
