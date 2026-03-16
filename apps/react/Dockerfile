@@ -21,4 +21,5 @@ FROM nginx:alpine AS runner
 COPY --from=builder /app/apps/react/dist /usr/share/nginx/html
 COPY apps/react/nginx.conf /etc/nginx/templates/default.conf.template
 ENV PORT=80
+ENV API_URL=http://localhost:8000
 CMD ["nginx", "-g", "daemon off;"]

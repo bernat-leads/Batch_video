@@ -20,8 +20,9 @@ class StorageService:
     """S3-compatible client for Cloudflare R2."""
 
     def __init__(self, client: S3ClientDep) -> None:
+        """Initialize with an S3-compatible client."""
         self._client = client
-        self._bucket = settings.R2_BUCKET_NAME
+        self._bucket = settings.S3_BUCKET_NAME
 
     @pipeline_retry()
     def upload_file(self, key: str, data: bytes, content_type: str) -> None:

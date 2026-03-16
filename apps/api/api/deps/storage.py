@@ -26,13 +26,12 @@ class S3Client(Protocol):
     def get_paginator(self, operation: str) -> object: ...
 
 
-# Module-level S3 client (same pattern as db.py engine)
 s3_client: S3Client = boto3.client(
     "s3",
-    endpoint_url=f"https://{settings.R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
-    aws_access_key_id=settings.R2_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
-    region_name="auto",
+    endpoint_url=settings.S3_ENDPOINT,
+    aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+    region_name=settings.S3_REGION,
 )
 
 
@@ -60,14 +59,10 @@ def ValidateUpload(
     allowed_extensions: set[str] = settings.UPLOAD_ALLOWED_EXTENSIONS,
     max_size_bytes: int = settings.UPLOAD_MAX_FILE_SIZE,
 ):
-    """Factory that returns a file-validation dependency with custom constraints.
-
-    Usage:
-        validated_file: ValidatedFileDep                                        # project defaults
-        validated_file: Annotated[ValidatedFile, Depends(ValidateUpload(...))]  # custom
-    """
+    """Factory that returns a file-validation dependency with custom constraints."""
 
     async def _validate(file: UploadFile) -> ValidatedFile:
+        """Validate uploaded file extension and size."""
         if not file.filename:
             raise HTTPException(400, "Filename is required")
 

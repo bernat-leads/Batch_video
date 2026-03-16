@@ -1,5 +1,5 @@
-import logging
-from pathlib import Path
+"""Application settings — all config from environment variables."""
+
 from typing import Literal
 
 from pydantic import (
@@ -8,29 +8,28 @@ from pydantic import (
     HttpUrl,
     PostgresDsn,
     computed_field,
-    model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_settings_logger = logging.getLogger(__name__)
-
 
 class Settings(BaseSettings):
+    """Application settings loaded from environment variables with API_ prefix."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         env_ignore_empty=True,
         extra="ignore",
-        env_prefix="API_",  # Env vars: API_DATABASE_URL, API_R2_ACCOUNT_ID, etc.
+        env_prefix="API_",
     )
 
     # ─── API ─────────────────────────────────────────────────────────────────
     PROJECT_NAME: str = "API"
-    SECRET_KEY: str = ""
+    SECRET_KEY: str
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     # ─── Auth ──────────────────────────────────────────────────────────────
-    APP_PASSWORD: str = Field(default="", min_length=1)
+    APP_PASSWORD: str
     SESSION_MAX_AGE: int = 86400 * 7  # 7 days
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
@@ -48,122 +47,69 @@ class Settings(BaseSettings):
     SERVER_LOG_LEVEL: str = "info"
     SWAGGER_HIDE: bool = False
 
-    # ─── Cloudflare R2 ─────────────────────────────────────────────────────
-    R2_ACCOUNT_ID: str = ""
-    R2_ACCESS_KEY_ID: str = ""
-    R2_SECRET_ACCESS_KEY: str = ""
-    R2_BUCKET_NAME: str = "video-pipeline"
+    # ─── Object Storage (S3-compatible) ──────────────────────────────────────
+    S3_ENDPOINT: str
+    S3_ACCESS_KEY_ID: str
+    S3_SECRET_ACCESS_KEY: str
+    S3_BUCKET_NAME: str
+    S3_REGION: str = "us-east-1"
 
     # ─── ElevenLabs ────────────────────────────────────────────────────────
-    ELEVENLABS_API_KEY: str = ""
+    ELEVENLABS_API_KEY: str
+    ELEVENLABS_DEFAULT_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
+    ELEVENLABS_MODEL_ID: str = "eleven_multilingual_v2"
 
     # ─── Anthropic (Claude) ───────────────────────────────────────────────
-    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
 
     # ─── Google Gemini ─────────────────────────────────────────────────────
-    GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY: str
     GEMINI_IMAGEN_MODEL: str = "imagen-3.0-generate-002"
 
     # ─── OpenAI ──────────────────────────────────────────────────────────
-    OPENAI_API_KEY: str = ""
+    OPENAI_API_KEY: str
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_DEFAULT_VOICE: str = "coral"
 
     # ─── Pipeline ─────────────────────────────────────────────────────────
-    ELEVENLABS_DEFAULT_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"  # Rachel
-    ELEVENLABS_MODEL_ID: str = "eleven_multilingual_v2"
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
     PIPELINE_MAX_RETRIES: int = 3
     PIPELINE_RETRY_WAIT_SECONDS: int = 2
 
-    # ─── File uploads ─────────────────────────────────────────────────────────
-    UPLOAD_DIR: str = "./uploads"
+    # ─── File uploads ─────────────────────────────────────────────────────
     UPLOAD_ALLOWED_EXTENSIONS: list[str] = [".xlsx", ".xls", ".csv"]
     UPLOAD_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
-    # ─── Optional / Observability ────────────────────────────────────────────
+    # ─── Celery ───────────────────────────────────────────────────────────
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    CELERY_TASK_TIME_LIMIT: int = 1800
+    CELERY_TASK_SOFT_TIME_LIMIT: int = 1500
+
+    # ─── Observability ────────────────────────────────────────────────────
     SENTRY_DSN: HttpUrl | None = None
-    SENTRY_TRACES_SAMPLE_RATE: float = Field(
-        default=0.1,
-        ge=0.0,
-        le=1.0,
-        description="Sentry performance traces sample rate (0.0 to 1.0)",
-    )
-    SENTRY_PROFILES_SAMPLE_RATE: float = Field(
-        default=0.1,
-        ge=0.0,
-        le=1.0,
-        description="Sentry profiling sample rate (0.0 to 1.0)",
-    )
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, ge=0.0, le=1.0)
+    SENTRY_PROFILES_SAMPLE_RATE: float = Field(default=0.1, ge=0.0, le=1.0)
+
+    # ─── Computed ─────────────────────────────────────────────────────────
 
     @computed_field
     @property
     def docs_url(self) -> str | None:
+        """Swagger docs URL — hidden in non-local environments."""
         return None if self.SWAGGER_HIDE else "/docs"
 
     @computed_field
     @property
     def openapi_url(self) -> str | None:
+        """OpenAPI spec URL — hidden in non-local environments."""
         return None if self.SWAGGER_HIDE else "/openapi.json"
 
     @computed_field
     @property
     def SERVER_APP_RELOAD(self) -> bool:
-        """Disable reload in non-local environments."""
+        """Auto-reload — only in local environment."""
         return self.ENVIRONMENT == "local"
-
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
-
-    # ─── Celery task limits ─────────────────────────────────────────────────
-    CELERY_TASK_TIME_LIMIT: int = 1800  # 30 minutes hard kill
-    CELERY_TASK_SOFT_TIME_LIMIT: int = 1500  # 25 minutes soft warning
-
-    # ─── Assembly font ──────────────────────────────────────────────────────
-    CAPTION_FONT_PATH: str = ""
-
-    @model_validator(mode="after")
-    def _validate_production_secrets(self) -> "Settings":
-        """Ensure required secrets are set in non-local environments."""
-        if self.ENVIRONMENT == "local":
-            return self
-
-        required = {
-            "SECRET_KEY": self.SECRET_KEY,
-            "R2_ACCESS_KEY_ID": self.R2_ACCESS_KEY_ID,
-            "R2_SECRET_ACCESS_KEY": self.R2_SECRET_ACCESS_KEY,
-            "OPENAI_API_KEY": self.OPENAI_API_KEY,
-            "ANTHROPIC_API_KEY": self.ANTHROPIC_API_KEY,
-            "GEMINI_API_KEY": self.GEMINI_API_KEY,
-        }
-        missing = [k for k, v in required.items() if not v]
-        if missing:
-            msg = (
-                f"Required secrets not set for {self.ENVIRONMENT}: {', '.join(missing)}"
-            )
-            raise ValueError(msg)
-
-        if len(self.APP_PASSWORD) < 8:
-            msg = "APP_PASSWORD must be at least 8 characters in non-local environments"
-            raise ValueError(msg)
-
-        if "*" in self.CORS_ORIGINS:
-            _settings_logger.warning(
-                "CORS_ORIGINS contains '*' in %s environment — restrict to specific origins",
-                self.ENVIRONMENT,
-            )
-
-        return self
-
-    @model_validator(mode="after")
-    def _set_default_font_path(self) -> "Settings":
-        """Default to the bundled Montserrat-Bold.ttf font."""
-        if not self.CAPTION_FONT_PATH:
-            bundled = (
-                Path(__file__).resolve().parent.parent / "fonts" / "Montserrat-Bold.ttf"
-            )
-            self.CAPTION_FONT_PATH = str(bundled)
-        return self
 
 
 settings = Settings()
