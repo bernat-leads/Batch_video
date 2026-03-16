@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ vars.SENTRY_ORG != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
