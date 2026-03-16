@@ -94,7 +94,7 @@ catalogs:
       version: 4.7.0
   nextjs-v15:
     next:
-      specifier: ^15.5.3
+      specifier: ^15.4.10
       version: 15.5.12
   react-v19:
     '@types/react':
