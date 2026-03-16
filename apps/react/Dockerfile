@@ -19,7 +19,11 @@ RUN pnpm --filter react build
 
 FROM nginx:alpine AS runner
 COPY --from=builder /app/apps/react/dist /usr/share/nginx/html
-COPY apps/react/nginx.conf /etc/nginx/templates/default.conf.template
+COPY apps/react/nginx.conf /etc/nginx/nginx.conf.template
+COPY apps/react/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 ENV PORT=80
 ENV BACKEND_URL=http://localhost:8000
-CMD ["nginx", "-g", "daemon off;"]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
