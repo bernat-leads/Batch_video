@@ -1,5 +1,0 @@
-{
-  "extends": "@tooling/typescript-config/react",
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
-}

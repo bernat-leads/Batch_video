@@ -21,7 +21,6 @@ catalogs:
     "lodash.merge": ^4.6.2
     "schema-dts": ^1.1.5
     "resend": ^4.5.1
-    "@react-email/components": 0.0.41
     "posthog-js": ^1.246.0
     "posthog-node": ^4.17.2
     "framer-motion": ^12.23.12
@@ -54,15 +53,6 @@ catalogs:
     react-dom: ^18.2.0
     "@types/react": ^18.2.43
     "@types/react-dom": ^18.2.17
-
-  # Next.js specific
-  nextjs-v15:
-    next: ^15.4.10
-    "@next/bundle-analyzer": ^15.3.3
-    "@next/eslint-plugin-next": ^15.3.3
-    "@next/font": ^14.2.15
-    "@next/third-parties": ^15.3.3
-    "eslint-config-next": ^15.3.3
 
   # Astro ecosystem
   astro-v5:
@@ -180,7 +170,6 @@ catalogs:
     "eslint-plugin-react": ^7.37.2
     "eslint-plugin-react-hooks": ^5.0.0
     "eslint-plugin-react-refresh": ^0.4.14
-    "eslint-plugin-storybook": ^0.11.1
 
   # TanStack ecosystem
   tanstack:
@@ -199,16 +188,6 @@ catalogs:
     "typescript-eslint": ^8.39.1
     globals: ^16.3.0
     "@eslint/eslintrc": ^3.2.0
-
-  # Storybook ecosystem
-  storybook:
-    "@storybook/addon-actions": ^9.0.8
-    "@storybook/nextjs": ^9.1.7
-    "@storybook/react": ^9.1.7
-    "@storybook/react-vite": ^9.1.7
-    storybook: ^9.1.7
-    chromatic: ^12.0.0
-    "eslint-plugin-storybook": ^0.11.1
 
   # Fonts and icons
   fonts:
