@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  useGetDashboardStatsApiV1VideosStatsDashboardGet,
+  useGetDashboardStatsApiV1DashboardStatsGet,
   useListBatchesApiV1BatchesGet,
   useListVideosApiV1VideosGet,
 } from "@packages/api-client";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/app/")({
 
 function DashboardPage() {
   const { data: dashboard, isLoading: statsLoading } =
-    useGetDashboardStatsApiV1VideosStatsDashboardGet();
+    useGetDashboardStatsApiV1DashboardStatsGet();
   const { data: batchesResponse } = useListBatchesApiV1BatchesGet({ page_size: 5 });
   const { data: videosResponse } = useListVideosApiV1VideosGet({
     page_size: 5,

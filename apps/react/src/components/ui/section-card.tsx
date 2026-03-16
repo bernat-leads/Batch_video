@@ -6,6 +6,7 @@ interface SectionCardProps {
   className?: string;
 }
 
+/** Bordered card container used for grouping related content in detail views. */
 export function SectionCard({ title, children, className }: SectionCardProps) {
   return (
     <div className={cn("rounded-xl border border-border bg-card-bg p-5", className)}>

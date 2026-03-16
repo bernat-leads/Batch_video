@@ -17,6 +17,7 @@ interface ConfirmDeleteDialogProps {
   children: React.ReactNode;
 }
 
+/** Reusable destructive action confirmation dialog. Wraps the trigger element as a child. */
 export function ConfirmDeleteDialog({
   title = "Delete?",
   description = "This action cannot be undone.",

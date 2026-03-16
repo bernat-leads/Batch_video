@@ -14,6 +14,7 @@ interface RecentBatchesTableProps {
   batches: BatchRead[];
 }
 
+/** Compact table of the 5 most recent batches shown on the dashboard. */
 export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
   const navigate = useNavigate();
 
@@ -75,7 +76,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-text-secondary">
-                      {batch.completed}/{batch.total_videos} done
+                      {batch.completed_count}/{batch.total_videos} done
                     </span>
                   </TableCell>
                   <TableCell>

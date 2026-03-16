@@ -1,86 +1,49 @@
 # CLAUDE.md — Lead Alliances Bulk Video Pipeline
 
-This file is automatically loaded at the start of every Claude Code session.
-
----
-
-## What This Is
-
-**Bulk video pipeline for Lead Alliances** — a web app that mass-produces short-form video ads (TikTok/Reels/Shorts) from Excel scripts. A marketing team uploads an Excel file with 10-100 ad scripts, and the system processes each through a multi-step API pipeline to output finished 9:16 MP4 videos with AI-generated visuals, voiceover, and burned-in captions.
-
-### Video Pipeline
-
-1. **ElevenLabs TTS** — Convert script to voiceover audio with word-level timestamps
-2. **Claude Segmentation** (claude-sonnet-4-6) — Chunk script into 5-8s segments, generate image prompts + Ken Burns directions
-3. **Gemini Imagen 3** — Generate 1080x1920 images per segment in parallel
-4. **Remotion Assembly** — Compose video with Ken Burns effects, sync audio, burn in TikTok-style captions
-
-### Tech Stack
-
-- **Frontend:** React + Vite + TanStack Router + shadcn/ui
-- **Backend:** Python + FastAPI
-- **Queue:** Redis + Celery (4 parallel workers)
-- **Storage:** Cloudflare R2
-- **Video:** Remotion
-- **Monorepo:** Turborepo + pnpm
-- **Deployment:** Docker on VPS
+Bulk video pipeline — mass-produces short-form video ads from Excel scripts via a multi-step API pipeline (TTS → Segmentation → Image Gen → Assembly → Upload).
 
 ## Mandatory Workflow
 
-**Claude must NEVER jump straight to writing code for new tasks or features.** The workflow is always:
+**Never jump straight to code.** Always: `/prime` → `/plan` → Review → `/implement`
 
-1. **`/prime`** → 2. **`/plan`** → 3. **Review** → 4. **`/implement`**
+## Tasks
 
-## Task Management (Linear MCP)
+Linear MCP (`.claude/.mcp.json`). Project: **Lead Alliances - Bulk Video Pipeline**
 
-Tasks are managed in **Linear** via MCP server (configured in `.claude/.mcp.json`).
-Project: **Lead Alliances - Bulk Video Pipeline** (team: Hyperion AI, lead: Vitalijus Alsauskas)
-Timeline: 2026-03-13 → 2026-03-15
+## TDD
 
-## Test-Driven Development (TDD)
-
-**Tests must be written BEFORE implementation code.**
-
-Backend tests: `apps/api/__tests__/` (pytest)
-E2E tests: `apps/react/e2e/` (Playwright)
-
----
+Tests before code. Backend: `apps/api/__tests__/` (pytest). E2E: `apps/react/e2e/` (Playwright).
 
 ## Quick Reference
 
 | What | Where |
 |------|-------|
-| React app | `apps/react/` (Vite + TanStack Router) |
-| Backend API | `apps/api/` (FastAPI) |
-| API modules | `apps/api/api/` (routes, models, schemas, crud) |
-| Celery worker | `apps/api/worker/` (pipeline tasks) |
-| UI components | `packages/ui/` (shadcn/ui) |
-| Analytics | `packages/analytics/` (PostHog) |
-| Sentry | `packages/sentry/` |
+| React app | `apps/react/` |
+| Backend API | `apps/api/api/` (routes, models, schemas, crud) |
+| Pipeline stages | `apps/api/api/videos/pipeline/` |
+| Celery tasks | `apps/api/api/videos/pipeline/tasks.py`, `apps/api/api/batches/tasks.py` |
 | API client | `packages/api-client/` (Orval-generated) |
-| Email templates | `packages/email/` |
-| Env config (React) | `apps/react/src/env.ts` (t3-env) |
-| Env config (FastAPI) | `apps/api/api/settings.py` (Pydantic) |
-| E2E tests | `apps/react/e2e/` (Playwright) |
-| Backend tests | `apps/api/__tests__/` (pytest) |
-| Storybook | `apps/storybook/` |
-| Tooling | `tooling/` (typescript-config, prettier-config, eslint-config) |
+| Settings | `apps/api/api/settings.py` (Pydantic, `env_prefix="API_"`) |
 
-## Git Workflow
+## Architecture Docs
 
-- **Commit messages follow Conventional Commits** for semantic-release
-- **Branch naming:** `hyp-123-short-description` (all lowercase, Linear issue ID + description, no username prefix)
-- PR flow: task branch → `dev` → `main`
+Read these when working on the relevant area:
 
-## Key Commands
+- **[Pipeline Architecture](.claude/docs/pipeline-architecture.md)** — flow, ownership, retry strategy, adding providers
+- **[Backend Patterns](.claude/docs/backend-patterns.md)** — async/sync rules, DB engines, module structure, services, settings, error handling, types
+- **[Frontend Patterns](.claude/docs/frontend-patterns.md)** — file org, API calls, code splitting, SSE, transitions, styling
+
+## Git
+
+Conventional Commits. Branch: `hyp-123-short-description`. PR flow: branch → `dev` → `main`.
+
+## Commands
 
 ```bash
 pnpm dev                    # Start all apps
 pnpm build                  # Build everything
-pnpm lint                   # Lint all packages
-pnpm test                   # Run all tests
+pnpm lint / pnpm test       # Lint / test all
 pnpm db:migrate             # Run DB migrations
-pnpm run generate-api       # Regenerate FastAPI client
-poetry run start            # Start FastAPI only
+pnpm run generate-api       # Regenerate API client
 poetry run pytest           # Backend tests only
 ```

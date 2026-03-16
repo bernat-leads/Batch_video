@@ -9,6 +9,7 @@ import {
 } from "@packages/ui/components/shadcn/select";
 import { cn } from "@packages/ui/lib/utils";
 
+/** Maps spreadsheet columns to video pipeline fields for batch upload. */
 export interface ColumnMapping {
   script_text: string;
   voice_id: string;
@@ -16,6 +17,7 @@ export interface ColumnMapping {
   top_text: string;
 }
 
+/** Per-field default column names from app settings for auto-matching. */
 export interface ColumnDefaults {
   script_text?: string;
   voice_id?: string;
@@ -39,28 +41,37 @@ const FIELDS = [
     key: "script_text" as const,
     label: "Script Text",
     description: "The ad script / video text",
+    required: true,
     autoMatch: ["script_text", "script", "text", "content", "copy", "ad_text"],
   },
   {
     key: "voice_id" as const,
     label: "Voice ID",
     description: "ElevenLabs voice identifier",
+    required: true,
     autoMatch: ["voice_id", "voice", "voiceid"],
   },
   {
     key: "style" as const,
     label: "Style",
     description: "Visual style (professional, energetic, etc.)",
+    required: false,
     autoMatch: ["style", "visual_style", "theme"],
   },
   {
     key: "top_text" as const,
     label: "Top Text",
     description: "Text overlay at top of video",
+    required: false,
     autoMatch: ["top_text", "toptext", "overlay", "banner"],
   },
 ] as const;
 
+/**
+ * Auto-detects column mappings by matching spreadsheet headers against
+ * known field names. Checks settings defaults first, then falls back to
+ * built-in aliases (e.g. "script", "text", "copy" → script_text).
+ */
 function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record<string, string> {
   const mapping: Record<string, string> = {};
   const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
@@ -90,6 +101,11 @@ function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record
   return mapping;
 }
 
+/**
+ * Step 2 of batch creation — lets the user map spreadsheet columns
+ * to video fields (script_text, voice_id, style, top_text).
+ * Shows sample data from the uploaded file for each mapping.
+ */
 export function ColumnMapper({
   headers,
   rows,
@@ -111,7 +127,9 @@ export function ColumnMapper({
     top_text: initialMapping?.top_text ?? autoMapped["top_text"] ?? UNMAPPED,
   });
 
-  const isValid = Object.values(mapping).every((v) => v !== UNMAPPED);
+  const isValid = FIELDS.filter((f) => f.required).every(
+    (f) => mapping[f.key] !== UNMAPPED,
+  );
 
   const getSamples = (columnName: string): string[] => {
     if (columnName === UNMAPPED) return [];
@@ -160,7 +178,7 @@ export function ColumnMapper({
                   <td className="border-border px-3 py-4 align-top">
                     <p className="font-medium text-text-primary">
                       {field.label}
-                      <span className="text-status-error"> *</span>
+                      {field.required && <span className="text-status-error"> *</span>}
                     </p>
                     <p className="text-xs text-text-muted">
                       {field.description}

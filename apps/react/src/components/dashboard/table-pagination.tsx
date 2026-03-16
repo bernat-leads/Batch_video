@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@packages/ui/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -11,6 +12,7 @@ interface TablePaginationProps {
   onPageSizeChange?: (pageSize: number) => void;
 }
 
+/** Pagination controls with page numbers, prev/next buttons, and page size selector. */
 export function TablePagination({
   page,
   totalPages,
@@ -67,11 +69,12 @@ export function TablePagination({
               <button
                 key={p}
                 onClick={() => onPageChange(p)}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors ${
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors",
                   p === page
                     ? "bg-brand text-white"
-                    : "text-text-secondary hover:bg-content-bg"
-                }`}
+                    : "text-text-secondary hover:bg-content-bg",
+                )}
               >
                 {p}
               </button>
@@ -90,6 +93,10 @@ export function TablePagination({
   );
 }
 
+/**
+ * Computes which page numbers to show in the pagination bar.
+ * Shows first, last, and a window around current page with ellipses.
+ */
 function getVisiblePages(
   current: number,
   total: number,

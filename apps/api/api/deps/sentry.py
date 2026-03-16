@@ -18,16 +18,19 @@ def init_sentry() -> None:
         logger.info("Sentry DSN not configured, skipping initialization")
         return
 
-    sentry_sdk.init(
-        dsn=str(settings.SENTRY_DSN),
-        environment=settings.ENVIRONMENT,
-        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
-        integrations=[
-            FastApiIntegration(transaction_style="endpoint"),
-            SqlalchemyIntegration(),
-            CeleryIntegration(),
-        ],
-        send_default_pii=False,
-    )
-    logger.info("Sentry initialized for environment: %s", settings.ENVIRONMENT)
+    try:
+        sentry_sdk.init(
+            dsn=str(settings.SENTRY_DSN),
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
+            integrations=[
+                FastApiIntegration(transaction_style="endpoint"),
+                SqlalchemyIntegration(),
+                CeleryIntegration(),
+            ],
+            send_default_pii=False,
+        )
+        logger.info("Sentry initialized for environment: %s", settings.ENVIRONMENT)
+    except Exception:
+        logger.exception("Failed to initialize Sentry SDK")

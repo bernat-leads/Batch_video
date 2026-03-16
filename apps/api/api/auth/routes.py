@@ -2,18 +2,22 @@
 
 import hmac
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
 from api.auth.schemas import AuthStatus, LoginRequest
 from api.deps.auth import AuthDep, SerializerDep, create_session_cookie
+from api.rate_limit import limiter
 from api.settings import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
-def login(body: LoginRequest, serializer: SerializerDep) -> JSONResponse:
+@limiter.limit("10/minute")
+def login(
+    request: Request, body: LoginRequest, serializer: SerializerDep
+) -> JSONResponse:
     """Verify password and set signed session cookie."""
     if not hmac.compare_digest(body.password, settings.APP_PASSWORD):
         raise HTTPException(

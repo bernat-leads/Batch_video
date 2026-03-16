@@ -28,8 +28,6 @@ class Shot(BaseModel):
     start_time: Mapped[float] = mapped_column(Float, nullable=False)
     end_time: Mapped[float] = mapped_column(Float, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
-    tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    generation_time_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     video: Mapped["Video"] = relationship(back_populates="shots")  # noqa: F821
