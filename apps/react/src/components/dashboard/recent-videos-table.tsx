@@ -16,6 +16,7 @@ interface RecentVideosTableProps {
   videos: VideoRead[];
 }
 
+/** Compact table of the 5 most recent videos shown on the dashboard. */
 export function RecentVideosTable({ videos }: RecentVideosTableProps) {
   const navigate = useNavigate();
 
@@ -86,8 +87,8 @@ export function RecentVideosTable({ videos }: RecentVideosTableProps) {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-text-secondary">
-                      {(video.total_cost_usd ?? 0) > 0
-                        ? formatCurrency(video.total_cost_usd!)
+                      {(video.total?.cost_usd ?? 0) > 0
+                        ? formatCurrency(video.total?.cost_usd ?? 0)
                         : "\u2014"}
                     </span>
                   </TableCell>

@@ -52,6 +52,10 @@
         "react": "19",
         "react-dom": "19"
       }
+    },
+    "overrides": {
+      "react": "catalog:react-v19",
+      "react-dom": "catalog:react-v19"
     }
   }
 }

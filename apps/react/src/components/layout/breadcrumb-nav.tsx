@@ -11,6 +11,7 @@ interface BreadcrumbNavProps {
   items: BreadcrumbItem[];
 }
 
+/** Breadcrumb trail for hierarchical navigation (e.g. Batches > Batch Name > Video). */
 export function BreadcrumbNav({ items }: BreadcrumbNavProps) {
   return (
     <nav className="flex items-center gap-1.5 text-sm">

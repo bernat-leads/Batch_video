@@ -9,6 +9,7 @@ import {
 } from "@packages/ui/components/shadcn/select";
 import { cn } from "@packages/ui/lib/utils";
 
+/** Maps spreadsheet columns to video pipeline fields for batch upload. */
 export interface ColumnMapping {
   script_text: string;
   voice_id: string;
@@ -16,6 +17,7 @@ export interface ColumnMapping {
   top_text: string;
 }
 
+/** Per-field default column names from app settings for auto-matching. */
 export interface ColumnDefaults {
   script_text?: string;
   voice_id?: string;
@@ -65,6 +67,11 @@ const FIELDS = [
   },
 ] as const;
 
+/**
+ * Auto-detects column mappings by matching spreadsheet headers against
+ * known field names. Checks settings defaults first, then falls back to
+ * built-in aliases (e.g. "script", "text", "copy" → script_text).
+ */
 function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record<string, string> {
   const mapping: Record<string, string> = {};
   const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
@@ -94,6 +101,11 @@ function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record
   return mapping;
 }
 
+/**
+ * Step 2 of batch creation — lets the user map spreadsheet columns
+ * to video fields (script_text, voice_id, style, top_text).
+ * Shows sample data from the uploaded file for each mapping.
+ */
 export function ColumnMapper({
   headers,
   rows,

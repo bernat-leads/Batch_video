@@ -37,20 +37,13 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  # ── Celery worker ─────────────────────────────────────────────────────────
-  celery-worker:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    command: ["celery-worker"]
-    env_file:
-      - ./apps/api/.env
-    environment:
-      - API_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/api
-      - API_CELERY_BROKER_URL=redis://redis:6379/0
-      - API_CELERY_RESULT_BACKEND=redis://redis:6379/0
+  # ── Celery monitoring ──────────────────────────────────────────────────────
+  flower:
+    image: mher/flower:2.0
+    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    ports:
+      - "5555:5555"
     depends_on:
-      - postgres
       - redis
     restart: unless-stopped
 

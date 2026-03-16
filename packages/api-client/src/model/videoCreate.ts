@@ -7,16 +7,17 @@
 import type { VideoCreateVoiceId } from './videoCreateVoiceId';
 import type { VideoCreateStyle } from './videoCreateStyle';
 import type { VideoCreateTopText } from './videoCreateTopText';
+import type { VideoCreatePrompt } from './videoCreatePrompt';
 import type { VideoCreateBatchId } from './videoCreateBatchId';
 
 /**
- * Schema for creating a video.
+ * Schema for creating a video (also used as pipeline input).
  */
 export interface VideoCreate {
   script_text: string;
-  prompt?: string;
   voice_id?: VideoCreateVoiceId;
   style?: VideoCreateStyle;
   top_text?: VideoCreateTopText;
+  prompt?: VideoCreatePrompt;
   batch_id?: VideoCreateBatchId;
 }

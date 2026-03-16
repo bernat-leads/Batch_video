@@ -13,8 +13,7 @@ export type VideoStatus = typeof VideoStatus[keyof typeof VideoStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const VideoStatus = {
-  pending: 'pending',
   processing: 'processing',
-  completed: 'completed',
+  finished: 'finished',
   failed: 'failed',
 } as const;

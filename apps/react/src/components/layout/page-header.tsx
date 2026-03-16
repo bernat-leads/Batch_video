@@ -4,6 +4,7 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
 }
 
+/** Page title with description and optional action buttons in the top-right. */
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
     <div className="mb-6 flex items-start justify-between gap-4">

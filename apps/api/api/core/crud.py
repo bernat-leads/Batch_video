@@ -41,7 +41,12 @@ class BaseCrud(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """Get multiple records with pagination."""
         total = await self.count()
         offset = (page - 1) * page_size
-        statement = select(self.model).offset(offset).limit(page_size)
+        statement = (
+            select(self.model)
+            .order_by(self.model.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+        )
         result = await self.db_session.execute(statement)
         items = list(result.scalars().all())
         return PageResponse.create(

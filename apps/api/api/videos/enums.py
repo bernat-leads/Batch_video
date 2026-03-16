@@ -6,9 +6,8 @@ import enum
 class VideoStatus(str, enum.Enum):
     """Status of a video in the pipeline."""
 
-    pending = "pending"
     processing = "processing"
-    completed = "completed"
+    finished = "finished"
     failed = "failed"
 
 

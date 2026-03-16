@@ -24,6 +24,11 @@
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
 
+  /* Charts */
+  --color-chart-purple: var(--chart-purple);
+  --color-chart-amber: var(--chart-amber);
+  --color-chart-emerald: var(--chart-emerald);
+
   /* Status */
   --color-status-success: var(--color-success);
   --color-status-success-light: var(--color-success-light);
@@ -74,6 +79,11 @@
     --color-error-light: #FDF0EE;
     --color-info: #6B8CAE;
     --color-info-light: #EFF4F8;
+
+    /* Chart colors */
+    --chart-purple: #8b5cf6;
+    --chart-amber: #f59e0b;
+    --chart-emerald: #10b981;
   }
 }
 

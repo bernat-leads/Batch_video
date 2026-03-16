@@ -12,15 +12,16 @@ import { formatDuration, formatCurrency } from "@/lib/format";
 
 const CHART_SERIES = [
   { key: "videos", label: "Videos", color: "var(--brand)" },
-  { key: "tokens", label: "Tokens", color: "#8b5cf6" },
-  { key: "generation_time_ms", label: "Video Length", color: "#f59e0b" },
-  { key: "cost_usd", label: "Cost", color: "#10b981" },
+  { key: "tokens", label: "Tokens", color: "var(--color-chart-purple)" },
+  { key: "duration_ms", label: "Video Length", color: "var(--color-chart-amber)" },
+  { key: "cost_usd", label: "Cost", color: "var(--color-chart-emerald)" },
 ];
 
 interface DailyChartProps {
   data: DailyStats[];
 }
 
+/** Stacked area chart showing daily video production metrics on the dashboard. */
 export function DailyChart({ data }: DailyChartProps) {
   return (
     <div>

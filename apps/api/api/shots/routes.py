@@ -3,13 +3,16 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
 from api.deps.auth import AuthDep
 from api.deps.db import SessionDep
+from api.deps.storage import S3ClientDep
 from api.shots.crud import ShotCrudDep
 from api.shots.models.shot import Shot
 from api.shots.schemas import ShotCreate, ShotRead, ShotUpdate
+from api.storage import StorageService
 from api.videos.crud import VideoCrudDep
 
 shots_router = APIRouter(prefix="/videos/{video_id}/shots", tags=["shots"])
@@ -74,3 +77,14 @@ async def delete_shot(
     if not shot or shot.video_id != video_id:
         raise HTTPException(status_code=404, detail="Shot not found")
     await crud.delete(shot_id)
+
+
+@shots_router.get("/{shot_order}/preview")
+async def preview_shot(
+    video_id: uuid.UUID, shot_order: int, s3: S3ClientDep, _auth: AuthDep
+) -> RedirectResponse:
+    """Redirect to a fresh presigned URL for shot image preview."""
+    storage = StorageService(s3)
+    r2_key = f"videos/{video_id}/shots/{shot_order:03d}.png"
+    url = storage.generate_presigned_url(r2_key)
+    return RedirectResponse(url=url)

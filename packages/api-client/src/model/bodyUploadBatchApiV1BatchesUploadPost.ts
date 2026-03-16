@@ -8,5 +8,5 @@
 export interface BodyUploadBatchApiV1BatchesUploadPost {
   batch_name: string;
   column_mapping: string;
-  file: Blob;
+  file: string;
 }

@@ -14,6 +14,7 @@ interface RecentBatchesTableProps {
   batches: BatchRead[];
 }
 
+/** Compact table of the 5 most recent batches shown on the dashboard. */
 export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
   const navigate = useNavigate();
 

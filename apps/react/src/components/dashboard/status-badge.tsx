@@ -1,15 +1,13 @@
 import { cn } from "@packages/ui/lib/utils";
 
+/**
+ * Maps video/batch status keys to display labels and Tailwind color classes.
+ * When a video is "processing", the badge shows the current pipeline stage instead.
+ */
 const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; dot: string }
 > = {
-  pending: {
-    label: "Pending",
-    bg: "bg-status-info-light",
-    text: "text-status-info",
-    dot: "bg-status-info",
-  },
   queued: {
     label: "Queued",
     bg: "bg-status-info-light",
@@ -46,11 +44,23 @@ const STATUS_CONFIG: Record<
     text: "text-brand",
     dot: "bg-brand",
   },
+  finished: {
+    label: "Finished",
+    bg: "bg-status-success-light",
+    text: "text-status-success",
+    dot: "bg-status-success",
+  },
   completed: {
     label: "Completed",
     bg: "bg-status-success-light",
     text: "text-status-success",
     dot: "bg-status-success",
+  },
+  partially_completed: {
+    label: "Partially Completed",
+    bg: "bg-status-warning-light",
+    text: "text-status-warning",
+    dot: "bg-status-warning",
   },
   failed: {
     label: "Failed",
@@ -66,9 +76,13 @@ interface StatusBadgeProps {
   className?: string;
 }
 
+/**
+ * Colored pill badge showing video or batch status.
+ * When status is "processing", displays the current pipeline stage label instead.
+ */
 export function StatusBadge({ status, stage, className }: StatusBadgeProps) {
   const key = status === "processing" && stage ? stage : status;
-  const defaultConfig = { label: "Pending", bg: "bg-status-info-light", text: "text-status-info", dot: "bg-status-info" };
+  const defaultConfig = { label: "Processing", bg: "bg-status-warning-light", text: "text-brand", dot: "bg-brand" };
   const config = STATUS_CONFIG[key] ?? defaultConfig;
 
   return (

@@ -12,7 +12,8 @@
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
     "./model": "./src/model/index.ts",
-    "./custom-instance": "./src/custom-instance.ts"
+    "./custom-instance": "./src/custom-instance.ts",
+    "./urls": "./src/urls.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "catalog:",

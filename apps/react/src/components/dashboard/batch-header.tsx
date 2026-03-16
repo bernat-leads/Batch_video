@@ -1,78 +1,22 @@
-import {
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
-} from "recharts";
 import type { BatchRead } from "@packages/api-client";
 import { cn } from "@packages/ui/lib/utils";
 import { StatRow } from "@/components/ui/stat-row";
 import { formatDuration, formatCurrency } from "@/lib/format";
+import { CompletionChart } from "./completion-chart";
 
 interface BatchStatsProps {
   batch: BatchRead;
 }
 
-function CompletionChart({
-  completed,
-  total,
-  hasFailed,
-}: {
-  completed: number;
-  total: number;
-  hasFailed: boolean;
-}) {
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const fill = hasFailed ? "var(--color-error)" : "var(--color-success)";
-  const data = [{ value: percent }];
-
-  return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
-      <div className="relative h-[72px] w-[72px]">
-        <RadialBarChart
-          width={72}
-          height={72}
-          cx={36}
-          cy={36}
-          innerRadius={27}
-          outerRadius={33}
-          barSize={6}
-          data={data}
-          startAngle={90}
-          endAngle={-270}
-        >
-          <PolarAngleAxis
-            type="number"
-            domain={[0, 100]}
-            angleAxisId={0}
-            tick={false}
-          />
-          <RadialBar
-            background={{ fill: "var(--border-color)" }}
-            dataKey="value"
-            cornerRadius={3}
-            fill={fill}
-          />
-        </RadialBarChart>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-semibold text-text-primary">
-            {completed}/{total}
-          </span>
-        </div>
-      </div>
-      <span className="text-xs text-text-muted">Videos Completed</span>
-    </div>
-  );
-}
-
+/** Batch detail stats panel with completion chart, totals, and per-video averages. */
 export function BatchStats({ batch }: BatchStatsProps) {
   const total = batch.total_videos;
   const completed = batch.completed_count ?? 0;
   const failed = batch.failed_count ?? 0;
 
-  const totalTokens = batch.tokens_used ?? 0;
-  const totalTime = batch.generation_time_ms ?? 0;
-  const totalCost = batch.total_cost_usd ?? 0;
-
+  const totalTokens = batch.total?.token_count ?? 0;
+  const totalTime = batch.duration_ms ?? 0;
+  const totalCost = batch.total?.cost_usd ?? 0;
   return (
     <div className="flex flex-wrap gap-4">
       <div className="min-w-[420px] flex-[3] flex flex-col gap-2">
@@ -111,15 +55,15 @@ export function BatchStats({ batch }: BatchStatsProps) {
           <div className="w-full space-y-2 text-sm">
             <StatRow
               label="Tokens"
-              value={total > 0 ? Math.round(totalTokens / total).toLocaleString() : "0"}
+              value={Math.round(totalTokens / total).toLocaleString()}
             />
             <StatRow
               label="Video Length"
-              value={total > 0 ? formatDuration(Math.round(totalTime / total)) : "0s"}
+              value={formatDuration(Math.round(totalTime / total))}
             />
             <StatRow
               label="Cost"
-              value={total > 0 ? formatCurrency(totalCost / total) : "$0.00"}
+              value={formatCurrency(totalCost / total)}
             />
           </div>
         </div>

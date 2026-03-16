@@ -5,8 +5,28 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from api.core.schemas import AICost
+from api.events.schemas import BaseEvent, EventType
 from api.shots.schemas import ShotRead
 from api.videos.enums import VideoStage, VideoStatus
+
+
+class VideoStatusCounts(BaseModel):
+    """Video count breakdown by status for a batch."""
+
+    finished: int = 0
+    failed: int = 0
+    processing: int = 0
+
+
+class VideoCostTotals(BaseModel):
+    """Aggregated cost and duration totals for a batch."""
+
+    duration_ms: int = 0
+    tts: AICost = AICost()
+    segmentation: AICost = AICost()
+    image_generation: AICost = AICost()
+    total: AICost = AICost()
 
 
 # ---------------------------------------------------------------------------
@@ -14,19 +34,14 @@ from api.videos.enums import VideoStage, VideoStatus
 # ---------------------------------------------------------------------------
 
 
-class VideoBase(BaseModel):
-    """Shared fields for video schemas."""
+class VideoCreate(BaseModel):
+    """Schema for creating a video (also used as pipeline input)."""
 
     script_text: str
-    prompt: str = ""
     voice_id: str | None = None
     style: str | None = None
     top_text: str | None = None
-
-
-class VideoCreate(VideoBase):
-    """Schema for creating a video."""
-
+    prompt: str | None = None
     batch_id: uuid.UUID | None = None
 
 
@@ -34,7 +49,6 @@ class VideoUpdate(BaseModel):
     """Schema for updating a video (all fields optional)."""
 
     script_text: str | None = None
-    prompt: str | None = None
     voice_id: str | None = None
     style: str | None = None
     top_text: str | None = None
@@ -44,22 +58,30 @@ class VideoUpdate(BaseModel):
     output_url: str | None = None
 
 
-class VideoRead(VideoBase):
+class VideoRead(BaseModel):
     """Schema for reading a video."""
 
     id: uuid.UUID
     batch_id: uuid.UUID | None = None
+    script_text: str
+    voice_id: str | None = None
+    style: str | None = None
+    top_text: str | None = None
+    prompt: str | None = None
     status: VideoStatus
     current_stage: VideoStage
     error_message: str | None = None
     output_url: str | None = None
-    tokens_used: int = 0
-    generation_time_ms: int = 0
-    total_cost_usd: float = 0.0
-    avg_cost_per_shot_usd: float = 0.0
+    duration_ms: int = 0
     file_size_bytes: int = 0
     width: int = 1080
     height: int = 1920
+
+    tts: AICost = AICost()
+    segmentation: AICost = AICost()
+    image_generation: AICost = AICost()
+    total: AICost = AICost()
+
     created_at: datetime
     updated_at: datetime | None = None
 
@@ -70,43 +92,39 @@ class VideoReadWithShots(VideoRead):
     """Schema for reading a video with its shots."""
 
     shots: list[ShotRead] = []
-    avg_tokens_per_shot: int = 0
-    avg_generation_time_per_shot_ms: int = 0
 
 
 # ---------------------------------------------------------------------------
-# Dashboard stats schemas
+# Pipeline result schemas
 # ---------------------------------------------------------------------------
 
 
-class DashboardStats(BaseModel):
-    """Aggregated dashboard statistics."""
+class VideoGenerationResult(BaseModel):
+    """Returned by VideoService.generate_video after a successful pipeline run."""
 
-    total_videos: int
-    completed_videos: int
-    failed_videos: int
-    processing_videos: int
-    total_batches: int
-    total_tokens: int
-    total_generation_time_ms: int
-    total_cost_usd: float
-    avg_tokens_per_video: float
-    avg_generation_time_ms: float
-    avg_cost_per_video_usd: float
+    video_id: str
+    video_r2_key: str
+    file_size_bytes: int
+    duration_ms: int
+    num_shots: int
+    tts: AICost
+    segmentation: AICost
+    image_generation: AICost
+    total: AICost
 
-
-class DailyStats(BaseModel):
-    """Stats for a single day."""
-
-    date: str
-    videos: int
-    tokens: int
-    generation_time_ms: int
-    cost_usd: float
+    model_config = {"frozen": True}
 
 
-class DashboardResponse(BaseModel):
-    """Full dashboard response."""
+# ---------------------------------------------------------------------------
+# SSE event schemas
+# ---------------------------------------------------------------------------
 
-    stats: DashboardStats
-    daily: list[DailyStats]
+
+class VideoProgressEvent(BaseEvent):
+    """Video pipeline stage transition event."""
+
+    type: EventType = EventType.video_progress
+    video_id: str
+    batch_id: str | None = None
+    status: str
+    stage: str

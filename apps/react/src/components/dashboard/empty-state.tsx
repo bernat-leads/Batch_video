@@ -6,6 +6,7 @@ interface EmptyStateProps {
   action?: React.ReactNode;
 }
 
+/** Centered placeholder shown when a list has no items (e.g. no videos, no batches). */
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
     <div

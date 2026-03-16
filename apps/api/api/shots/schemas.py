@@ -42,8 +42,6 @@ class ShotRead(ShotBase):
     id: uuid.UUID
     video_id: uuid.UUID
     image_url: str | None = None
-    tokens_used: int = 0
-    generation_time_ms: int = 0
     cost_usd: float = 0.0
     created_at: datetime
     updated_at: datetime | None = None

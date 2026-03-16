@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Download, Trash2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AlertCircle, Download } from "lucide-react";
 import type { VideoRead } from "@packages/api-client";
 import {
   useGetBatchApiV1BatchesBatchIdGet,
   useListVideosApiV1VideosGet,
+  getGetBatchApiV1BatchesBatchIdGetQueryKey,
+  getListVideosApiV1VideosGetQueryKey,
 } from "@packages/api-client";
 import { Button } from "@packages/ui/components/shadcn/button";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
@@ -14,9 +16,9 @@ import { VideoTable } from "@/components/dashboard/video-table";
 import { VideoTableSkeleton } from "@/components/dashboard/video-table-skeleton";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { PageHeader } from "@/components/layout/page-header";
-import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { useDeleteBatch } from "@/hooks/use-delete-batch";
-import { useDeleteVideo } from "@/hooks/use-delete-video";
+import { batchEventsUrl } from "@packages/api-client/urls";
+import { exportBatchZip, exportSelectedVideosZip } from "@/lib/download";
+import { useEventSource } from "@/hooks/use-event-source";
 
 export const Route = createFileRoute("/app/batches/$batchId")({
   component: BatchDetailPage,
@@ -24,7 +26,6 @@ export const Route = createFileRoute("/app/batches/$batchId")({
 
 function BatchDetailPage() {
   const { batchId } = Route.useParams();
-  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { data: batch, isLoading: batchLoading } = useGetBatchApiV1BatchesBatchIdGet(batchId);
@@ -35,17 +36,11 @@ function BatchDetailPage() {
   });
   const [selectedVideos, setSelectedVideos] = useState<VideoRead[]>([]);
 
-  const deleteVideo = useDeleteVideo();
-  const deleteBatch = useDeleteBatch({
-    onSuccess: () => navigate({ to: "/app/batches" }),
-  });
-
-  const handleDeleteSelected = () => {
-    for (const video of selectedVideos) {
-      deleteVideo.mutate({ videoId: video.id });
-    }
-    setSelectedVideos([]);
-  };
+  const isActive = !!batch && batch.status === "processing";
+  useEventSource(batchEventsUrl(batchId), isActive, [
+    getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId),
+    getListVideosApiV1VideosGetQueryKey({ batch_id: batchId }),
+  ]);
 
   const isLoading = batchLoading || videosLoading;
   const videos = videosResponse?.items ?? [];
@@ -61,33 +56,18 @@ function BatchDetailPage() {
       />
       <PageHeader
         title={batchName}
-        description={`${batch?.name ?? ""} — Created ${batch?.created_at ? new Date(batch.created_at).toLocaleDateString() : ""}`}
+        description={batch?.created_at ? `Created ${new Date(batch.created_at).toLocaleDateString()}` : ""}
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled
-              className="border-border text-text-secondary"
-            >
-              <Download size={14} className="mr-1.5" />
-              Export ZIP
-            </Button>
-            <ConfirmDeleteDialog
-              title="Delete batch?"
-              description="This batch and all its videos will be permanently deleted."
-              onConfirm={() => deleteBatch.mutate({ batchId })}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-border text-status-error"
-              >
-                <Trash2 size={14} className="mr-1.5" />
-                Delete
-              </Button>
-            </ConfirmDeleteDialog>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!batch || (batch.completed_count ?? 0) === 0}
+            onClick={() => exportBatchZip(batchId, batch?.name ?? "batch")}
+            className="border-border text-text-secondary"
+          >
+            <Download size={14} className="mr-1.5" />
+            Export Batch ZIP
+          </Button>
         }
       />
       {isLoading ? (
@@ -111,7 +91,6 @@ function BatchDetailPage() {
           <VideoTable
             videos={videos}
             onSelectionChange={setSelectedVideos}
-            onDelete={(videoId) => deleteVideo.mutate({ videoId })}
             pagination={{
               page,
               totalPages: videosResponse?.total_pages ?? 1,
@@ -127,8 +106,8 @@ function BatchDetailPage() {
               selectedVideos.length > 0 ? (
                 <SelectionToolbar
                   count={selectedVideos.length}
-                  onExport={() => {}}
-                  onDelete={handleDeleteSelected}
+                  exportLabel="Export Selected Videos"
+                  onExport={() => exportSelectedVideosZip(selectedVideos.map((v) => v.id))}
                 />
               ) : undefined
             }

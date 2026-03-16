@@ -7,6 +7,7 @@ interface StatsCardsProps {
   stats: DashboardStats;
 }
 
+/** Dashboard stats panel showing total and per-video average metrics. */
 export function StatsCards({ stats }: StatsCardsProps) {
   return (
     <div className="flex flex-wrap gap-4">
@@ -29,15 +30,15 @@ export function StatsCards({ stats }: StatsCardsProps) {
             <div className="flex-1 space-y-2 text-sm">
               <StatRow
                 label="Tokens"
-                value={stats.total_tokens.toLocaleString()}
+                value={(stats.total?.token_count ?? 0).toLocaleString()}
               />
               <StatRow
                 label="Video Length"
-                value={formatDuration(stats.total_generation_time_ms)}
+                value={formatDuration(stats.total_duration_ms)}
               />
               <StatRow
                 label="Cost"
-                value={formatCurrency(stats.total_cost_usd)}
+                value={formatCurrency(stats.total?.cost_usd ?? 0)}
               />
             </div>
           </div>
@@ -49,15 +50,15 @@ export function StatsCards({ stats }: StatsCardsProps) {
           <div className="space-y-2 text-sm">
             <StatRow
               label="Tokens"
-              value={stats.avg_tokens_per_video.toLocaleString()}
+              value={(stats.avg_total?.token_count ?? 0).toLocaleString()}
             />
             <StatRow
               label="Video Length"
-              value={formatDuration(stats.avg_generation_time_ms)}
+              value={formatDuration(stats.avg_duration_ms)}
             />
             <StatRow
               label="Cost"
-              value={formatCurrency(stats.avg_cost_per_video_usd)}
+              value={formatCurrency(stats.avg_total?.cost_usd ?? 0)}
             />
           </div>
         </SectionCard>

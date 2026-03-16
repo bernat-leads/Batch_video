@@ -4,29 +4,32 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { BatchStatus } from './batchStatus';
 import type { BatchReadColumnMapping } from './batchReadColumnMapping';
 import type { BatchReadFileName } from './batchReadFileName';
 import type { BatchReadErrorMessage } from './batchReadErrorMessage';
+import type { AICost } from './aICost';
 import type { BatchReadUpdatedAt } from './batchReadUpdatedAt';
 
 /**
- * Schema for reading a batch with computed video stats.
+ * Schema for reading a batch.
  */
 export interface BatchRead {
   id: string;
   name: string;
+  status: BatchStatus;
   total_videos: number;
-  tokens_used?: number;
-  generation_time_ms?: number;
-  total_cost_usd?: number;
-  avg_cost_per_video_usd?: number;
+  duration_ms?: number;
   completed_count?: number;
   failed_count?: number;
-  processing_count?: number;
   pending_count?: number;
   column_mapping?: BatchReadColumnMapping;
   file_name?: BatchReadFileName;
   error_message?: BatchReadErrorMessage;
+  tts?: AICost;
+  segmentation?: AICost;
+  image_generation?: AICost;
+  total?: AICost;
   created_at: string;
   updated_at?: BatchReadUpdatedAt;
 }

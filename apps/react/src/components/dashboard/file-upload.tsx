@@ -3,6 +3,7 @@ import { cn } from "@packages/ui/lib/utils";
 import { Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
+/** Result of parsing an uploaded spreadsheet file. */
 export interface ParsedFile {
   fileName: string;
   headers: string[];
@@ -21,6 +22,10 @@ const ACCEPTED_TYPES = [
 ];
 const ACCEPTED_EXTENSIONS = ".xlsx,.xls,.csv";
 
+/**
+ * Drag-and-drop file upload zone for Excel/CSV files.
+ * Parses the first sheet and extracts headers + data rows via xlsx.
+ */
 export function FileUpload({ onFileParsed }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +49,7 @@ export function FileUpload({ onFileParsed }: FileUploadProps) {
             setError("No sheets found in file");
             return;
           }
-          const json: string[][] = XLSX.utils.sheet_to_json(sheet!, {
+          const json: string[][] = XLSX.utils.sheet_to_json(sheet, {
             header: 1,
             defval: "",
           });
@@ -96,6 +101,14 @@ export function FileUpload({ onFileParsed }: FileUploadProps) {
   return (
     <div className="space-y-3">
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors",
           isDragging

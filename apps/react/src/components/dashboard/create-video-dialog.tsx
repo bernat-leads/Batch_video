@@ -45,6 +45,10 @@ interface CreateVideoDialogProps {
   onVideoCreated?: () => void;
 }
 
+/**
+ * Two-step dialog for creating a single video: Details → Prompt.
+ * Pre-fills the generation prompt from app settings.
+ */
 export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
