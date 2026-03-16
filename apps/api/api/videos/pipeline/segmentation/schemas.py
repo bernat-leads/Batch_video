@@ -22,6 +22,24 @@ class KenBurnsConfig(BaseModel):
 
 
 class SegmentResult(BaseModel):
+    """LLM output — word index range, image prompt, and Ken Burns config.
+
+    The LLM references words by index (from the numbered word list it receives).
+    Timing is resolved by looking up word timestamps directly — no fuzzy matching.
+    """
+
+    order: int
+    start_word_index: int
+    end_word_index: int
+    image_prompt: str
+    ken_burns_config: KenBurnsConfig
+
+    model_config = {"frozen": True}
+
+
+class SegmentWithTiming(BaseModel):
+    """Segment with resolved text and TTS timing. Used by all downstream stages."""
+
     order: int
     text: str
     image_prompt: str
@@ -33,7 +51,9 @@ class SegmentResult(BaseModel):
 
 
 class SegmentationResult(BaseModel):
-    segments: list[SegmentResult]
+    """Full segmentation output with TTS-aligned timing."""
+
+    segments: list[SegmentWithTiming]
     prompt: str
     cost: AICost = AICost()
 

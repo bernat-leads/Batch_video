@@ -9,7 +9,7 @@ from api.shots.models.shot import Shot
 from api.storage import StorageService
 from api.videos.pipeline.image_generation import ImageGenService
 from api.videos.pipeline.image_generation.schemas import ImageGenResult
-from api.videos.pipeline.segmentation.schemas import SegmentResult
+from api.videos.pipeline.segmentation.schemas import SegmentWithTiming
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class ShotService:
     async def create_shot_with_image(
         self,
         video_id: uuid.UUID,
-        segment: SegmentResult,
+        segment: SegmentWithTiming,
         image_result: ImageGenResult,
     ) -> Shot:
         """Create a shot record, upload the pre-generated image, and flush.

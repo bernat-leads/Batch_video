@@ -28,15 +28,17 @@ ENV PATH="/home/appuser/.venv/bin:$PATH"
 # Copy dependency manifests first for better layer caching
 COPY apps/api/pyproject.toml apps/api/poetry.lock ./
 
-# Install dependencies as root
-RUN poetry install --only=main -v
+# Install deps without the project itself (layer cache)
+RUN poetry install --only=main --no-root -v
+
+# Copy the app code
+COPY --chown=appuser apps/api/ .
+
+# Install the project (registers scripts like 'start', 'celery-worker')
+RUN poetry install --only=main
 
 # Hand over to app user
 USER appuser
-
-# Copy the app
-COPY --chown=appuser apps/api/ .
-
 RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 8000

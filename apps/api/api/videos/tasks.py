@@ -8,7 +8,7 @@ from api.batches.service import BatchService
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
 from api.shots.service import ShotService
-from api.videos.pipeline.image_generation import PlaceholderImageGenService
+from api.videos.pipeline.image_generation import GeminiImageGenService
 from api.videos.pipeline.segmentation import ClaudeSegmentationService
 from api.videos.pipeline.tts import OpenAITTSService
 from api.videos.pipeline.video_editor import MoviePyTikTokAdTemplate
@@ -37,7 +37,7 @@ async def process_video(
             app_settings=AppSettingsCrud(ctx.session),
             tts=OpenAITTSService(ctx.storage),
             segmentation=ClaudeSegmentationService(),
-            shots=ShotService(ctx.session, ctx.storage, PlaceholderImageGenService()),
+            shots=ShotService(ctx.session, ctx.storage, GeminiImageGenService()),
             video_template=MoviePyTikTokAdTemplate(),
         )
 

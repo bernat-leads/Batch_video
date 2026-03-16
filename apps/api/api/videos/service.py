@@ -102,7 +102,10 @@ class VideoService:
         """Stage 1: Convert script to speech with word-level timestamps."""
         await self._update_stage(video, VideoStage.tts)
         return await asyncio.to_thread(
-            self._tts.synthesize, video_input.script_text, video_input.voice_id, video.id
+            self._tts.synthesize,
+            video_input.script_text,
+            video_input.voice_id,
+            video.id,
         )
 
     async def _run_segmentation(self, video, video_input, tts_result):
@@ -170,12 +173,13 @@ class VideoService:
         # CPU-bound render — must not block the event loop
         return await asyncio.to_thread(
             self._video_template.assemble_video,
-            segments, audio_bytes, captions, video_input.top_text,
+            segments,
+            audio_bytes,
+            captions,
+            video_input.top_text,
         )
 
-    def _download_segments(
-        self, video_id: uuid.UUID, segments
-    ) -> list[Segment]:
+    def _download_segments(self, video_id: uuid.UUID, segments) -> list[Segment]:
         """Download shot images from R2 and build Segment objects."""
         return [
             Segment(

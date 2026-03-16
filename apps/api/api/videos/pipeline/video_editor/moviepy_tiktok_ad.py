@@ -10,7 +10,6 @@ import numpy as np
 from moviepy import AudioFileClip, VideoClip, concatenate_videoclips
 from PIL import Image, ImageDraw, ImageFont
 
-from api.settings import settings
 from api.videos.pipeline.config import FPS, HEIGHT, KEN_BURNS_OVERSAMPLE, WIDTH
 from api.videos.pipeline.video_editor.base import VideoTemplate
 from api.videos.pipeline.video_editor.schemas import CaptionWord, EditResult, Segment
@@ -18,26 +17,30 @@ from api.videos.pipeline.video_editor.schemas import CaptionWord, EditResult, Se
 logger = logging.getLogger(__name__)
 
 # ── Template config ──────────────────────────────────────────────────
-FONT_PATH = settings.CAPTION_FONT_PATH
+FONT_PATH = str(
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "fonts"
+    / "Montserrat-Bold.ttf"
+)
 RENDER_CODEC = "libx264"
 RENDER_AUDIO_CODEC = "aac"
 RENDER_PRESET = "medium"
 RENDER_THREADS = 2
 
-# Captions (subtitles at bottom)
-CAPTION_FONT_SIZE = 72
+# Captions (subtitles at bottom — TikTok-sized for 1080x1920)
+CAPTION_FONT_SIZE = 130
 CAPTION_COLOR = "white"
 CAPTION_STROKE_COLOR = "black"
-CAPTION_STROKE_WIDTH = 3
-CAPTION_Y_POSITION = 0.75  # fraction of HEIGHT
-CAPTION_MAX_CHARS = 30  # max characters per subtitle group
+CAPTION_STROKE_WIDTH = 8
+CAPTION_Y_POSITION = 0.72  # fraction of HEIGHT, in safe area
+CAPTION_MAX_CHARS = 18  # fewer chars = larger per-word display
 
 # Top text (persistent headline near top)
-TOP_TEXT_FONT_SIZE = 56
+TOP_TEXT_FONT_SIZE = 96
 TOP_TEXT_COLOR = "white"
 TOP_TEXT_STROKE_COLOR = "black"
-TOP_TEXT_STROKE_WIDTH = 3
-TOP_TEXT_Y_POSITION = 0.10  # fraction of HEIGHT
+TOP_TEXT_STROKE_WIDTH = 6
+TOP_TEXT_Y_POSITION = 0.08  # fraction of HEIGHT, in safe area
 
 
 class MoviePyTikTokAdTemplate(VideoTemplate):

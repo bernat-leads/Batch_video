@@ -13,6 +13,9 @@ SEGMENTATION_MAX_TOKENS = 4096
 SEGMENTATION_INPUT_TOKEN_COST = 0.003 / 1000  # per token
 SEGMENTATION_OUTPUT_TOKEN_COST = 0.015 / 1000  # per token
 
+# ── Image generation (Gemini Imagen 3) ─────────────────────────────
+IMAGEN_COST_PER_IMAGE = 0.04  # $0.04 per image (standard tier)
+
 # ── Assembly ──────────────────────────────────────────────────────────
 KEN_BURNS_OVERSAMPLE = 1.5  # scale factor for source image
 

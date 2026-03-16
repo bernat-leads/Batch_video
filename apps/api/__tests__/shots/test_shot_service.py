@@ -9,12 +9,12 @@ from api.shots.service import ShotService
 from api.videos.pipeline.segmentation.schemas import (
     KenBurnsConfig,
     KenBurnsDirection,
-    SegmentResult,
+    SegmentWithTiming,
 )
 
 
 def _segment(order=1):
-    return SegmentResult(
+    return SegmentWithTiming(
         order=order,
         text="test segment",
         image_prompt="a beautiful scene",
