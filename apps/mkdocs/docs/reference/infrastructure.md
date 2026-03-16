@@ -1,28 +1,84 @@
 # Infrastructure Reference
 
-## Production Architecture
+## Production Architecture (Railway)
 
 ```mermaid
 graph TB
     Internet["Internet"]
 
-    subgraph "Docker Compose (Production)"
-        Traefik["traefik<br/>Reverse Proxy :80/:443"]
-        React["react<br/>Vite SPA :5173"]
-        API["api<br/>FastAPI :8000"]
-        CeleryW["celery-worker<br/>Background tasks"]
-        DB[("postgres :5433")]
-        Redis[("redis :6379")]
+    subgraph "Railway Project"
+        React["react<br/>Nginx SPA"]
+        API["api<br/>FastAPI"]
+        Worker["worker<br/>Celery"]
+        DB[("PostgreSQL<br/>Railway Plugin")]
+        Redis[("Redis<br/>Railway Plugin")]
     end
 
-    Internet --> Traefik
-    Traefik --> React
-    Traefik --> API
-    API --> DB
-    API -->|"dispatch tasks"| Redis
-    CeleryW -->|"consume tasks"| Redis
-    CeleryW --> DB
+    Internet -->|"HTTPS"| React
+    Internet -->|"HTTPS"| API
+    API -->|"private network"| DB
+    API -->|"private network"| Redis
+    Worker -->|"private network"| Redis
+    Worker -->|"private network"| DB
 ```
+
+### Railway Services
+
+| Service | Config File | Dockerfile | Start Command |
+|---------|------------|------------|---------------|
+| **api** | `apps/api/railway.json` | `apps/api/Dockerfile` | `poetry run start` |
+| **worker** | `apps/api/railway.worker.json` | `apps/api/Dockerfile` | `poetry run celery-worker` |
+| **react** | `apps/react/railway.json` | `apps/react/Dockerfile` | nginx (default) |
+| PostgreSQL | Railway plugin | — | — |
+| Redis | Railway plugin | — | — |
+
+### Railway Config-as-Code
+
+Each service has a `railway.json` that configures build and deploy settings. Config files are linked per-service in the Railway dashboard:
+
+- **api**: Config path `/apps/api/railway.json`
+- **worker**: Config path `/apps/api/railway.worker.json`
+- **react**: Config path `/apps/react/railway.json`
+
+The API service runs `alembic upgrade head` as a pre-deploy command for zero-downtime migrations.
+
+### Railway Environment Variables
+
+Variables are set in the Railway dashboard per service (not in config-as-code).
+
+**API + Worker (shared variables):**
+
+| Variable | Value |
+|----------|-------|
+| `API_DATABASE_URL` | `postgresql+asyncpg://` + credentials from Railway Postgres plugin |
+| `API_SECRET_KEY` | Secure random token |
+| `API_ENVIRONMENT` | `staging` or `production` |
+| `API_APP_PASSWORD` | Shared team password |
+| `API_CORS_ORIGINS` | `["https://<react-public-domain>"]` |
+| `API_CELERY_BROKER_URL` | `redis://<redis-private-domain>:6379/0` |
+| `API_CELERY_RESULT_BACKEND` | `redis://<redis-private-domain>:6379/0` |
+| `API_R2_*` | Cloudflare R2 credentials (4 vars) |
+| `API_ELEVENLABS_API_KEY` | ElevenLabs key |
+| `API_ANTHROPIC_API_KEY` | Anthropic key |
+| `API_GEMINI_API_KEY` | Google Gemini key |
+| `API_SENTRY_DSN` | Sentry DSN (optional) |
+
+**React:**
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_URL` | `https://<api-public-domain>` |
+
+> **Note:** Railway Postgres provides `DATABASE_URL` with `postgresql://` scheme. The API uses asyncpg which requires `postgresql+asyncpg://`. Set `API_DATABASE_URL` manually with the correct scheme.
+
+### Deployment
+
+Railway auto-deploys on push to the linked branch. Watch patterns in each `railway.json` prevent unnecessary rebuilds:
+
+- **api/worker**: Only rebuild when `apps/api/**` changes
+- **react**: Rebuild when `apps/react/**`, `packages/**`, or `tooling/**` change
+
+CI/CD pipelines (`.github/workflows/pipe-*.yml`) handle Sentry releases after Railway deploys.
 
 ## Local Development Architecture
 

@@ -15,18 +15,9 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  deploy-to-coolify:
-    name: Deploy to Coolify
-    needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Coolify
-        run: |
-          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
-
   sentry-release:
     name: Sentry Release
-    needs: deploy-to-coolify
+    needs: ci
     runs-on: ubuntu-latest
     if: ${{ vars.SENTRY_ORG != '' }}
     steps:
