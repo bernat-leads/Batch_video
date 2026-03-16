@@ -1,20 +1,23 @@
 import { cn } from "@packages/ui/lib/utils";
 import {
+  CheckCircle2,
+  Clapperboard,
   Clock,
+  ImageIcon,
   Mic,
   SplitSquareVertical,
-  ImageIcon,
-  Clapperboard,
-  CheckCircle2,
+  Upload,
 } from "lucide-react";
 
+/** Ordered list of pipeline stages. Order matters — determines progress position. */
 const PIPELINE_STAGES = [
   "queued",
   "tts",
   "segmentation",
   "image_generation",
   "assembly",
-  "completed",
+  "upload",
+  "done",
 ] as const;
 
 const STAGE_META: Record<
@@ -26,7 +29,8 @@ const STAGE_META: Record<
   segmentation: { label: "Segmentation", icon: SplitSquareVertical },
   image_generation: { label: "Image Gen", icon: ImageIcon },
   assembly: { label: "Assembly", icon: Clapperboard },
-  completed: { label: "Done", icon: CheckCircle2 },
+  upload: { label: "Upload", icon: Upload },
+  done: { label: "Done", icon: CheckCircle2 },
 };
 
 interface StageIndicatorProps {
@@ -35,6 +39,11 @@ interface StageIndicatorProps {
   variant?: "compact" | "full";
 }
 
+/**
+ * Visual pipeline progress indicator.
+ * - "compact": colored progress bars for table rows
+ * - "full": icon + label pills for detail pages
+ */
 export function StageIndicator({
   currentStage,
   status,
@@ -50,7 +59,7 @@ export function StageIndicator({
         {PIPELINE_STAGES.map((stage, index) => {
           const isPast = index < currentIndex;
           const isCurrent = index === currentIndex;
-          const isCompleted = status === "completed";
+          const isCompleted = status === "finished";
           const isFailed = status === "failed";
 
           let bgClass = "bg-border";
@@ -66,6 +75,7 @@ export function StageIndicator({
                 bgClass,
               )}
               title={STAGE_META[stage]?.label}
+              aria-label={STAGE_META[stage]?.label}
             />
           );
         })}
@@ -80,7 +90,7 @@ export function StageIndicator({
         const Icon = meta.icon;
         const isPast = index < currentIndex;
         const isCurrent = index === currentIndex;
-        const isCompleted = status === "completed";
+        const isCompleted = status === "finished";
         const isFailed = status === "failed";
 
         const done = isCompleted || isPast;

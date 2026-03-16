@@ -11,6 +11,7 @@ interface StepperProps {
   current: string;
 }
 
+/** Horizontal multi-step indicator with completed/active/upcoming states. */
 export function Stepper({ steps, current }: StepperProps) {
   const currentIdx = steps.findIndex((s) => s.key === current);
 

@@ -4,38 +4,41 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { VideoReadBatchId } from './videoReadBatchId';
 import type { VideoReadVoiceId } from './videoReadVoiceId';
 import type { VideoReadStyle } from './videoReadStyle';
 import type { VideoReadTopText } from './videoReadTopText';
-import type { VideoReadBatchId } from './videoReadBatchId';
+import type { VideoReadPrompt } from './videoReadPrompt';
 import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
 import type { VideoReadErrorMessage } from './videoReadErrorMessage';
 import type { VideoReadOutputUrl } from './videoReadOutputUrl';
+import type { AICost } from './aICost';
 import type { VideoReadUpdatedAt } from './videoReadUpdatedAt';
 
 /**
  * Schema for reading a video.
  */
 export interface VideoRead {
+  id: string;
+  batch_id?: VideoReadBatchId;
   script_text: string;
-  prompt?: string;
   voice_id?: VideoReadVoiceId;
   style?: VideoReadStyle;
   top_text?: VideoReadTopText;
-  id: string;
-  batch_id?: VideoReadBatchId;
+  prompt?: VideoReadPrompt;
   status: VideoStatus;
   current_stage: VideoStage;
   error_message?: VideoReadErrorMessage;
   output_url?: VideoReadOutputUrl;
-  tokens_used?: number;
-  generation_time_ms?: number;
-  total_cost_usd?: number;
-  avg_cost_per_shot_usd?: number;
+  duration_ms?: number;
   file_size_bytes?: number;
   width?: number;
   height?: number;
+  tts?: AICost;
+  segmentation?: AICost;
+  image_generation?: AICost;
+  total?: AICost;
   created_at: string;
   updated_at?: VideoReadUpdatedAt;
 }

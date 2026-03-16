@@ -1,14 +1,35 @@
-"""Celery application configuration and worker entry point."""
+"""Celery application configuration, async task decorator, and task context."""
 
-from celery import Celery
+from collections.abc import AsyncGenerator, Callable, Coroutine
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, ParamSpec, TypeVar
 
+from asgiref.sync import async_to_sync
+from celery import Celery, Task
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps.db import async_session_factory
+from api.deps.redis import create_async_redis
+from api.deps.storage import s3_client
+from api.events.service import EventService
 from api.settings import settings
+from api.storage import StorageService
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+# ---------------------------------------------------------------------------
+# Celery app
+# ---------------------------------------------------------------------------
 
 celery_app = Celery(
     "worker",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["api.deps.tasks"],
+    include=["api.deps.tasks", "api.batches.tasks", "api.videos.tasks"],
 )
 
 celery_app.conf.update(
@@ -18,12 +39,72 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
-    task_time_limit=30 * 60,  # 30 minutes
-    task_soft_time_limit=25 * 60,  # 25 minutes
+    task_time_limit=settings.CELERY_TASK_TIME_LIMIT,
+    task_soft_time_limit=settings.CELERY_TASK_SOFT_TIME_LIMIT,
     worker_prefetch_multiplier=4,
     worker_max_tasks_per_child=1000,
-    result_expires=3600,  # 1 hour
+    result_expires=3600,
 )
+
+
+# ---------------------------------------------------------------------------
+# Async task decorator
+# ---------------------------------------------------------------------------
+
+
+def async_task(app: Celery, *args: Any, **kwargs: Any):
+    """Decorator to register async functions as Celery tasks via asgiref."""
+
+    def _decorator(func: Callable[_P, Coroutine[Any, Any, _R]]) -> Task:
+        sync_call = async_to_sync(func)
+
+        @app.task(*args, **kwargs)
+        @wraps(func)
+        def _decorated(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+            return sync_call(*args, **kwargs)
+
+        return _decorated
+
+    return _decorator
+
+
+# ---------------------------------------------------------------------------
+# Task context (DI for Celery tasks)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class TaskContext:
+    """Shared resources for Celery task execution."""
+
+    session: AsyncSession
+    storage: StorageService
+    events: EventService
+
+
+@asynccontextmanager
+async def task_context() -> AsyncGenerator[TaskContext, None]:
+    """Provide DB session, storage, and events for a Celery task.
+
+    Usage:
+        async with task_context() as ctx:
+            # ctx.session, ctx.storage, ctx.events
+    """
+    redis_client = create_async_redis()
+    try:
+        async with async_session_factory() as session:
+            yield TaskContext(
+                session=session,
+                storage=StorageService(s3_client),
+                events=EventService(redis_client),
+            )
+    finally:
+        await redis_client.aclose()
+
+
+# ---------------------------------------------------------------------------
+# Worker entrypoint
+# ---------------------------------------------------------------------------
 
 
 def main() -> None:

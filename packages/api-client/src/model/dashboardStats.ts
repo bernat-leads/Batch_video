@@ -4,6 +4,7 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
+import type { AICost } from './aICost';
 
 /**
  * Aggregated dashboard statistics.
@@ -14,10 +15,14 @@ export interface DashboardStats {
   failed_videos: number;
   processing_videos: number;
   total_batches: number;
-  total_tokens: number;
-  total_generation_time_ms: number;
-  total_cost_usd: number;
-  avg_tokens_per_video: number;
-  avg_generation_time_ms: number;
-  avg_cost_per_video_usd: number;
+  total_duration_ms: number;
+  tts?: AICost;
+  segmentation?: AICost;
+  image_generation?: AICost;
+  total?: AICost;
+  avg_tts?: AICost;
+  avg_segmentation?: AICost;
+  avg_image_generation?: AICost;
+  avg_total?: AICost;
+  avg_duration_ms: number;
 }

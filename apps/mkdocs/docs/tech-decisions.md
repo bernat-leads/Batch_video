@@ -54,6 +54,67 @@
 | **Alembic autogenerate only** | Never hand-write migrations. `alembic revision --autogenerate`. |
 | **Simple SQL aggregates** for stats (not materialized views) | Hundreds of rows, <5ms queries. Materialized views are overkill. |
 | **Retry 3x with backoff** for pipeline stages | External APIs have transient failures. |
+| **`async_task` decorator for Celery** | Async tasks via `asgiref.AsyncToSync`. See [Async Celery Pattern](#async-celery-pattern) below. |
+| **Separate Redis clients for FastAPI vs Celery** | FastAPI uses shared `async_pool` (one event loop). Celery uses `create_async_redis()` per task (fresh connection per event loop). |
+
+## Async Celery Pattern
+
+Celery workers are synchronous, but the backend is fully async (SQLAlchemy async, Redis async). The `async_task` decorator in `api/deps/celery.py` bridges this using `asgiref.AsyncToSync`.
+
+### The decorator
+
+```python
+# api/deps/celery.py
+from asgiref.sync import async_to_sync
+
+def async_task(app: Celery, *args, **kwargs):
+    def _decorator(func):
+        sync_call = async_to_sync(func)
+
+        @app.task(*args, **kwargs)
+        @wraps(func)
+        def _decorated(*args, **kwargs):
+            return sync_call(*args, **kwargs)
+
+        return _decorated
+    return _decorator
+```
+
+### Usage
+
+```python
+from api.deps.celery import async_task, celery_app
+
+@async_task(celery_app, bind=True, max_retries=0)
+async def process_video(self, video_input_data, batch_id=None):
+    async with async_session_factory() as session:
+        # fully async code here
+        ...
+```
+
+### Redis client rules
+
+`async_to_sync` creates a **new event loop per task invocation**. Module-level async connection pools bind to the loop they're first used on — if that loop closes, the pool is dead.
+
+| Context | Use | Why |
+|---------|-----|-----|
+| **FastAPI** (SSE, deps) | `async_pool` via `get_async_redis()` | Single event loop for the app lifetime. Pool reuse is safe. |
+| **Celery tasks** | `create_async_redis()` | Fresh client per call. No shared pool = no stale loop references. |
+
+```python
+# In a Celery task:
+from api.deps.redis import create_async_redis
+
+redis_client = create_async_redis()
+try:
+    # use redis_client
+finally:
+    await redis_client.aclose()
+```
+
+### Key constraint
+
+**Never import `async_pool` in Celery tasks.** Always use `create_async_redis()`.
 
 ## Conventions
 

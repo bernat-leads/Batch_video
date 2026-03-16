@@ -3,9 +3,11 @@ import { Video } from "lucide-react";
 interface EmptyStateProps {
   title: string;
   description: string;
+  action?: React.ReactNode;
 }
 
-export function EmptyState({ title, description }: EmptyStateProps) {
+/** Centered placeholder shown when a list has no items (e.g. no videos, no batches). */
+export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
     <div
       className="flex flex-col items-center justify-center rounded-xl border border-dashed border-text-muted bg-card-bg py-16"
@@ -23,6 +25,7 @@ export function EmptyState({ title, description }: EmptyStateProps) {
       <p className="mt-1 text-sm text-text-muted">
         {description}
       </p>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }

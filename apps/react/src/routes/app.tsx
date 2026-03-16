@@ -6,6 +6,7 @@ import {
 } from "@packages/ui/components/shadcn/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AnimatedOutlet } from "@/components/layout/animated-outlet";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 export const Route = createFileRoute("/app")({
   beforeLoad: async () => {
@@ -18,13 +19,11 @@ export const Route = createFileRoute("/app")({
   component: AuthenticatedLayout,
 });
 
-const MOBILE_BREAKPOINT = 768;
-
 function AuthenticatedLayout() {
-  const isSmallScreen = window.innerWidth < MOBILE_BREAKPOINT;
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-    <SidebarProvider defaultOpen={!isSmallScreen}>
+    <SidebarProvider defaultOpen={isDesktop}>
       <AppSidebar />
       <SidebarInset className="bg-content-bg">
         <div className="mx-auto w-full max-w-5xl px-8 py-8">

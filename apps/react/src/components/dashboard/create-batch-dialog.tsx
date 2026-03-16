@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import {
-  useCreateBatchApiV1BatchesPost,
+  useUploadBatchApiV1BatchesUploadPost,
   useGetSettingsApiV1SettingsGet,
   getListVideosApiV1VideosGetQueryKey,
   getListBatchesApiV1BatchesGetQueryKey,
@@ -17,11 +17,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
-import { cn } from "@packages/ui/lib/utils";
 import { Stepper } from "@/components/ui/stepper";
 import { ColumnMapper, type ColumnMapping } from "./column-mapper";
 import type { ColumnDefaults } from "./column-mapper";
 import { FileUpload, type ParsedFile } from "./file-upload";
+import { ReviewStep } from "./review-step";
 
 const DEFAULT_COLUMN_DEFAULTS: ColumnDefaults = {
   script_text: "script_text",
@@ -43,6 +43,17 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "review", label: "Review" },
 ];
 
+/** Step description shown below the dialog title. */
+const STEP_DESCRIPTIONS: Record<Step, string> = {
+  upload: "Upload an Excel or CSV file with your ad scripts.",
+  map: "Map your spreadsheet columns to video fields.",
+  review: "Review your batch before creating it.",
+};
+
+/**
+ * Multi-step dialog for batch creation: Upload → Map Columns → Review.
+ * Handles file parsing, column mapping, and batch upload submission.
+ */
 export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatchDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,7 +65,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: settings } = useGetSettingsApiV1SettingsGet();
-  const createBatch = useCreateBatchApiV1BatchesPost();
+  const uploadBatch = useUploadBatchApiV1BatchesUploadPost();
 
   const reset = () => {
     setStep("upload");
@@ -80,27 +91,14 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
     setIsSubmitting(true);
 
     const finalName = batchName.trim() || parsedFile.fileName.replace(/\.(xlsx|xls|csv)$/i, "");
-    const scriptColIdx = parsedFile.headers.indexOf(mapping.script_text);
-    const voiceColIdx = parsedFile.headers.indexOf(mapping.voice_id);
-    const styleColIdx = parsedFile.headers.indexOf(mapping.style);
-    const topTextColIdx = parsedFile.headers.indexOf(mapping.top_text);
-    const masterPrompt = settings?.master_prompt ?? "";
-
-    const videoRows = parsedFile.rows.filter(
-      (row) => scriptColIdx >= 0 && String(row[scriptColIdx]).trim() !== "",
-    );
 
     try {
-      const batch = await createBatch.mutateAsync({
+      const batch = await uploadBatch.mutateAsync({
         data: {
-          name: finalName,
-          videos: videoRows.map((row) => ({
-            script_text: String(row[scriptColIdx]).trim(),
-            prompt: masterPrompt,
-            voice_id: voiceColIdx >= 0 ? String(row[voiceColIdx] ?? "").trim() || undefined : undefined,
-            style: styleColIdx >= 0 ? String(row[styleColIdx] ?? "").trim() || undefined : undefined,
-            top_text: topTextColIdx >= 0 ? String(row[topTextColIdx] ?? "").trim() || undefined : undefined,
-          })),
+          // Orval types this as string but the runtime sends a File via FormData
+          file: parsedFile.file as unknown as string,
+          batch_name: finalName,
+          column_mapping: JSON.stringify(mapping),
         },
       });
 
@@ -108,11 +106,11 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
       queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
       setOpen(false);
       reset();
-      toast.success(`Batch "${finalName}" created with ${videoRows.length} videos`);
+      toast.success(`Batch "${finalName}" uploaded — processing started`);
       onBatchCreated?.();
       navigate({ to: "/app/batches/$batchId", params: { batchId: batch.id } });
     } catch {
-      toast.error("Failed to create batch");
+      toast.error("Failed to upload batch");
       setIsSubmitting(false);
     }
   };
@@ -133,14 +131,8 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
       </DialogTrigger>
       <DialogContent className="bg-card-bg border-border sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-text-primary">
-            Create Batch
-          </DialogTitle>
-          <p className="text-sm text-text-muted">
-            {step === "upload" && "Upload an Excel or CSV file with your ad scripts."}
-            {step === "map" && "Map your spreadsheet columns to video fields."}
-            {step === "review" && "Review your batch before creating it."}
-          </p>
+          <DialogTitle className="text-text-primary">Create Batch</DialogTitle>
+          <p className="text-sm text-text-muted">{STEP_DESCRIPTIONS[step]}</p>
           <div className="py-3">
             <Stepper steps={STEPS} current={step} />
           </div>
@@ -172,125 +164,10 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
             onBatchNameChange={setBatchName}
             onBack={() => setStep("map")}
             onConfirm={handleConfirm}
+            isSubmitting={isSubmitting}
           />
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ReviewStep({
-  parsedFile,
-  mapping,
-  batchName,
-  onBatchNameChange,
-  onBack,
-  onConfirm,
-}: {
-  parsedFile: ParsedFile;
-  mapping: ColumnMapping;
-  batchName: string;
-  onBatchNameChange: (name: string) => void;
-  onBack: () => void;
-  onConfirm: () => void;
-}) {
-  const scriptColIdx = parsedFile.headers.indexOf(mapping.script_text);
-  const totalVideos = parsedFile.rows.filter(
-    (row) => scriptColIdx >= 0 && String(row[scriptColIdx]).trim() !== "",
-  ).length;
-
-  const mappedColumns = [
-    { label: "Script Text", col: mapping.script_text },
-    { label: "Voice ID", col: mapping.voice_id },
-    { label: "Style", col: mapping.style },
-    { label: "Top Text", col: mapping.top_text },
-  ];
-
-  const colIndices = mappedColumns.map((c) => parsedFile.headers.indexOf(c.col));
-  const previewRows = parsedFile.rows.slice(0, 10);
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="mb-1 block text-xs uppercase tracking-wider text-text-muted">
-          Batch Name
-        </label>
-        <input
-          value={batchName}
-          onChange={(e) => onBatchNameChange(e.target.value)}
-          className="h-9 w-full rounded-lg border border-border bg-content-bg px-3 text-sm font-medium text-text-primary outline-none"
-        />
-      </div>
-      <div className="mt-1 flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-          Preview ({Math.min(previewRows.length, 10)} of {totalVideos} videos)
-        </p>
-        <p className="text-xs text-text-muted">
-          {parsedFile.fileName}
-        </p>
-      </div>
-      <div className="max-h-60 overflow-auto rounded-lg border border-border">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0">
-            <tr className="bg-content-bg">
-              <th className="border-b border-border px-3 py-2 text-left font-medium text-text-muted w-8">
-                #
-              </th>
-              {mappedColumns.map((c) => (
-                <th
-                  key={c.label}
-                  className="border-b border-border px-3 py-2 text-left font-medium text-text-muted"
-                >
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {previewRows.map((row, rowIdx) => (
-              <tr
-                key={rowIdx}
-                className={cn(
-                  "bg-card-bg border-border",
-                  rowIdx < previewRows.length - 1 && "border-b",
-                )}
-              >
-                <td className="px-3 py-2 text-text-muted">
-                  {rowIdx + 1}
-                </td>
-                {colIndices.map((colIdx, i) => {
-                  const val = colIdx >= 0 ? String(row[colIdx] ?? "").trim() : "";
-                  return (
-                    <td
-                      key={i}
-                      className="max-w-[150px] truncate px-3 py-2 text-text-secondary"
-                      title={val}
-                    >
-                      {val || "\u2014"}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="border-border text-text-secondary"
-        >
-          Back
-        </Button>
-        <Button
-          onClick={onConfirm}
-          className="bg-brand text-white"
-        >
-          Create Batch
-        </Button>
-      </div>
-    </div>
   );
 }

@@ -13,7 +13,9 @@
 | Videos module | `apps/api/api/videos/` |
 | Settings module | `apps/api/api/settings_module/` |
 | Auth module | `apps/api/api/auth/` |
-| Shared deps | `apps/api/api/deps/` (db, storage, celery, sentry) |
+| Shared deps | `apps/api/api/deps/` (db, redis, storage, celery, auth, sentry) |
+| Events module | `apps/api/api/events/` (SSE routes, EventService, schemas) |
+| Storage module | `apps/api/api/storage/` (StorageService for R2) |
 | Core (health, base) | `apps/api/api/core/` |
 | Migrations | `apps/api/migrations/versions/` |
 | Tests | `apps/api/__tests__/` |
@@ -32,7 +34,7 @@ module_name/
 └── crud.py             # CRUD classes (extend BaseCrud) + typed deps
 ```
 
-**Current modules:** `videos/`, `settings_module/`, `auth/`, `core/`, `deps/`
+**Current modules:** `videos/`, `batches/`, `shots/`, `events/`, `storage/`, `settings_module/`, `auth/`, `core/`, `deps/`
 
 ---
 
@@ -46,6 +48,7 @@ module_name/
 | `batches_router` | `/api/v1/batches` | `api/videos/routes.py` |
 | `shots_router` | `/api/v1/videos/{video_id}/shots` | `api/videos/routes.py` |
 | `settings_router` | `/api/v1/settings` | `api/settings_module/routes.py` |
+| `events_router` | `/api/v1/events` | `api/events/routes.py` |
 
 **Route ordering rule:** Static paths (e.g., `/stats/dashboard`) MUST be defined BEFORE parameterized paths (e.g., `/{video_id}`) to avoid conflicts.
 
@@ -179,6 +182,128 @@ async def save(session: AsyncSession, db_object: object) -> None:
 
 ---
 
+## Server-Sent Events (SSE) Pattern
+
+Real-time progress streaming uses Redis Pub/Sub → FastAPI SSE. The pattern has four layers:
+
+### Dependency Chain
+
+```
+deps/redis.py              # Module-level pool, yields clients
+  pool                     ← aioredis.ConnectionPool (created once)
+  get_redis()              ← yields aioredis.Redis from pool
+  get_pubsub(client)       ← yields PubSub from injected client
+  RedisDep / PubSubDep     ← Annotated typed dependencies
+```
+
+FastAPI auto-resolves the chain: `PubSubDep → RedisDep → pool`.
+
+### Event Schemas (`events/schemas.py`)
+
+All events extend `BaseEvent` and use `EventType` / `EventChannel` enums:
+
+```python
+class EventType(str, enum.Enum):
+    video_progress = "video_progress"
+    batch_progress = "batch_progress"
+
+class EventChannel(str, enum.Enum):
+    video = "pipeline:video:{video_id}"
+    batch = "pipeline:batch:{batch_id}"
+
+class BaseEvent(BaseModel):
+    type: EventType
+
+class VideoProgressEvent(BaseEvent):
+    type: EventType = EventType.video_progress
+    video_id: str
+    status: str
+    stage: str
+    # ... optional fields
+
+class BatchProgressEvent(BaseEvent):
+    type: EventType = EventType.batch_progress
+    batch_id: str
+    completed_count: int
+    # ... counter fields
+```
+
+### Event Service (`events/service.py`)
+
+Generic — knows nothing about video/batch domain logic:
+
+```python
+class EventService:
+    def __init__(self, client: RedisDep, pubsub: PubSubDep) -> None: ...
+
+    async def emit(self, channel: str, event: BaseModel) -> None:
+        """Publish a Pydantic event as JSON to a Redis channel."""
+
+    async def subscribe(self, channel: str, schema: type[BaseModel]) -> AsyncGenerator[BaseModel, None]:
+        """Subscribe to a channel, yield validated Pydantic events."""
+```
+
+### SSE Routes (`events/routes.py`)
+
+Uses FastAPI's built-in `EventSourceResponse` (handles headers, heartbeats, JSON serialization):
+
+```python
+@router.get("/videos/{video_id}", response_class=EventSourceResponse)
+async def stream_video(video_id: uuid.UUID, _auth: AuthDep, service: EventServiceDep) -> AsyncIterable[ServerSentEvent]:
+    channel = EventChannel.video.format(video_id=str(video_id))
+    async for event in service.subscribe(channel, VideoProgressEvent):
+        yield ServerSentEvent(data=event, event="video_progress")
+```
+
+### SOP: Emit Events from Celery Tasks
+
+Celery tasks run outside FastAPI DI, so create the Redis client and EventService manually:
+
+```python
+import redis.asyncio as aioredis
+from api.deps.redis import pool as redis_pool
+from api.events import EventService, VideoProgressEvent, EventChannel
+
+events = EventService(
+    client=aioredis.Redis(connection_pool=redis_pool),
+    pubsub=...,  # not needed for emit-only usage
+)
+
+await events.emit(
+    EventChannel.video.format(video_id=video_id),
+    VideoProgressEvent(video_id=video_id, status="processing", stage="tts"),
+)
+```
+
+### SOP: Add a New Event Type
+
+1. Add value to `EventType` enum in `events/schemas.py`
+2. Add channel pattern to `EventChannel` enum (if new channel needed)
+3. Create a new schema class extending `BaseEvent`
+4. Emit from backend using `events.emit(channel, MyNewEvent(...))`
+5. Add SSE route if a new subscription endpoint is needed
+6. Subscribe on frontend using `useEventSource` hook
+
+### Frontend SSE Consumption
+
+One hook: `useEventSource(path, enabled, queryKeys)` in `apps/react/src/hooks/use-event-source.ts`.
+
+Uses the browser's native `EventSource` API. On any event, invalidates the given TanStack Query keys so React Query refetches fresh data.
+
+```tsx
+import { useEventSource } from "@/hooks/use-event-source";
+import { getGetVideoApiV1VideosVideoIdGetQueryKey } from "@packages/api-client";
+
+const isActive = video?.status === "processing" || video?.status === "pending";
+useEventSource(`/api/v1/events/videos/${videoId}`, !!isActive, [
+  getGetVideoApiV1VideosVideoIdGetQueryKey(videoId),
+]);
+```
+
+SSE connections are only opened when `enabled` is true (active processing). Closed automatically on unmount or when `enabled` flips to false.
+
+---
+
 ## Key Libraries
 
 | Library | Purpose |
@@ -188,6 +313,7 @@ async def save(session: AsyncSession, db_object: object) -> None:
 | Pydantic | Schema validation |
 | Alembic | DB migrations (autogenerate only) |
 | Celery + Redis | Task queue |
+| redis.asyncio | Pub/Sub for SSE events |
 | boto3 | Cloudflare R2 (S3-compatible) |
 
 ## Commands
