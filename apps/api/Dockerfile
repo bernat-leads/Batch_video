@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc python3-dev libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry as root (avoids permission/keyring issues with pip --user in minimal Docker)
+# Install Poetry as root
 RUN pip install --no-cache-dir poetry==2.2.1
 
-# Create user and app dir (needed for poetry install target)
+# Create user and app dir
 RUN addgroup --gid 1000 appuser \
     && adduser --uid 1000 --system --ingroup appuser appuser \
     && mkdir -p /home/appuser && chown appuser:appuser /home/appuser \
@@ -26,16 +26,17 @@ WORKDIR /home/appuser
 ENV PATH="/home/appuser/.venv/bin:$PATH"
 
 # Copy dependency manifests first for better layer caching
-COPY pyproject.toml poetry.lock ./
+COPY apps/api/pyproject.toml apps/api/poetry.lock ./
 
-# Install as root so PyPI access works in restricted build environments (e.g. Coolify)
+# Install dependencies as root
 RUN poetry install --only=main -v
 
 # Hand over to app user
 USER appuser
 
-# Copy the rest of the app
-COPY --chown=appuser . .
+# Copy the app
+COPY --chown=appuser apps/api/ .
+
 RUN chmod +x docker-entrypoint.sh
 
 ENV PORT=8000
