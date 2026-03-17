@@ -17,13 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@packages/ui/components/shadcn/select";
 import { cn } from "@packages/ui/lib/utils";
 import { Stepper } from "@/components/ui/stepper";
 
@@ -32,13 +25,6 @@ type Step = "details" | "prompt";
 const STEPS: { key: Step; label: string }[] = [
   { key: "details", label: "Video Details" },
   { key: "prompt", label: "Generation Prompt" },
-];
-
-const STYLE_OPTIONS = [
-  { value: "professional", label: "Professional" },
-  { value: "energetic", label: "Energetic" },
-  { value: "cinematic", label: "Cinematic" },
-  { value: "minimal", label: "Minimal" },
 ];
 
 interface CreateVideoDialogProps {
@@ -155,19 +141,12 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
               <label className="mb-1.5 block text-sm font-medium text-text-primary">
                 Style
               </label>
-              <Select value={style || "none"} onValueChange={(v) => setStyle(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-9 w-full border-border bg-content-bg text-text-primary">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {STYLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <textarea
+                value={style}
+                onChange={(e) => setStyle(e.target.value)}
+                placeholder="Additional style instructions for this video, e.g. warm golden tones, cinematic lighting, luxury brand feel..."
+                className="min-h-[60px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import uuid
 
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,10 +22,9 @@ from api.videos.pipeline.segmentation import SegmentationService
 from api.videos.pipeline.segmentation.schemas import (
     SegmentationInput,
     SegmentationResult,
-    SegmentResult,
 )
 from api.videos.pipeline.tts import TTSService
-from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
+from api.videos.pipeline.tts.schemas import TTSInput, TTSResult
 from api.videos.pipeline.video_editor import (
     EditResult,
     Segment,
@@ -86,32 +84,16 @@ class VideoService:
         video: Video,
         template: VideoTemplate,
     ) -> VideoGenerationResult:
-        """Retry a failed video from the stage that failed.
-
-        Assembly/upload failures resume from assembly (shots + audio in S3).
-        Earlier failures clean up and re-run the full pipeline.
-        """
-        failed_stage = str(video.current_stage)
-        logger.info("Video %s: retrying from stage %s", video.id, failed_stage)
+        """Retry a failed video from the stage that failed."""
+        logger.info("Video %s: retrying from stage %s", video.id, video.current_stage)
 
         video.status = VideoStatus.processing
         video.error_message = None
         await self._session.commit()
         await self._emit_progress(video)
 
-        can_resume = (
-            failed_stage in (VideoStage.assembly.value, VideoStage.upload.value)
-            and video.shots
-            and video.audio_url
-        )
-
         try:
-            if can_resume:
-                return await self._resume_pipeline(video, template)
-
-            await self._delete_existing_shots(video)
-            self._storage.delete_prefix(f"{video.s3_prefix}/")
-            return await self._run_pipeline(video, template)
+            return await self._run_pipeline(video, template, from_stage=str(video.current_stage))
         except Exception as error:
             await self._handle_failure(video, error)
             raise
@@ -121,59 +103,54 @@ class VideoService:
     # ------------------------------------------------------------------
 
     async def _run_pipeline(
-        self, video: Video, template: VideoTemplate
+        self,
+        video: Video,
+        template: VideoTemplate,
+        from_stage: str = VideoStage.queued.value,
     ) -> VideoGenerationResult:
-        """Run the full pipeline from scratch."""
-        tts_result = await self._run_tts(video)
-        seg_result = await self._run_segmentation(video, tts_result, template)
-        shots = await self._run_image_generation(video, seg_result, template)
-        edit_result = await self._run_assembly(video, shots, tts_result, template)
-        await self._run_upload(video, edit_result)
-        return await self._finalize(video)
+        """Run the pipeline from the given stage onwards.
 
-    async def _resume_pipeline(
-        self, video: Video, template: VideoTemplate
-    ) -> VideoGenerationResult:
-        """Resume from assembly/upload using existing shots + audio from S3."""
-        tts_result = await self._build_tts_result_from_storage(video)
-        shots = list(video.shots)
+        Fresh runs start from 'queued'. Retries start from the failed stage.
+        Each stage checks what's already persisted and skips completed work.
+        """
+        stages = [stage.value for stage in VideoStage]
+        start_index = stages.index(from_stage)
+
+        # Stage 1: TTS
+        if start_index <= stages.index(VideoStage.tts.value):
+            tts_result = await self._run_tts(video)
+        else:
+            tts_result = await self._build_tts_result_from_storage(video)
+
+        # Stage 2: Segmentation + create shots
+        if start_index <= stages.index(VideoStage.segmentation.value):
+            seg_result = await self._run_segmentation(video, tts_result, template)
+            await self._delete_existing_shots(video)
+            shots = await self._create_shots(video, seg_result)
+        else:
+            shots = list(video.shots)
+
+        # Stage 3: Image generation (skips shots that already have images)
+        if start_index <= stages.index(VideoStage.image_generation.value):
+            await self._run_image_generation(video, shots, template)
+
+        # Stage 4: Assembly
         await asyncio.to_thread(self._load_shot_images, shots)
         edit_result = await self._run_assembly(video, shots, tts_result, template)
+
+        # Stage 5: Upload
         await self._run_upload(video, edit_result)
+
         return await self._finalize(video)
 
     async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
-        """Rebuild a minimal TTSResult from S3 audio for assembly retry."""
-        if not video.audio_url:
-            raise ValueError(f"Video {video.id} has no audio_url")
-        audio_bytes = await asyncio.to_thread(
-            self._storage.download_file, video.audio_url
-        )
-
-        # Rebuild word timestamps from shot timing (approximate, sufficient for captions)
-        word_timestamps = []
-        for shot in sorted(video.shots, key=lambda shot: shot.order):
-            words = shot.text.split()
-            if not words:
-                continue
-            word_duration = (shot.end_time - shot.start_time) / len(words)
-            for word_index, word in enumerate(words):
-                word_timestamps.append(
-                    WordTimestamp(
-                        word=word,
-                        start=round(shot.start_time + word_index * word_duration, 3),
-                        end=round(
-                            shot.start_time + (word_index + 1) * word_duration, 3
-                        ),
-                    )
-                )
-
+        """Rebuild TTSResult from S3 audio + shot timing for retry."""
+        audio_bytes = await asyncio.to_thread(self._storage.download_file, video.audio_url)
+        word_timestamps = video.build_word_timestamps()
         return TTSResult(
             audio_bytes=audio_bytes,
             content_type="audio/mpeg",
-            audio_duration_ms=int(word_timestamps[-1].end * 1000)
-            if word_timestamps
-            else 0,
+            audio_duration_ms=int(word_timestamps[-1].end * 1000) if word_timestamps else 0,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
         )
@@ -184,9 +161,9 @@ class VideoService:
         await self._session.flush()
 
     def _load_shot_images(self, shots: list[Shot]) -> None:
-        """Download shot images from S3 and cache as transient image_bytes."""
+        """Download shot images from S3 for shots that don't have them in memory."""
         for shot in shots:
-            if shot.image_url:
+            if not getattr(shot, "image_bytes", None) and shot.image_url:
                 shot.image_bytes = self._storage.download_file(shot.image_url)
 
     async def _run_tts(self, video: Video) -> TTSResult:
@@ -204,6 +181,7 @@ class VideoService:
         video.audio_url = video.audio_s3_key
         video.tts_cost_usd = tts_result.cost.cost_usd
         video.tts_token_count = tts_result.cost.token_count
+        self._update_totals(video)
         await self._session.commit()
         return tts_result
 
@@ -224,58 +202,57 @@ class VideoService:
             raise SegmentationEmptyError()
         video.segmentation_cost_usd = seg_result.cost.cost_usd
         video.segmentation_token_count = seg_result.cost.token_count
+        self._update_totals(video)
         await self._session.commit()
         return seg_result
 
+    async def _create_shots(self, video: Video, seg_result: SegmentationResult) -> list[Shot]:
+        """Create shot records in DB from segmentation results (no images yet)."""
+        shots: list[Shot] = []
+        for segment in seg_result.segments:
+            shot = Shot(
+                video_id=video.id,
+                order=segment.order,
+                text=segment.text,
+                image_prompt=segment.image_prompt,
+                effect_config=segment.effect.model_dump(),
+                start_time=segment.start_time,
+                end_time=segment.end_time,
+            )
+            self._session.add(shot)
+            shots.append(shot)
+        await self._session.flush()
+        return shots
+
     async def _run_image_generation(
-        self, video: Video, seg_result: SegmentationResult, template: VideoTemplate
-    ) -> list[Shot]:
-        """Stage 3: Generate images sequentially, upload to S3, create shot records."""
+        self, video: Video, shots: list[Shot], template: VideoTemplate
+    ) -> None:
+        """Stage 3: Generate images for each shot and upload to S3."""
         await self._update_stage(video, VideoStage.image_generation)
 
-        shots = []
-        for segment in seg_result.segments:
-            shot = await asyncio.to_thread(
-                self._generate_shot, video, segment, template.image_config
-            )
-            shots.append(shot)
-
         for shot in shots:
-            self._session.add(shot)
-        await self._session.flush()
+            if shot.image_url:
+                continue  # already generated (partial retry)
+            await asyncio.to_thread(
+                self._generate_shot_image, video, shot, template.image_config
+            )
 
-        image_cost = video.shots_cost(list(shots))
+        image_cost = video.shots_cost(shots)
         video.image_generation_cost_usd = image_cost.cost_usd
         video.image_generation_token_count = image_cost.token_count
+        self._update_totals(video)
         await self._session.commit()
-        return list(shots)
 
-    def _generate_shot(
-        self, video: Video, segment: SegmentResult, image_config: ImageConfig
-    ) -> Shot:
-        """Generate image, upload to S3, and build Shot object (runs in thread)."""
-        image_result = self._image_gen.generate_image(
-            segment.image_prompt, image_config
-        )
+    def _generate_shot_image(self, video: Video, shot: Shot, image_config: ImageConfig) -> None:
+        """Generate image for a shot and upload to S3 (runs in thread)."""
+        image_result = self._image_gen.generate_image(shot.image_prompt, image_config)
 
-        s3_key = video.shot_s3_key(segment.order)
-        self._storage.upload_file(
-            s3_key, image_result.image_bytes, image_result.content_type
-        )
+        s3_key = video.shot_s3_key(shot.order)
+        self._storage.upload_file(s3_key, image_result.image_bytes, image_result.content_type)
 
-        shot = Shot(
-            video_id=video.id,
-            order=segment.order,
-            text=segment.text,
-            image_prompt=segment.image_prompt,
-            effect_config=segment.effect.model_dump(),
-            start_time=segment.start_time,
-            end_time=segment.end_time,
-            image_url=s3_key,
-            cost_usd=image_result.cost.cost_usd,
-        )
+        shot.image_url = s3_key
+        shot.cost_usd = image_result.cost.cost_usd
         shot.image_bytes = image_result.image_bytes  # transient — used by assembly
-        return shot
 
     async def _run_assembly(
         self,
@@ -315,17 +292,7 @@ class VideoService:
         video.file_size_bytes = len(edit_result.video_bytes)
 
     async def _finalize(self, video: Video) -> VideoGenerationResult:
-        """Compute totals, mark finished, and return the generation result."""
-        video.total_cost_usd = (
-            video.tts_cost_usd
-            + video.segmentation_cost_usd
-            + video.image_generation_cost_usd
-        )
-        video.total_token_count = (
-            video.tts_token_count
-            + video.segmentation_token_count
-            + video.image_generation_token_count
-        )
+        """Mark finished and return the generation result."""
         video.status = VideoStatus.finished
         video.current_stage = VideoStage.done
         await self._session.commit()
@@ -349,6 +316,16 @@ class VideoService:
             return video_input.prompt
         app_settings = await self._app_settings.get()
         return app_settings.master_prompt or ""
+
+    @staticmethod
+    def _update_totals(video: Video) -> None:
+        """Recompute total cost and token count from per-stage values."""
+        video.total_cost_usd = (
+            video.tts_cost_usd + video.segmentation_cost_usd + video.image_generation_cost_usd
+        )
+        video.total_token_count = (
+            video.tts_token_count + video.segmentation_token_count + video.image_generation_token_count
+        )
 
     async def _update_stage(self, video: Video, stage: VideoStage) -> None:
         """Transition video to a new pipeline stage, persist, and emit SSE."""

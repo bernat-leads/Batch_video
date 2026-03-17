@@ -41,14 +41,17 @@ class TextStyle(BaseModel):
         font = self.load_font()
         overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
+        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=self.stroke_width)
+        text_width = bbox[2] - bbox[0]
+        text_x = (width - text_width) // 2
+        text_y = int(height * self.y_position)
         draw.text(
-            (width // 2, int(height * self.y_position)),
+            (text_x, text_y),
             text,
             font=font,
             fill=self.color,
             stroke_width=self.stroke_width,
             stroke_fill=self.stroke_color,
-            anchor="mt",
         )
         return np.array(overlay)
 

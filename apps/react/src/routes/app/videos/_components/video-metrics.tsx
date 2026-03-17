@@ -55,9 +55,9 @@ function CollapsibleText({ label, text }: { label: string; text: string }) {
         />
       </button>
       {open && (
-        <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
+        <pre className="mt-1.5 whitespace-pre-wrap font-sans text-sm leading-relaxed text-text-secondary">
           {text}
-        </p>
+        </pre>
       )}
     </div>
   );
