@@ -1,4 +1,4 @@
-"""Cloudflare R2 storage service."""
+"""S3-compatible storage service."""
 
 from api.storage.service import StorageDep, StorageService
 

@@ -61,7 +61,7 @@ class BatchService:
         try:
             self.storage.upload_file(file_key, contents, content_type)
         except Exception:
-            logger.exception("Batch %s: R2 upload failed", batch_id)
+            logger.exception("Batch %s: S3 upload failed", batch_id)
             await self.crud.delete(batch_id)
             raise
 

@@ -36,17 +36,17 @@ class TestStorageUploadFailure:
         session = AsyncMock()
         session.add = MagicMock()
         storage = MagicMock()
-        storage.upload_file.side_effect = OSError("R2 timeout")
+        storage.upload_file.side_effect = OSError("S3 timeout")
 
         service = ShotService(session, storage, MagicMock())
 
-        with pytest.raises(OSError, match="R2 timeout"):
+        with pytest.raises(OSError, match="S3 timeout"):
             await service.create_shot_with_image(uuid.uuid4(), _segment(), _image_result())
 
 
 class TestSuccessfulShot:
     @pytest.mark.asyncio
-    async def test_returns_shot_with_r2_key_and_cost(self):
+    async def test_returns_shot_with_s3_key_and_cost(self):
         session = AsyncMock()
         session.add = MagicMock()
         storage = MagicMock()
@@ -61,7 +61,7 @@ class TestSuccessfulShot:
 
     @pytest.mark.asyncio
     async def test_shot_flushed_to_db(self):
-        """Shot should be flushed to DB before R2 upload."""
+        """Shot should be flushed to DB before S3 upload."""
         session = AsyncMock()
         session.add = MagicMock()
         storage = MagicMock()

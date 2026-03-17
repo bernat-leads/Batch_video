@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class ShotService:
-    """Creates shot records and persists generated images to R2.
+    """Creates shot records and persists generated images to S3.
 
     Image generation is handled externally (by the caller) to allow
     parallel execution without concurrent session access.
@@ -54,18 +54,18 @@ class ShotService:
         self._session.add(shot)
         await self._session.flush()
 
-        r2_key = f"videos/{video_id}/shots/{segment.order:03d}.png"
+        s3_key = f"videos/{video_id}/shots/{segment.order:03d}.png"
         try:
             self._storage.upload_file(
-                r2_key, image_result.image_bytes, image_result.content_type
+                s3_key, image_result.image_bytes, image_result.content_type
             )
         except Exception:
             logger.exception(
-                "Shot %s (video %s): R2 upload failed for %s", shot.id, video_id, r2_key
+                "Shot %s (video %s): S3 upload failed for %s", shot.id, video_id, s3_key
             )
             raise
 
-        shot.image_url = r2_key
+        shot.image_url = s3_key
         shot.cost_usd = image_result.cost.cost_usd
 
         return shot

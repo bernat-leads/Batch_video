@@ -122,8 +122,8 @@ async def update_video(
 @videos_router.get("/{video_id}/preview")
 async def preview_video(video_id: uuid.UUID, storage: StorageDep) -> RedirectResponse:
     """Redirect to a fresh presigned URL for video preview."""
-    r2_key = f"videos/{video_id}/output.mp4"
-    url = storage.generate_presigned_url(r2_key)
+    s3_key = f"videos/{video_id}/output.mp4"
+    url = storage.generate_presigned_url(s3_key)
     return RedirectResponse(url=url)
 
 
@@ -133,9 +133,9 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
     if video.status != VideoStatus.finished or not video.output_url:
         raise HTTPException(status_code=400, detail="Video not ready for download")
 
-    r2_key = f"videos/{video.id}/output.mp4"
+    s3_key = f"videos/{video.id}/output.mp4"
     return StreamingResponse(
-        storage.stream_file(r2_key),
+        storage.stream_file(s3_key),
         media_type="video/mp4",
         headers={
             "Content-Disposition": f'attachment; filename="video-{str(video.id)[:8]}.mp4"'

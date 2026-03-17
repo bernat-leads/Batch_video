@@ -103,7 +103,7 @@ class VideoGenerationResult(BaseModel):
     """Returned by VideoService.generate_video after a successful pipeline run."""
 
     video_id: str
-    video_r2_key: str
+    video_s3_key: str
     file_size_bytes: int
     duration_ms: int
     num_shots: int

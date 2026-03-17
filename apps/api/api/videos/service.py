@@ -62,7 +62,7 @@ class VideoService:
 
         Resets the video to a clean state (deletes old shots, clears errors),
         then executes all stages sequentially. On failure, marks the video as
-        failed and cleans up partial R2 artifacts.
+        failed and cleans up partial S3 artifacts.
         """
         video = await self._reset_video(video_id)
 
@@ -152,17 +152,17 @@ class VideoService:
     async def _run_assembly(self, video, seg_result, tts_result, video_input):
         """Stage 4: Compose final video from images, audio, and captions.
 
-        Downloads images from R2, then runs the CPU-bound MoviePy render
+        Downloads images from S3, then runs the CPU-bound MoviePy render
         in a thread to avoid blocking the event loop.
         """
         await self._update_stage(video, VideoStage.assembly)
 
-        # Download images and audio from R2 (sync I/O, run in thread)
+        # Download images and audio from S3 (sync I/O, run in thread)
         segments = await asyncio.to_thread(
             self._download_segments, video.id, seg_result.segments
         )
         audio_bytes = await asyncio.to_thread(
-            self._storage.download_file, tts_result.audio_r2_key
+            self._storage.download_file, tts_result.audio_s3_key
         )
 
         captions = [
@@ -180,7 +180,7 @@ class VideoService:
         )
 
     def _download_segments(self, video_id: uuid.UUID, segments) -> list[Segment]:
-        """Download shot images from R2 and build Segment objects."""
+        """Download shot images from S3 and build Segment objects."""
         return [
             Segment(
                 image_bytes=self._storage.download_file(
@@ -193,7 +193,7 @@ class VideoService:
         ]
 
     async def _run_upload(self, video, edit_result):
-        """Stage 5: Upload the rendered video to R2."""
+        """Stage 5: Upload the rendered video to S3."""
         await self._update_stage(video, VideoStage.upload)
         output_key = f"videos/{video.id}/output.mp4"
         await asyncio.to_thread(
@@ -231,7 +231,7 @@ class VideoService:
         logger.info("Video %s: pipeline complete", video.id)
         return VideoGenerationResult(
             video_id=str(video.id),
-            video_r2_key=output_key,
+            video_s3_key=output_key,
             file_size_bytes=len(edit_result.video_bytes),
             duration_ms=edit_result.duration_ms,
             num_shots=num_shots,
@@ -270,7 +270,7 @@ class VideoService:
         await self._emit_progress(video)
 
     async def _handle_failure(self, video: Video, error: Exception) -> None:
-        """Mark video as failed, persist error, clean up R2 artifacts, and emit SSE."""
+        """Mark video as failed, persist error, clean up S3 artifacts, and emit SSE."""
         logger.error(
             "Video %s: failed at %s — %s", video.id, video.current_stage.value, error
         )
@@ -284,7 +284,7 @@ class VideoService:
             self._storage.delete_prefix(f"videos/{video.id}/")
         except Exception:
             logger.warning(
-                "Video %s: failed to clean up R2 artifacts", video.id, exc_info=True
+                "Video %s: failed to clean up S3 artifacts", video.id, exc_info=True
             )
         await self._emit_progress(video)
 

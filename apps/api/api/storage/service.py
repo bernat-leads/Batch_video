@@ -1,4 +1,4 @@
-"""Cloudflare R2 storage service (S3-compatible)."""
+"""S3-compatible storage service."""
 
 import io
 import logging
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class StorageService:
-    """S3-compatible client for Cloudflare R2."""
+    """S3-compatible storage client."""
 
     def __init__(self, client: S3ClientDep) -> None:
         """Initialize with an S3-compatible client."""
@@ -26,7 +26,7 @@ class StorageService:
 
     @pipeline_retry()
     def upload_file(self, key: str, data: bytes, content_type: str) -> None:
-        """Upload a file to R2 storage."""
+        """Upload a file to S3 storage."""
         try:
             self._client.put_object(
                 Bucket=self._bucket,
@@ -40,7 +40,7 @@ class StorageService:
 
     @pipeline_retry()
     def download_file(self, key: str) -> bytes:
-        """Download a file from R2 storage."""
+        """Download a file from S3 storage."""
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
             data = response["Body"].read()
@@ -52,7 +52,7 @@ class StorageService:
     def stream_file(
         self, key: str, chunk_size: int = 1024 * 1024
     ) -> Generator[bytes, None, None]:
-        """Stream a file from R2 in chunks."""
+        """Stream a file from S3 in chunks."""
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
             body = response["Body"]
@@ -70,7 +70,7 @@ class StorageService:
         )
 
     def delete_file(self, key: str) -> None:
-        """Delete a file from R2 storage."""
+        """Delete a file from S3 storage."""
         try:
             self._client.delete_object(Bucket=self._bucket, Key=key)
             logger.debug("Deleted %s", key)
@@ -81,16 +81,16 @@ class StorageService:
         """Build a ZIP in memory and yield it as a single chunk.
 
         Args:
-            files: list of (r2_key, archive_filename) tuples.
+            files: list of (s3_key, archive_filename) tuples.
         """
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for r2_key, archive_name in files:
+            for s3_key, archive_name in files:
                 try:
-                    data = self.download_file(r2_key)
+                    data = self.download_file(s3_key)
                     zf.writestr(archive_name, data)
                 except Exception as error:
-                    logger.warning("ZIP: failed to download %s: %s", r2_key, error)
+                    logger.warning("ZIP: failed to download %s: %s", s3_key, error)
                     continue
         buffer.seek(0)
         yield buffer.read()

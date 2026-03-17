@@ -109,6 +109,6 @@ async def export_batch_zip(
 
 @batches_router.delete("/{batch_id}", status_code=204)
 async def delete_batch(batch: BatchDep, crud: BatchCrudDep) -> None:
-    """Delete a batch, its videos, and R2 files."""
+    """Delete a batch, its videos, and S3 files."""
     await crud.delete(batch.id)
     cleanup_batch_files.delay(str(batch.id))

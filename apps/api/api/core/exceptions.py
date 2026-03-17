@@ -14,7 +14,7 @@ class PipelineStageError(PipelineError):
 
 
 class StorageError(PipelineError):
-    """R2/S3 storage operation failed (upload, download, delete)."""
+    """S3 storage operation failed (upload, download, delete)."""
 
     def __init__(
         self, operation: str, key: str, cause: Exception | None = None

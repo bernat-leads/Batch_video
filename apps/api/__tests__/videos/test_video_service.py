@@ -117,7 +117,7 @@ class TestFailureMarksVideoFailed:
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
-            audio_r2_key="k",
+            audio_s3_key="k",
             audio_duration_ms=1000,
             word_timestamps=[],
             cost=MagicMock(cost_usd=0.01, token_count=0),
@@ -152,7 +152,7 @@ class TestPromptResolution:
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
-            audio_r2_key="k",
+            audio_s3_key="k",
             audio_duration_ms=1000,
             word_timestamps=[],
             cost=MagicMock(cost_usd=0.01, token_count=0),
@@ -188,7 +188,7 @@ class TestPromptResolution:
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
-            audio_r2_key="k",
+            audio_s3_key="k",
             audio_duration_ms=1000,
             word_timestamps=[],
             cost=MagicMock(cost_usd=0.01, token_count=0),
@@ -223,7 +223,7 @@ class TestPromptResolution:
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
-            audio_r2_key="k",
+            audio_s3_key="k",
             audio_duration_ms=1000,
             word_timestamps=[],
             cost=MagicMock(cost_usd=0.01, token_count=0),

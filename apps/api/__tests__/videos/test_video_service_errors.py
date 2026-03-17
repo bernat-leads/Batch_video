@@ -61,7 +61,7 @@ def _build_service(**overrides):
 
 def _tts_result():
     return MagicMock(
-        audio_r2_key="k",
+        audio_s3_key="k",
         audio_duration_ms=1000,
         word_timestamps=[],
         cost=MagicMock(cost_usd=0.01, token_count=0),

@@ -85,6 +85,6 @@ async def preview_shot(
 ) -> RedirectResponse:
     """Redirect to a fresh presigned URL for shot image preview."""
     storage = StorageService(s3)
-    r2_key = f"videos/{video_id}/shots/{shot_order:03d}.png"
-    url = storage.generate_presigned_url(r2_key)
+    s3_key = f"videos/{video_id}/shots/{shot_order:03d}.png"
+    url = storage.generate_presigned_url(s3_key)
     return RedirectResponse(url=url)

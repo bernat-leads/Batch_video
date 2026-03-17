@@ -14,7 +14,7 @@ class WordTimestamp(BaseModel):
 
 
 class TTSResult(BaseModel):
-    audio_r2_key: str
+    audio_s3_key: str
     audio_duration_ms: int
     word_timestamps: list[WordTimestamp]
     cost: AICost = AICost()

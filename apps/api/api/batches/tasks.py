@@ -30,10 +30,10 @@ VIDEO_FIELDS: tuple[FieldDef, ...] = (
 
 @celery_app.task(bind=True, max_retries=2)
 def cleanup_batch_files(self, batch_id: str) -> None:
-    """Delete all R2 files under batches/{batch_id}/."""
+    """Delete all S3 files under batches/{batch_id}/."""
     storage = StorageService(s3_client)
     deleted = storage.delete_prefix(f"batches/{batch_id}/")
-    logger.info("Batch %s: deleted %d files from R2", batch_id, deleted)
+    logger.info("Batch %s: deleted %d files from S3", batch_id, deleted)
 
 
 @async_task(celery_app, bind=True, max_retries=2)

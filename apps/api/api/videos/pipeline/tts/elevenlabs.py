@@ -29,7 +29,7 @@ class ElevenLabsTTSService(TTSService):
     def synthesize(
         self, script_text: str, voice_id: str | None, video_id: UUID
     ) -> TTSResult:
-        """Generate TTS audio with word-level timestamps and upload to R2."""
+        """Generate TTS audio with word-level timestamps and upload to S3."""
         effective_voice_id = voice_id or settings.ELEVENLABS_DEFAULT_VOICE_ID
         logger.info(
             "Video %s: TTS starting (voice=%s, %d chars)",
@@ -50,8 +50,8 @@ class ElevenLabsTTSService(TTSService):
         audio_bytes = base64.b64decode(response.audio_base_64)
         word_timestamps = self._parse_word_timestamps(response.alignment)
 
-        r2_key = f"videos/{video_id}/audio.mp3"
-        self._storage.upload_file(r2_key, audio_bytes, "audio/mpeg")
+        s3_key = f"videos/{video_id}/audio.mp3"
+        self._storage.upload_file(s3_key, audio_bytes, "audio/mpeg")
 
         duration_ms = int(word_timestamps[-1].end * 1000) if word_timestamps else 0
         cost_usd = len(script_text) * TTS_COST_PER_CHAR
@@ -65,7 +65,7 @@ class ElevenLabsTTSService(TTSService):
         )
 
         return TTSResult(
-            audio_r2_key=r2_key,
+            audio_s3_key=s3_key,
             audio_duration_ms=duration_ms,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=cost_usd),

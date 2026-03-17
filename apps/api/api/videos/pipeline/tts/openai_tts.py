@@ -31,7 +31,7 @@ class OpenAITTSService(TTSService):
     def synthesize(
         self, script_text: str, voice_id: str | None, video_id: UUID
     ) -> TTSResult:
-        """Generate TTS audio with word-level timestamps and upload to R2."""
+        """Generate TTS audio with word-level timestamps and upload to S3."""
         effective_voice = voice_id or settings.OPENAI_TTS_DEFAULT_VOICE
         logger.info(
             "Video %s: OpenAI TTS starting (voice=%s, %d chars)",
@@ -55,8 +55,8 @@ class OpenAITTSService(TTSService):
         # Get word-level timestamps via transcription
         word_timestamps = self._get_word_timestamps(audio_bytes, script_text)
 
-        r2_key = f"videos/{video_id}/audio.wav"
-        self._storage.upload_file(r2_key, audio_bytes, "audio/wav")
+        s3_key = f"videos/{video_id}/audio.wav"
+        self._storage.upload_file(s3_key, audio_bytes, "audio/wav")
 
         duration_ms = int(word_timestamps[-1].end * 1000) if word_timestamps else 0
         cost_usd = len(script_text) * OPENAI_TTS_COST_PER_CHAR
@@ -70,7 +70,7 @@ class OpenAITTSService(TTSService):
         )
 
         return TTSResult(
-            audio_r2_key=r2_key,
+            audio_s3_key=s3_key,
             audio_duration_ms=duration_ms,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=cost_usd),
