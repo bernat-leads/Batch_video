@@ -25,7 +25,7 @@ class Video(BaseModel):
         index=True,
     )
     script_text: Mapped[str] = mapped_column(Text, nullable=False)
-    voice_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    voice_id: Mapped[str] = mapped_column(String(255), nullable=False)
     style: Mapped[str | None] = mapped_column(String(255), nullable=True)
     top_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     prompt: Mapped[str | None] = mapped_column(Text, nullable=True)

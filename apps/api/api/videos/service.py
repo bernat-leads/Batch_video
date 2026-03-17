@@ -4,6 +4,7 @@ import asyncio
 import logging
 import uuid
 
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.exceptions import SegmentationEmptyError
@@ -25,7 +26,7 @@ from api.videos.pipeline.segmentation.schemas import (
     SegmentResult,
 )
 from api.videos.pipeline.tts import TTSService
-from api.videos.pipeline.tts.schemas import TTSInput, TTSResult
+from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.pipeline.video_editor import (
     EditResult,
     Segment,
@@ -69,10 +70,7 @@ class VideoService:
         video_input: VideoCreate,
         template: VideoTemplate,
     ) -> VideoGenerationResult:
-        """Create a video record and run the full pipeline.
-
-        On failure, marks the video as failed and cleans up partial S3 artifacts.
-        """
+        """Create a video record and run the full pipeline."""
         video_input.prompt = await self._resolve_prompt(video_input)
         video = await self._video_crud.create(video_input)
         await self._emit_progress(video)
@@ -83,22 +81,97 @@ class VideoService:
             await self._handle_failure(video, error)
             raise
 
-    # ------------------------------------------------------------------
-    # Pipeline
-    # ------------------------------------------------------------------
-
-    async def _run_pipeline(
+    async def retry_video(
         self,
         video: Video,
         template: VideoTemplate,
     ) -> VideoGenerationResult:
-        """Execute all pipeline stages and persist the final result."""
+        """Retry a failed video from the stage that failed.
+
+        Assembly/upload failures resume from assembly (shots + audio in S3).
+        Earlier failures clean up and re-run the full pipeline.
+        """
+        failed_stage = video.current_stage
+        logger.info("Video %s: retrying from stage %s", video.id, failed_stage.value)
+
+        video.status = VideoStatus.processing
+        video.error_message = None
+        await self._session.commit()
+        await self._emit_progress(video)
+
+        can_resume = failed_stage in (VideoStage.assembly, VideoStage.upload) and video.shots and video.audio_url
+
+        try:
+            if can_resume:
+                return await self._resume_pipeline(video, template)
+
+            await self._delete_existing_shots(video)
+            self._storage.delete_prefix(f"{video.s3_prefix}/")
+            return await self._run_pipeline(video, template)
+        except Exception as error:
+            await self._handle_failure(video, error)
+            raise
+
+    # ------------------------------------------------------------------
+    # Pipeline
+    # ------------------------------------------------------------------
+
+    async def _run_pipeline(self, video: Video, template: VideoTemplate) -> VideoGenerationResult:
+        """Run the full pipeline from scratch."""
         tts_result = await self._run_tts(video)
         seg_result = await self._run_segmentation(video, tts_result, template)
         shots = await self._run_image_generation(video, seg_result, template)
         edit_result = await self._run_assembly(video, shots, tts_result, template)
         await self._run_upload(video, edit_result)
         return await self._finalize(video)
+
+    async def _resume_pipeline(self, video: Video, template: VideoTemplate) -> VideoGenerationResult:
+        """Resume from assembly/upload using existing shots + audio from S3."""
+        tts_result = await self._build_tts_result_from_storage(video)
+        shots = list(video.shots)
+        await asyncio.to_thread(self._load_shot_images, shots)
+        edit_result = await self._run_assembly(video, shots, tts_result, template)
+        await self._run_upload(video, edit_result)
+        return await self._finalize(video)
+
+    async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
+        """Rebuild a minimal TTSResult from S3 audio for assembly retry."""
+        if not video.audio_url:
+            raise ValueError(f"Video {video.id} has no audio_url")
+        audio_bytes = await asyncio.to_thread(self._storage.download_file, video.audio_url)
+
+        # Rebuild word timestamps from shot timing (approximate, sufficient for captions)
+        word_timestamps = []
+        for shot in sorted(video.shots, key=lambda shot: shot.order):
+            words = shot.text.split()
+            if not words:
+                continue
+            word_duration = (shot.end_time - shot.start_time) / len(words)
+            for word_index, word in enumerate(words):
+                word_timestamps.append(WordTimestamp(
+                    word=word,
+                    start=round(shot.start_time + word_index * word_duration, 3),
+                    end=round(shot.start_time + (word_index + 1) * word_duration, 3),
+                ))
+
+        return TTSResult(
+            audio_bytes=audio_bytes,
+            content_type="audio/mpeg",
+            audio_duration_ms=int(word_timestamps[-1].end * 1000) if word_timestamps else 0,
+            word_timestamps=word_timestamps,
+            cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
+        )
+
+    async def _delete_existing_shots(self, video: Video) -> None:
+        """Delete any existing shots for a video (for retry)."""
+        await self._session.execute(delete(Shot).where(Shot.video_id == video.id))
+        await self._session.flush()
+
+    def _load_shot_images(self, shots: list[Shot]) -> None:
+        """Download shot images from S3 and cache as transient image_bytes."""
+        for shot in shots:
+            if shot.image_url:
+                shot.image_bytes = self._storage.download_file(shot.image_url)
 
     async def _run_tts(self, video: Video) -> TTSResult:
         """Stage 1: Convert script to speech, upload audio to S3."""
@@ -141,16 +214,15 @@ class VideoService:
     async def _run_image_generation(
         self, video: Video, seg_result: SegmentationResult, template: VideoTemplate
     ) -> list[Shot]:
-        """Stage 3: Generate images in parallel, upload to S3, create shot records."""
+        """Stage 3: Generate images sequentially, upload to S3, create shot records."""
         await self._update_stage(video, VideoStage.image_generation)
 
-        tasks = [
-            asyncio.to_thread(
+        shots = []
+        for segment in seg_result.segments:
+            shot = await asyncio.to_thread(
                 self._generate_shot, video, segment, template.image_config
             )
-            for segment in seg_result.segments
-        ]
-        shots = await asyncio.gather(*tasks)
+            shots.append(shot)
 
         for shot in shots:
             self._session.add(shot)
@@ -269,7 +341,11 @@ class VideoService:
         await self._emit_progress(video)
 
     async def _handle_failure(self, video: Video, error: Exception) -> None:
-        """Mark video as failed, persist error, clean up S3 artifacts, and emit SSE."""
+        """Mark video as failed, persist error, and emit SSE.
+
+        S3 artifacts are NOT cleaned up — they may be needed for retry.
+        The retention cleanup task handles orphaned artifacts.
+        """
         logger.error(
             "Video %s: failed at %s — %s", video.id, video.current_stage.value, error
         )
@@ -279,12 +355,6 @@ class VideoService:
             await self._session.commit()
         except Exception:
             logger.exception("Video %s: failed to persist error status", video.id)
-        try:
-            self._storage.delete_prefix(f"{video.s3_prefix}/")
-        except Exception:
-            logger.warning(
-                "Video %s: failed to clean up S3 artifacts", video.id, exc_info=True
-            )
         await self._emit_progress(video)
 
     async def _emit_progress(self, video: Video) -> None:

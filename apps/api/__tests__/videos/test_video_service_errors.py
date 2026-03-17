@@ -130,7 +130,7 @@ class TestEmitFailureDoesNotCrashPipeline:
         with pytest.raises(RuntimeError, match="TTS broke"):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -156,7 +156,7 @@ class TestBatchCounterFailureDoesNotCrashPipeline:
         with pytest.raises(RuntimeError, match="TTS broke"):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
 
@@ -185,7 +185,7 @@ class TestEmptySegmentsRaisesError:
         with pytest.raises(SegmentationEmptyError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -216,7 +216,7 @@ class TestCommitFailureInErrorHandler:
         with pytest.raises(RuntimeError, match="API down"):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
 
@@ -259,7 +259,7 @@ class TestImageGenerationFailure:
         with pytest.raises(RuntimeError, match="Gemini API error"):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -323,7 +323,7 @@ class TestAssemblyFailure:
         with pytest.raises(RuntimeError, match="FFmpeg crashed"):
             await service.generate_video(
                 template=REAL_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -383,38 +383,8 @@ class TestUploadFailure:
         with pytest.raises(RuntimeError, match="S3 upload failed"):
             await service.generate_video(
                 template=REAL_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
         assert "upload" in video.error_message.lower()
-
-
-class TestStorageCleanupFailureInErrorHandler:
-    @pytest.mark.asyncio
-    async def test_storage_cleanup_failure_does_not_mask_original(self):
-        """If S3 cleanup fails during error handling, original error still propagates."""
-        video = _make_video()
-        session = AsyncMock()
-
-        tts = MagicMock()
-        tts.synthesize.side_effect = RuntimeError("TTS broke")
-
-        storage = MagicMock()
-        storage.delete_prefix.side_effect = RuntimeError("S3 cleanup failed")
-
-        service = _build_service(
-            session=session,
-            storage=storage,
-            tts=tts,
-            video_crud=_make_video_crud(video),
-        )
-
-        with pytest.raises(RuntimeError, match="TTS broke"):
-            await service.generate_video(
-                template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
-            )
-
-        assert video.status == VideoStatus.failed
-        storage.delete_prefix.assert_called_once()

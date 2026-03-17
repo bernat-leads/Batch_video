@@ -9,7 +9,6 @@ from api.core.schemas import AICost
 from api.settings import settings
 from api.videos.pipeline.config import (
     OPENAI_TTS_COST_PER_CHAR,
-    OPENAI_TTS_DEFAULT_VOICE,
     OPENAI_TTS_MODEL,
 )
 from api.videos.pipeline.tts.base import TTSService
@@ -28,17 +27,16 @@ class OpenAITTSService(TTSService):
     @pipeline_retry()
     def synthesize(self, tts_input: TTSInput) -> TTSResult:
         """Generate TTS audio with word-level timestamps."""
-        effective_voice = tts_input.voice_id or OPENAI_TTS_DEFAULT_VOICE
         logger.info(
             "OpenAI TTS starting (voice=%s, %d chars)",
-            effective_voice,
+            tts_input.voice_id,
             len(tts_input.script_text),
         )
 
         try:
             response = self._client.audio.speech.create(
                 model=OPENAI_TTS_MODEL,
-                voice=effective_voice,
+                voice=tts_input.voice_id,
                 input=tts_input.script_text,
                 response_format="wav",
             )

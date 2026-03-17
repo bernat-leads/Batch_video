@@ -23,7 +23,7 @@ class TTSInput(BaseModel):
     """Input for the TTS pipeline stage."""
 
     script_text: str = Field(min_length=1, description="Script text to synthesize")
-    voice_id: str | None = Field(default=None, max_length=255)
+    voice_id: str = Field(min_length=1, max_length=255, description="TTS voice identifier")
 
     model_config = {"frozen": True}
 

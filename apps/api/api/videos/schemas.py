@@ -40,7 +40,7 @@ class VideoCreate(BaseModel):
     script_text: str = Field(
         min_length=1, description="Ad script text to convert to video"
     )
-    voice_id: str | None = Field(default=None, max_length=255)
+    voice_id: str = Field(min_length=1, max_length=255, description="TTS voice identifier")
     style: str | None = Field(default=None, max_length=255)
     top_text: str | None = Field(default=None, max_length=500)
     prompt: str | None = Field(default=None, max_length=5000)
@@ -66,7 +66,7 @@ class VideoRead(BaseModel):
     id: uuid.UUID
     batch_id: uuid.UUID | None = None
     script_text: str
-    voice_id: str | None = None
+    voice_id: str
     style: str | None = None
     top_text: str | None = None
     prompt: str | None = None

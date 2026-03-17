@@ -102,7 +102,7 @@ class TestVideoCreationInitialState:
         with pytest.raises(RuntimeError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -125,7 +125,7 @@ class TestFailureMarksVideoFailed:
         with pytest.raises(ConnectionError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -161,7 +161,7 @@ class TestFailureMarksVideoFailed:
         with pytest.raises(RuntimeError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.status == VideoStatus.failed
@@ -200,7 +200,7 @@ class TestPromptResolution:
         with pytest.raises(RuntimeError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello", prompt="custom prompt"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice", prompt="custom prompt"),
             )
 
         assert video.prompt == "custom prompt"
@@ -236,7 +236,7 @@ class TestPromptResolution:
         with pytest.raises(RuntimeError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.prompt == "from settings"
@@ -272,7 +272,7 @@ class TestPromptResolution:
         with pytest.raises(RuntimeError):
             await service.generate_video(
                 template=MOCK_TEMPLATE,
-                video_input=VideoCreate(script_text="hello"),
+                video_input=VideoCreate(script_text="hello", voice_id="test-voice"),
             )
 
         assert video.prompt == ""

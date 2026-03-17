@@ -6,6 +6,7 @@ import {
 } from "@packages/api-client";
 import { videoEventsUrl } from "@packages/api-client/urls";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
+import { customInstance } from "@packages/api-client/custom-instance";
 import { StageIndicator } from "@/components/dashboard/stage-indicator";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { SectionCard } from "@/components/ui/section-card";
@@ -71,6 +72,9 @@ function VideoDetailPage() {
         videoId={videoId}
         video={video}
         onDownload={() => downloadVideo(videoId)}
+        onRetry={async () => {
+          await customInstance({ url: `/api/v1/videos/${videoId}/retry`, method: "POST" });
+        }}
       />
 
       {video.error_message && (

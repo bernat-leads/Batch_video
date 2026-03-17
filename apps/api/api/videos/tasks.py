@@ -13,11 +13,27 @@ from api.videos.pipeline.tts import OpenAITTSService
 from api.videos.crud import VideoCrud
 from api.videos.pipeline.video_editor import MoviePyVideoEditor
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
+from api.videos.models.video import Video
 from api.videos.schemas import VideoCreate, VideoGenerationResult
 from api.videos.service import VideoService
 from api.videos.pipeline.tts.elevenlabs import ElevenLabsTTSService
 
 logger = logging.getLogger(__name__)
+
+
+def _build_service(ctx) -> VideoService:
+    """Build a VideoService from task context."""
+    return VideoService(
+        session=ctx.session,
+        storage=ctx.storage,
+        events=ctx.events,
+        app_settings=AppSettingsCrud(ctx.session),
+        video_crud=VideoCrud(ctx.session),
+        tts=ElevenLabsTTSService(),
+        segmentation=ClaudeSegmentationService(),
+        image_gen=GeminiImageGenService(),
+        editor=MoviePyVideoEditor(),
+    )
 
 
 @async_task(celery_app, bind=True, max_retries=0)
@@ -33,17 +49,7 @@ async def process_video(
     logger.info("Task started (batch=%s)", batch_id)
 
     async with task_context() as ctx:
-        service = VideoService(
-            session=ctx.session,
-            storage=ctx.storage,
-            events=ctx.events,
-            app_settings=AppSettingsCrud(ctx.session),
-            video_crud=VideoCrud(ctx.session),
-            tts=ElevenLabsTTSService(),
-            segmentation=ClaudeSegmentationService(),
-            image_gen=GeminiImageGenService(),
-            editor=MoviePyVideoEditor(),
-        )
+        service = _build_service(ctx)
 
         try:
             result = await service.generate_video(
@@ -69,4 +75,42 @@ async def process_video(
                 except Exception:
                     logger.exception(
                         "Failed to update batch counters (batch=%s)", batch_id
+                    )
+
+
+@async_task(celery_app, bind=True, max_retries=0)
+async def retry_video(self, video_id: str) -> VideoGenerationResult:
+    """Retry a failed video from the stage that failed."""
+    logger.info("Retry task started (video=%s)", video_id)
+
+    async with task_context() as ctx:
+        service = _build_service(ctx)
+        video = await ctx.session.get(Video, uuid.UUID(video_id))
+        if not video:
+            raise ValueError(f"Video {video_id} not found")
+
+        try:
+            result = await service.retry_video(
+                video=video,
+                template=TIKTOK_AD_TEMPLATE,
+            )
+            logger.info(
+                "Retry complete (video=%s, cost=$%.4f)",
+                result.video_id,
+                result.total.cost_usd,
+            )
+            return result
+        except Exception:
+            logger.exception("Retry failed (video=%s)", video_id)
+            raise
+        finally:
+            if video.batch_id:
+                try:
+                    batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
+                    batch = await batch_service.recompute_counters(video.batch_id)
+                    if batch:
+                        await batch_service.emit_progress(ctx.events, batch)
+                except Exception:
+                    logger.exception(
+                        "Failed to update batch counters (batch=%s)", video.batch_id
                     )

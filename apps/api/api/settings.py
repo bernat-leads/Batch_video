@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     FONT_DIR: str = "fonts"
 
     # ─── Pipeline ─────────────────────────────────────────────────────────
-    PIPELINE_MAX_RETRIES: int = 3
+    PIPELINE_MAX_RETRIES: int = 5
     PIPELINE_RETRY_WAIT_SECONDS: int = 2
 
     # ─── File uploads ─────────────────────────────────────────────────────

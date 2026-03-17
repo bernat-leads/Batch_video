@@ -141,6 +141,18 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
     )
 
 
+@videos_router.post("/{video_id}/retry", response_model=VideoRead)
+async def retry_video(video: VideoDep) -> VideoRead:
+    """Retry a failed video from the stage that failed."""
+    if video.status != VideoStatus.failed:
+        raise HTTPException(status_code=400, detail="Only failed videos can be retried")
+
+    from api.videos.tasks import retry_video as retry_video_task
+
+    retry_video_task.delay(video_id=str(video.id))
+    return VideoRead.model_validate(video)
+
+
 @videos_router.delete("/{video_id}", status_code=204)
 async def delete_video(video: VideoDep, crud: VideoCrudDep) -> None:
     """Delete a video and its shots."""

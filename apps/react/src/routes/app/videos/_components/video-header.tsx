@@ -1,5 +1,5 @@
 import type { VideoReadWithShots } from "@packages/api-client";
-import { Download } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { AsyncButton } from "@/components/ui/async-button";
 
@@ -7,6 +7,7 @@ interface VideoHeaderProps {
   videoId: string;
   video: VideoReadWithShots;
   onDownload: () => Promise<void> | void;
+  onRetry: () => Promise<void> | void;
 }
 
 function formatCreatedDate(iso: string): string {
@@ -17,7 +18,7 @@ function formatCreatedDate(iso: string): string {
   });
 }
 
-export function VideoHeader({ videoId, video, onDownload }: VideoHeaderProps) {
+export function VideoHeader({ videoId, video, onDownload, onRetry }: VideoHeaderProps) {
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
@@ -32,6 +33,14 @@ export function VideoHeader({ videoId, video, onDownload }: VideoHeaderProps) {
         </p>
       </div>
       <div className="flex items-center gap-2 pt-1">
+        {video.status === "failed" && (
+          <AsyncButton
+            onClick={onRetry}
+            icon={<RotateCcw size={14} />}
+            label="Retry"
+            loadingLabel="Retrying..."
+          />
+        )}
         <AsyncButton
           onClick={onDownload}
           icon={<Download size={14} />}

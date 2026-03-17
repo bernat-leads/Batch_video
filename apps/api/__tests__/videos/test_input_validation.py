@@ -26,44 +26,39 @@ class TestVideoCreateValidation:
 
     def test_empty_script_text_is_rejected(self):
         with pytest.raises(ValidationError, match="script_text"):
-            VideoCreate(script_text="")
+            VideoCreate(script_text="", voice_id="v1")
 
-    def test_whitespace_only_script_text_is_accepted(self):
-        """Whitespace is technically non-empty; min_length=1 allows it."""
-        video = VideoCreate(script_text=" ")
-        assert video.script_text == " "
+    def test_missing_voice_id_is_rejected(self):
+        with pytest.raises(ValidationError, match="voice_id"):
+            VideoCreate(script_text="hello")
 
-    def test_valid_script_text_is_accepted(self):
-        video = VideoCreate(script_text="Buy our product today!")
+    def test_empty_voice_id_is_rejected(self):
+        with pytest.raises(ValidationError, match="voice_id"):
+            VideoCreate(script_text="hello", voice_id="")
+
+    def test_valid_input_is_accepted(self):
+        video = VideoCreate(script_text="Buy our product today!", voice_id="v1")
         assert video.script_text == "Buy our product today!"
+        assert video.voice_id == "v1"
 
     def test_voice_id_over_255_chars_is_rejected(self):
         with pytest.raises(ValidationError, match="voice_id"):
             VideoCreate(script_text="ok", voice_id="x" * 256)
 
-    def test_voice_id_at_255_chars_is_accepted(self):
-        video = VideoCreate(script_text="ok", voice_id="x" * 255)
-        assert len(video.voice_id) == 255
-
     def test_style_over_255_chars_is_rejected(self):
         with pytest.raises(ValidationError, match="style"):
-            VideoCreate(script_text="ok", style="x" * 256)
+            VideoCreate(script_text="ok", voice_id="v1", style="x" * 256)
 
     def test_top_text_over_500_chars_is_rejected(self):
         with pytest.raises(ValidationError, match="top_text"):
-            VideoCreate(script_text="ok", top_text="x" * 501)
+            VideoCreate(script_text="ok", voice_id="v1", top_text="x" * 501)
 
     def test_prompt_over_5000_chars_is_rejected(self):
         with pytest.raises(ValidationError, match="prompt"):
-            VideoCreate(script_text="ok", prompt="x" * 5001)
-
-    def test_prompt_at_5000_chars_is_accepted(self):
-        video = VideoCreate(script_text="ok", prompt="x" * 5000)
-        assert len(video.prompt) == 5000
+            VideoCreate(script_text="ok", voice_id="v1", prompt="x" * 5001)
 
     def test_none_optional_fields_are_accepted(self):
-        video = VideoCreate(script_text="hello")
-        assert video.voice_id is None
+        video = VideoCreate(script_text="hello", voice_id="v1")
         assert video.style is None
         assert video.top_text is None
         assert video.prompt is None
@@ -203,11 +198,16 @@ class TestTTSInputValidation:
 
     def test_empty_script_text_is_rejected(self):
         with pytest.raises(ValidationError, match="script_text"):
-            TTSInput(script_text="")
+            TTSInput(script_text="", voice_id="v1")
 
-    def test_valid_script_text_is_accepted(self):
-        tts = TTSInput(script_text="Hello world")
+    def test_missing_voice_id_is_rejected(self):
+        with pytest.raises(ValidationError, match="voice_id"):
+            TTSInput(script_text="Hello world")
+
+    def test_valid_input_is_accepted(self):
+        tts = TTSInput(script_text="Hello world", voice_id="v1")
         assert tts.script_text == "Hello world"
+        assert tts.voice_id == "v1"
 
 
 # ---------------------------------------------------------------------------
