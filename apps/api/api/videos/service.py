@@ -24,7 +24,7 @@ from api.videos.pipeline.segmentation.schemas import (
     SegmentationResult,
 )
 from api.videos.pipeline.tts import TTSService
-from api.videos.pipeline.tts.schemas import TTSInput, TTSResult
+from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.pipeline.video_editor import (
     EditResult,
     Segment,
@@ -93,7 +93,9 @@ class VideoService:
         await self._emit_progress(video)
 
         try:
-            return await self._run_pipeline(video, template, from_stage=str(video.current_stage))
+            return await self._run_pipeline(
+                video, template, from_stage=str(video.current_stage)
+            )
         except Exception as error:
             await self._handle_failure(video, error)
             raise
@@ -144,9 +146,22 @@ class VideoService:
         return await self._finalize(video)
 
     async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
-        """Rebuild TTSResult from S3 audio + shot timing for retry."""
+        """Rebuild TTSResult from S3 audio + approximate word timestamps from shots."""
         audio_bytes = await asyncio.to_thread(self._storage.download_file, video.audio_url)
-        word_timestamps = video.build_word_timestamps()
+
+        word_timestamps: list[WordTimestamp] = []
+        for shot in sorted(video.shots, key=lambda shot: shot.order):
+            words = shot.text.split()
+            if not words:
+                continue
+            word_duration = (shot.end_time - shot.start_time) / len(words)
+            for word_index, word in enumerate(words):
+                word_timestamps.append(WordTimestamp(
+                    word=word,
+                    start=round(shot.start_time + word_index * word_duration, 3),
+                    end=round(shot.start_time + (word_index + 1) * word_duration, 3),
+                ))
+
         return TTSResult(
             audio_bytes=audio_bytes,
             content_type="audio/mpeg",
@@ -206,7 +221,9 @@ class VideoService:
         await self._session.commit()
         return seg_result
 
-    async def _create_shots(self, video: Video, seg_result: SegmentationResult) -> list[Shot]:
+    async def _create_shots(
+        self, video: Video, seg_result: SegmentationResult
+    ) -> list[Shot]:
         """Create shot records in DB from segmentation results (no images yet)."""
         shots: list[Shot] = []
         for segment in seg_result.segments:
@@ -243,12 +260,16 @@ class VideoService:
         self._update_totals(video)
         await self._session.commit()
 
-    def _generate_shot_image(self, video: Video, shot: Shot, image_config: ImageConfig) -> None:
+    def _generate_shot_image(
+        self, video: Video, shot: Shot, image_config: ImageConfig
+    ) -> None:
         """Generate image for a shot and upload to S3 (runs in thread)."""
         image_result = self._image_gen.generate_image(shot.image_prompt, image_config)
 
         s3_key = video.shot_s3_key(shot.order)
-        self._storage.upload_file(s3_key, image_result.image_bytes, image_result.content_type)
+        self._storage.upload_file(
+            s3_key, image_result.image_bytes, image_result.content_type
+        )
 
         shot.image_url = s3_key
         shot.cost_usd = image_result.cost.cost_usd
@@ -321,10 +342,14 @@ class VideoService:
     def _update_totals(video: Video) -> None:
         """Recompute total cost and token count from per-stage values."""
         video.total_cost_usd = (
-            video.tts_cost_usd + video.segmentation_cost_usd + video.image_generation_cost_usd
+            video.tts_cost_usd
+            + video.segmentation_cost_usd
+            + video.image_generation_cost_usd
         )
         video.total_token_count = (
-            video.tts_token_count + video.segmentation_token_count + video.image_generation_token_count
+            video.tts_token_count
+            + video.segmentation_token_count
+            + video.image_generation_token_count
         )
 
     async def _update_stage(self, video: Video, stage: VideoStage) -> None:
