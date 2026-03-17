@@ -45,7 +45,7 @@ export function formatFileSize(bytes: number): string {
  * Formats a Ken Burns camera config into a human-readable string.
  * Returns em-dash if no config is provided.
  */
-export function formatKenBurns(config: Record<string, unknown> | null | undefined): string {
+export function formatKenBurns(config: { direction?: string; scale?: number } | null | undefined): string {
   if (!config) return "\u2014";
   const direction = String(config.direction ?? "").replace("_", " ");
   const scale = config.scale ? `${config.scale}x` : "";
