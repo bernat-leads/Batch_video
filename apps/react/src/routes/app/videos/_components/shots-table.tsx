@@ -93,7 +93,7 @@ export function ShotsTable({ shots }: { shots: ShotRead[] }) {
                     {formatSeconds(shot.start_time)} – {formatSeconds(shot.end_time)}
                   </TableCell>
                   <TableCell className="text-sm capitalize text-text-secondary align-top pt-3">
-                    {formatKenBurns(shot.ken_burns_config)}
+                    {formatKenBurns(shot.effect_config)}
                   </TableCell>
                   <TableCell className="text-sm text-text-secondary align-top pt-3">
                     {shot.cost_usd && shot.cost_usd > 0

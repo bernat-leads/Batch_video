@@ -88,7 +88,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
       data: {
         script_text: scriptText,
         prompt: prompt ?? settings?.master_prompt ?? "",
-        voice_id: voiceId || undefined,
+        voice_id: voiceId || "",
         style: style || undefined,
         top_text: topText || undefined,
       },

@@ -81,7 +81,7 @@ function VideoDetailPage() {
         videoId={videoId}
         video={video}
         onDownload={() => downloadVideo(videoId)}
-        onRetry={() => retryVideo({ videoId })}
+        onRetry={async () => { await retryVideo({ videoId }); }}
       />
 
       {video.error_message && (
