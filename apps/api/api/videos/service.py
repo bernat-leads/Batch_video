@@ -389,6 +389,7 @@ class VideoService:
                 batch_id=str(video.batch_id) if video.batch_id else None,
                 status=video.status,
                 stage=video.current_stage,
+                error_message=video.error_message,
             )
             video_channel = EventChannel.video.value.format(video_id=video.id)
             await self._events.emit(video_channel, event)

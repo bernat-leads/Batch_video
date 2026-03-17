@@ -7,7 +7,6 @@ import {
 } from "@packages/api-client";
 import { videoEventsUrl } from "@packages/api-client/urls";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
-import { useQueryClient } from "@tanstack/react-query";
 import { StageIndicator } from "@/components/dashboard/stage-indicator";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { SectionCard } from "@/components/ui/section-card";
@@ -39,25 +38,19 @@ function buildBreadcrumbs(videoId: string, batchId: string, batchName: string | 
 
 function VideoDetailPage() {
   const { videoId } = Route.useParams();
-  const queryClient = useQueryClient();
 
   const { data: video, isLoading } = useGetVideoApiV1VideosVideoIdGet(videoId);
   const videoQueryKey = getGetVideoApiV1VideosVideoIdGetQueryKey(videoId);
 
-  const { mutateAsync: retryVideo } = useRetryVideoApiV1VideosVideoIdRetryPost({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: videoQueryKey });
-      },
-    },
-  });
+  const { mutateAsync: retryVideo, isPending: isRetrying } =
+    useRetryVideoApiV1VideosVideoIdRetryPost();
   const batchId = video?.batch_id ?? "";
   const { data: batch } = useGetBatchApiV1BatchesBatchIdGet(batchId, {
     query: { enabled: !!batchId },
   });
 
-  // Poll for updates while video is processing
-  const isActive = video?.status === "processing";
+  // Subscribe to SSE while processing or during retry
+  const isActive = video?.status === "processing" || isRetrying;
   useEventSource(videoEventsUrl(videoId), !!isActive, [videoQueryKey]);
 
   if (isLoading) return <VideoDetailSkeleton />;

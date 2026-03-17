@@ -8,7 +8,8 @@ from google.genai import types as genai_types
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import IMAGEN_COST_PER_IMAGE, IMAGEN_MODEL
+from api.videos.pipeline.config import IMAGEN_MODEL
+from api.videos.pipeline.costs import get_image_cost
 from api.videos.pipeline.image_generation.base import ImageGenService
 from api.videos.pipeline.image_generation.schemas import ImageConfig, ImageGenResult
 from api.videos.utils import pipeline_retry
@@ -62,5 +63,5 @@ class GeminiImageGenService(ImageGenService):
         return ImageGenResult(
             image_bytes=image_bytes,
             content_type=config.output_format,
-            cost=AICost(cost_usd=IMAGEN_COST_PER_IMAGE),
+            cost=AICost(cost_usd=get_image_cost(IMAGEN_MODEL)),
         )

@@ -11,12 +11,8 @@ from langchain_anthropic import ChatAnthropic
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import (
-    SEGMENTATION_INPUT_TOKEN_COST,
-    SEGMENTATION_MAX_TOKENS,
-    SEGMENTATION_MODEL,
-    SEGMENTATION_OUTPUT_TOKEN_COST,
-)
+from api.videos.pipeline.config import SEGMENTATION_MAX_TOKENS, SEGMENTATION_MODEL
+from api.videos.pipeline.costs import get_token_costs
 from api.videos.pipeline.segmentation.base import SegmentationService
 from api.videos.pipeline.segmentation.schemas import (
     SegmentationInput,
@@ -62,10 +58,11 @@ class ClaudeSegmentationService(SegmentationService):
 
         parsed: SegmentationOutput = result["parsed"]
 
+        input_cost, output_cost = get_token_costs(SEGMENTATION_MODEL)
         cost = AICost.from_chain_result(
             result,
-            input_cost_per_token=SEGMENTATION_INPUT_TOKEN_COST,
-            output_cost_per_token=SEGMENTATION_OUTPUT_TOKEN_COST,
+            input_cost_per_token=input_cost,
+            output_cost_per_token=output_cost,
         )
 
         logger.info(

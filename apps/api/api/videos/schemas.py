@@ -125,3 +125,4 @@ class VideoProgressEvent(BaseEvent):
     batch_id: str | None = None
     status: str
     stage: str
+    error_message: str | None = None
