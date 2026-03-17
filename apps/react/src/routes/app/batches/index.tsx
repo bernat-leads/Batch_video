@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { BatchRead } from "@packages/api-client";
@@ -8,10 +8,7 @@ import {
 } from "@packages/api-client";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
 import { BatchTable } from "@/components/dashboard/batch-table";
-
-const CreateBatchDialog = lazy(() =>
-  import("@/components/dashboard/create-batch-dialog").then((m) => ({ default: m.CreateBatchDialog })),
-);
+import { CreateBatchDialog } from "@/components/dashboard/create-batch-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
 import { useDeleteBatch } from "@/hooks/use-delete-batch";
@@ -70,7 +67,7 @@ function BatchesPage() {
         <EmptyState
           title="No batches yet"
           description="Upload an Excel file to start generating videos"
-          action={<Suspense><CreateBatchDialog onBatchCreated={handleBatchCreated} /></Suspense>}
+          action={<CreateBatchDialog onBatchCreated={handleBatchCreated} />}
         />
       ) : (
         <BatchTable
@@ -96,7 +93,7 @@ function BatchesPage() {
                 onDelete={handleBulkDelete}
               />
             ) : (
-              <Suspense><CreateBatchDialog onBatchCreated={handleBatchCreated} /></Suspense>
+              <CreateBatchDialog onBatchCreated={handleBatchCreated} />
             )
           }
         />

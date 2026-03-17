@@ -1,20 +1,37 @@
 import type { AICost, ShotRead, VideoReadWithShots } from "@packages/api-client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@packages/ui/components/shadcn/table";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatRow } from "@/components/ui/stat-row";
-import { formatDuration, formatCurrency, formatFileSize } from "@/lib/format";
+import { formatDuration, formatFileSize } from "@/lib/format";
 
 interface VideoMetricsProps {
   video: VideoReadWithShots;
   shots: ShotRead[];
 }
 
-function costValue(ai?: AICost): string {
-  return ai?.cost_usd ? formatCurrency(ai.cost_usd) : "\u2014";
+function formatCostPrecise(usd?: number): string {
+  if (usd == null || usd === 0) return "\u2014";
+  return `$${usd.toFixed(4)}`;
 }
 
-function tokenValue(ai?: AICost): string {
-  return ai?.token_count ? ai.token_count.toLocaleString() : "\u2014";
+function formatTokens(count?: number): string {
+  if (count == null || count === 0) return "\u2014";
+  return count.toLocaleString();
 }
+
+const PIPELINE_STEPS = [
+  { label: "TTS", key: "tts" as const },
+  { label: "Segmentation", key: "segmentation" as const },
+  { label: "Image Generation", key: "image_generation" as const },
+];
 
 export function VideoMetrics({ video, shots }: VideoMetricsProps) {
   const width = video.width ?? 1080;
@@ -39,26 +56,59 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
         </SectionCard>
       </div>
 
-      {/* Statistics */}
+      {/* Cost / Token Breakdown */}
       <div>
-        <p className="mb-2 text-sm font-medium text-text-primary">Statistics</p>
-        <SectionCard>
-          <div className="space-y-2 text-sm">
-            <StatRow
-              label="Video Length"
-              value={video.duration_ms ? formatDuration(video.duration_ms) : "\u2014"}
-            />
-            <StatRow label="Shots" value={shots.length.toString()} />
-            <StatRow label="TTS" value={costValue(video.tts)} />
-            <StatRow
-              label="Segmentation"
-              value={`${tokenValue(video.segmentation)} tokens \u00b7 ${costValue(video.segmentation)}`}
-            />
-            <StatRow label="Image Gen" value={costValue(video.image_generation)} />
-            <StatRow label="Total Cost" value={costValue(video.total)} />
-            <StatRow label="Total Tokens" value={tokenValue(video.total)} />
+        <p className="mb-2 text-sm font-medium text-text-primary">Pipeline Cost</p>
+        <div className="overflow-hidden rounded-xl border border-border bg-card-bg">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border bg-content-bg">
+                <TableHead className="text-text-secondary">Step</TableHead>
+                <TableHead className="text-right text-text-secondary">Tokens</TableHead>
+                <TableHead className="text-right text-text-secondary">Cost</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PIPELINE_STEPS.map(({ label, key }) => {
+                const cost: AICost | undefined = video[key];
+                return (
+                  <TableRow key={key} className="border-border">
+                    <TableCell className="text-sm text-text-primary">{label}</TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                      {formatTokens(cost?.token_count)}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                      {formatCostPrecise(cost?.cost_usd)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+            <TableFooter>
+              <TableRow className="border-border">
+                <TableCell className="text-sm font-medium text-text-primary">Total</TableCell>
+                <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
+                  {formatTokens(video.total?.token_count)}
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
+                  {formatCostPrecise(video.total?.cost_usd)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+          <div className="border-t border-border px-3 py-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-text-muted">Duration</span>
+              <span className="tabular-nums text-text-primary">
+                {video.duration_ms ? formatDuration(video.duration_ms) : "\u2014"}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-sm">
+              <span className="text-text-muted">Shots</span>
+              <span className="tabular-nums text-text-primary">{shots.length}</span>
+            </div>
           </div>
-        </SectionCard>
+        </div>
       </div>
     </div>
   );

@@ -2,20 +2,21 @@
 
 import uuid
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from api.videos.pipeline.segmentation.schemas import AnySegmentEffect
 
 
 class ShotBase(BaseModel):
     """Shared fields for shot schemas."""
 
-    order: int
-    text: str
-    image_prompt: str
-    ken_burns_config: dict[str, Any] | None = None
-    start_time: float
-    end_time: float
+    order: int = Field(ge=0, description="Shot sequence order (zero-based)")
+    text: str = Field(min_length=1, description="Script text for this shot")
+    image_prompt: str = Field(min_length=1, description="Prompt for image generation")
+    effect_config: AnySegmentEffect | None = None
+    start_time: float = Field(ge=0, description="Start time in seconds")
+    end_time: float = Field(ge=0, description="End time in seconds")
 
 
 class ShotCreate(ShotBase):
@@ -27,12 +28,12 @@ class ShotCreate(ShotBase):
 class ShotUpdate(BaseModel):
     """Schema for updating a shot (all fields optional)."""
 
-    order: int | None = None
-    text: str | None = None
-    image_prompt: str | None = None
-    ken_burns_config: dict[str, Any] | None = None
-    start_time: float | None = None
-    end_time: float | None = None
+    order: int | None = Field(default=None, ge=0)
+    text: str | None = Field(default=None, min_length=1)
+    image_prompt: str | None = Field(default=None, min_length=1)
+    effect_config: AnySegmentEffect | None = None
+    start_time: float | None = Field(default=None, ge=0)
+    end_time: float | None = Field(default=None, ge=0)
     image_url: str | None = None
 
 

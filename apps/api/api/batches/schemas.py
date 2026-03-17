@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.batches.enums import BatchStatus
 from api.core.schemas import AICost
@@ -13,16 +13,16 @@ from api.events.schemas import BaseEvent, EventType
 class BatchCreate(BaseModel):
     """Schema for creating a batch."""
 
-    name: str
+    name: str = Field(min_length=1, max_length=255, description="Batch display name")
     column_mapping: dict[str, str]
-    file_name: str
+    file_name: str = Field(min_length=1, max_length=255)
     file_key: str = ""
 
 
 class BatchUpdate(BaseModel):
     """Schema for updating a batch (all fields optional)."""
 
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class BatchRead(BaseModel):

@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.core.schemas import AICost
 from api.events.schemas import BaseEvent, EventType
@@ -37,21 +37,21 @@ class VideoCostTotals(BaseModel):
 class VideoCreate(BaseModel):
     """Schema for creating a video (also used as pipeline input)."""
 
-    script_text: str
-    voice_id: str | None = None
-    style: str | None = None
-    top_text: str | None = None
-    prompt: str | None = None
+    script_text: str = Field(min_length=1, description="Ad script text to convert to video")
+    voice_id: str | None = Field(default=None, max_length=255)
+    style: str | None = Field(default=None, max_length=255)
+    top_text: str | None = Field(default=None, max_length=500)
+    prompt: str | None = Field(default=None, max_length=5000)
     batch_id: uuid.UUID | None = None
 
 
 class VideoUpdate(BaseModel):
     """Schema for updating a video (all fields optional)."""
 
-    script_text: str | None = None
-    voice_id: str | None = None
-    style: str | None = None
-    top_text: str | None = None
+    script_text: str | None = Field(default=None, min_length=1)
+    voice_id: str | None = Field(default=None, max_length=255)
+    style: str | None = Field(default=None, max_length=255)
+    top_text: str | None = Field(default=None, max_length=500)
     status: VideoStatus | None = None
     current_stage: VideoStage | None = None
     error_message: str | None = None
@@ -74,8 +74,6 @@ class VideoRead(BaseModel):
     output_url: str | None = None
     duration_ms: int = 0
     file_size_bytes: int = 0
-    width: int = 1080
-    height: int = 1920
 
     tts: AICost = AICost()
     segmentation: AICost = AICost()
@@ -103,13 +101,8 @@ class VideoGenerationResult(BaseModel):
     """Returned by VideoService.generate_video after a successful pipeline run."""
 
     video_id: str
-    video_s3_key: str
-    file_size_bytes: int
     duration_ms: int
     num_shots: int
-    tts: AICost
-    segmentation: AICost
-    image_generation: AICost
     total: AICost
 
     model_config = {"frozen": True}

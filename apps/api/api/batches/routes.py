@@ -5,7 +5,7 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Path, Query, Request
 from fastapi.responses import StreamingResponse
 
 from api.batches.crud import BatchCrud, BatchCrudDep
@@ -47,7 +47,7 @@ async def upload_batch(
     request: Request,
     validated_file: ValidatedFileDep,
     service: BatchServiceDep,
-    batch_name: str = Form(...),
+    batch_name: str = Form(..., min_length=1, max_length=255),
     column_mapping: str = Form(...),
 ) -> BatchRead:
     """Upload an Excel/CSV file to create a batch. Processing happens in background."""
@@ -67,8 +67,8 @@ async def upload_batch(
 @batches_router.get("/", response_model=PageResponse[BatchRead])
 async def list_batches(
     crud: BatchCrudDep,
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=50, ge=1, le=100, description="Items per page"),
 ) -> PageResponse[BatchRead]:
     """List batches (paginated)."""
     page_resp = await crud.get_multi(page=page, page_size=page_size)
@@ -96,7 +96,7 @@ async def export_batch_zip(
         raise HTTPException(status_code=400, detail="No finished videos to export")
 
     files = [
-        (f"videos/{video.id}/output.mp4", f"video-{index:03d}-{str(video.id)[:8]}.mp4")
+        (video.output_s3_key, f"video-{index:03d}-{str(video.id)[:8]}.mp4")
         for index, video in enumerate(finished, 1)
     ]
 

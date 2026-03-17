@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.core.models import BaseModel
+from api.core.schemas import AICost
 
 
 class Shot(BaseModel):
@@ -24,10 +25,15 @@ class Shot(BaseModel):
     order: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     image_prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    ken_burns_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    effect_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     start_time: Mapped[float] = mapped_column(Float, nullable=False)
     end_time: Mapped[float] = mapped_column(Float, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    @property
+    def cost(self) -> AICost:
+        """AI cost for this shot's image generation."""
+        return AICost(cost_usd=self.cost_usd)
 
     video: Mapped["Video"] = relationship(back_populates="shots")  # noqa: F821

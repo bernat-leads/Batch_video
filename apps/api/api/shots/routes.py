@@ -14,6 +14,7 @@ from api.shots.models.shot import Shot
 from api.shots.schemas import ShotCreate, ShotRead, ShotUpdate
 from api.storage import StorageService
 from api.videos.crud import VideoCrudDep
+from api.videos.models.video import Video
 
 shots_router = APIRouter(prefix="/videos/{video_id}/shots", tags=["shots"])
 
@@ -85,6 +86,5 @@ async def preview_shot(
 ) -> RedirectResponse:
     """Redirect to a fresh presigned URL for shot image preview."""
     storage = StorageService(s3)
-    s3_key = f"videos/{video_id}/shots/{shot_order:03d}.png"
-    url = storage.generate_presigned_url(s3_key)
+    url = storage.generate_presigned_url(Video.build_shot_s3_key(video_id, shot_order))
     return RedirectResponse(url=url)

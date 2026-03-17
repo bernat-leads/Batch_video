@@ -1,13 +1,21 @@
 import type { VideoReadWithShots } from "@packages/api-client";
 import { Download } from "lucide-react";
-import { Button } from "@packages/ui/components/shadcn/button";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { AsyncButton } from "@/components/ui/async-button";
 
 interface VideoHeaderProps {
   videoId: string;
   video: VideoReadWithShots;
   scriptPreview: string;
-  onDownload: () => void;
+  onDownload: () => Promise<void> | void;
+}
+
+function formatCreatedDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export function VideoHeader({ videoId, video, scriptPreview, onDownload }: VideoHeaderProps) {
@@ -18,26 +26,21 @@ export function VideoHeader({ videoId, video, scriptPreview, onDownload }: Video
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
             Video {videoId.slice(0, 8)}
           </h1>
-          <StatusBadge
-            status={video.status}
-            stage={video.current_stage}
-          />
+          <StatusBadge status={video.status} stage={video.current_stage} />
         </div>
-        <p className="mt-1 text-sm text-text-secondary">
-          {scriptPreview} — Created {new Date(video.created_at).toLocaleDateString()}
+        <p className="mt-0.5 text-xs text-text-muted">
+          Created {formatCreatedDate(video.created_at)}
         </p>
+        <p className="mt-1 text-sm text-text-secondary">{scriptPreview}</p>
       </div>
       <div className="flex items-center gap-2 pt-1">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={video.status !== "finished" || !video.output_url}
+        <AsyncButton
           onClick={onDownload}
-          className="border-border text-text-secondary"
-        >
-          <Download size={14} className="mr-1.5" />
-          Export
-        </Button>
+          icon={<Download size={14} />}
+          label="Export"
+          loadingLabel="Exporting..."
+          disabled={video.status !== "finished" || !video.output_url}
+        />
       </div>
     </div>
   );

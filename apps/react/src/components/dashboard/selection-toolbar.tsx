@@ -1,9 +1,10 @@
 import { Download, Trash2 } from "lucide-react";
+import { AsyncButton } from "@/components/ui/async-button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 interface SelectionToolbarProps {
   count: number;
-  onExport: () => void;
+  onExport: () => Promise<void> | void;
   exportLabel?: string;
   onDelete?: () => void;
 }
@@ -13,13 +14,12 @@ export function SelectionToolbar({ count, onExport, exportLabel = "Export", onDe
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-text-muted">{count} selected</span>
-      <button
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card-bg px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-content-bg"
+      <AsyncButton
         onClick={onExport}
-      >
-        <Download size={15} />
-        {exportLabel}
-      </button>
+        icon={<Download size={15} />}
+        label={exportLabel}
+        loadingLabel="Exporting..."
+      />
       {onDelete && (
         <ConfirmDeleteDialog
           title={`Delete ${count} batch${count > 1 ? "es" : ""}?`}

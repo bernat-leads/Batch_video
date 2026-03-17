@@ -52,8 +52,8 @@ async def create_video(video_in: VideoCreate, crud: VideoCrudDep) -> VideoRead:
 @videos_router.get("/", response_model=PageResponse[VideoRead])
 async def list_videos(
     crud: VideoCrudDep,
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=50, ge=1, le=100, description="Items per page"),
     batch_id: uuid.UUID | None = None,
 ) -> PageResponse[VideoRead]:
     """List videos with optional batch_id filter."""
@@ -87,7 +87,7 @@ async def export_selected_videos_zip(
         raise HTTPException(status_code=400, detail="No finished videos to export")
 
     files = [
-        (f"videos/{video.id}/output.mp4", f"video-{index:03d}-{str(video.id)[:8]}.mp4")
+        (video.output_s3_key, f"video-{index:03d}-{str(video.id)[:8]}.mp4")
         for index, video in enumerate(finished, 1)
     ]
 
@@ -120,10 +120,9 @@ async def update_video(
 
 
 @videos_router.get("/{video_id}/preview")
-async def preview_video(video_id: uuid.UUID, storage: StorageDep) -> RedirectResponse:
+async def preview_video(video: VideoDep, storage: StorageDep) -> RedirectResponse:
     """Redirect to a fresh presigned URL for video preview."""
-    s3_key = f"videos/{video_id}/output.mp4"
-    url = storage.generate_presigned_url(s3_key)
+    url = storage.generate_presigned_url(video.output_s3_key)
     return RedirectResponse(url=url)
 
 
@@ -133,9 +132,8 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
     if video.status != VideoStatus.finished or not video.output_url:
         raise HTTPException(status_code=400, detail="Video not ready for download")
 
-    s3_key = f"videos/{video.id}/output.mp4"
     return StreamingResponse(
-        storage.stream_file(s3_key),
+        storage.stream_file(video.output_s3_key),
         media_type="video/mp4",
         headers={
             "Content-Disposition": f'attachment; filename="video-{str(video.id)[:8]}.mp4"'

@@ -1,4 +1,4 @@
-"""Gemini Imagen 3 image generation service."""
+"""Gemini Imagen image generation service."""
 
 import logging
 
@@ -9,50 +9,46 @@ from api.core.schemas import AICost
 from api.settings import settings
 from api.videos.pipeline.config import IMAGEN_COST_PER_IMAGE
 from api.videos.pipeline.image_generation.base import ImageGenService
-from api.videos.pipeline.image_generation.schemas import ImageGenResult
-from api.videos.pipeline.segmentation.schemas import SegmentResult
+from api.videos.pipeline.image_generation.schemas import ImageConfig, ImageGenResult
 from api.videos.utils import pipeline_retry
 
 logger = logging.getLogger(__name__)
 
 
 class GeminiImageGenService(ImageGenService):
-    """Gemini Imagen 3 — generates 9:16 portrait images for video segments."""
+    """Gemini Imagen — generates images based on template config."""
 
     def __init__(self) -> None:
+        """Initialize with Gemini API client."""
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
     @pipeline_retry()
-    def generate_image(self, segment: SegmentResult) -> ImageGenResult:
-        """Generate a 9:16 portrait image from the segment's image prompt."""
-        logger.info("Imagen 3: generating image for segment %d", segment.order)
+    def generate_image(
+        self, image_prompt: str, config: ImageConfig
+    ) -> ImageGenResult:
+        """Generate an image using the prompt and template's image config."""
+        logger.info("Imagen: generating image")
 
         try:
             response = self._client.models.generate_images(
                 model=settings.GEMINI_IMAGEN_MODEL,
-                prompt=segment.image_prompt,
+                prompt=image_prompt,
                 config=genai_types.GenerateImagesConfig(
                     number_of_images=1,
-                    aspect_ratio="9:16",
-                    output_mime_type="image/png",
+                    aspect_ratio=config.aspect_ratio,
+                    output_mime_type=config.output_format,
+                    image_size=config.size,
                 ),
             )
-        except Exception as e:
-            logger.error(
-                "Imagen 3: API call failed for segment %d — %s", segment.order, e
-            )
+        except Exception as error:
+            logger.error("Imagen: API call failed — %s", error)
             raise
 
         image_bytes = response.generated_images[0].image.image_bytes
-
-        logger.info(
-            "Imagen 3: segment %d complete (%d bytes)",
-            segment.order,
-            len(image_bytes),
-        )
+        logger.info("Imagen: complete (%d bytes)", len(image_bytes))
 
         return ImageGenResult(
             image_bytes=image_bytes,
-            content_type="image/png",
+            content_type=config.output_format,
             cost=AICost(cost_usd=IMAGEN_COST_PER_IMAGE),
         )

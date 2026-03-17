@@ -36,6 +36,23 @@ class AICost(BaseModel):
     token_count: int = 0
     cost_usd: float = 0.0
 
+    @classmethod
+    def from_chain_result(
+        cls,
+        result: dict,
+        input_cost_per_token: float = 0.0,
+        output_cost_per_token: float = 0.0,
+    ) -> "AICost":
+        """Create AICost from a LangChain chain result with usage metadata."""
+        usage = result.get("raw", result).usage_metadata or {}
+        input_tokens = usage.get("input_tokens", 0)
+        output_tokens = usage.get("output_tokens", 0)
+        total_tokens = input_tokens + output_tokens
+        cost = (
+            input_tokens * input_cost_per_token + output_tokens * output_cost_per_token
+        )
+        return cls(token_count=total_tokens, cost_usd=cost)
+
 
 class ErrorResponse(BaseModel):
     """Standard error response returned by the global exception handler."""

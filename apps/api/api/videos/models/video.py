@@ -35,6 +35,7 @@ class Video(BaseModel):
     current_stage: Mapped[VideoStage] = mapped_column(
         String(30), nullable=False, default=VideoStage.queued, index=True
     )
+    audio_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     output_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -57,8 +58,6 @@ class Video(BaseModel):
     total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     total_token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    width: Mapped[int] = mapped_column(Integer, nullable=False, default=1080)
-    height: Mapped[int] = mapped_column(Integer, nullable=False, default=1920)
 
     @classmethod
     def from_parsed_row(cls, row: ParsedRow, batch_id: uuid.UUID) -> "Video":
@@ -73,6 +72,35 @@ class Video(BaseModel):
             current_stage=VideoStage.queued,
             error_message=row.error_message,
         )
+
+    @property
+    def s3_prefix(self) -> str:
+        """S3 key prefix for all video assets."""
+        return f"videos/{self.id}"
+
+    @property
+    def audio_s3_key(self) -> str:
+        """S3 key for the TTS audio file."""
+        return f"{self.s3_prefix}/audio"
+
+    @property
+    def output_s3_key(self) -> str:
+        """S3 key for the final rendered video."""
+        return f"{self.s3_prefix}/output.mp4"
+
+    def shot_s3_key(self, order: int) -> str:
+        """S3 key for a shot image by order number."""
+        return f"{self.s3_prefix}/shots/{order:03d}.png"
+
+    @staticmethod
+    def build_shot_s3_key(video_id: uuid.UUID, order: int) -> str:
+        """S3 key for a shot image by video ID and order number."""
+        return f"videos/{video_id}/shots/{order:03d}.png"
+
+    @staticmethod
+    def shots_cost(shots: list) -> AICost:
+        """Calculate combined AI cost across all shots."""
+        return AICost(cost_usd=sum(shot.cost_usd for shot in shots))
 
     @property
     def tts(self) -> AICost:

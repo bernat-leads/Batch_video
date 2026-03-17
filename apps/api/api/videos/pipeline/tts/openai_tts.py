@@ -1,76 +1,61 @@
 """OpenAI TTS implementation using gpt-4o-mini-tts with word-level timestamps."""
 
 import logging
-from uuid import UUID
 
 from openai import OpenAI
 
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.storage import StorageService
+from api.videos.pipeline.config import OPENAI_TTS_COST_PER_CHAR
 from api.videos.pipeline.tts.base import TTSService
-from api.videos.pipeline.tts.schemas import TTSResult, WordTimestamp
+from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry
 
 logger = logging.getLogger(__name__)
-
-# OpenAI TTS pricing (per 1M characters)
-# gpt-4o-mini-tts: $12/1M chars → $0.000012/char
-OPENAI_TTS_COST_PER_CHAR = 0.000012
 
 
 class OpenAITTSService(TTSService):
     """OpenAI TTS with word-level timestamps via gpt-4o-mini-tts."""
 
-    def __init__(self, storage: StorageService) -> None:
-        self._storage = storage
+    def __init__(self) -> None:
         self._client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
     @pipeline_retry()
-    def synthesize(
-        self, script_text: str, voice_id: str | None, video_id: UUID
-    ) -> TTSResult:
-        """Generate TTS audio with word-level timestamps and upload to S3."""
-        effective_voice = voice_id or settings.OPENAI_TTS_DEFAULT_VOICE
+    def synthesize(self, tts_input: TTSInput) -> TTSResult:
+        """Generate TTS audio with word-level timestamps."""
+        effective_voice = tts_input.voice_id or settings.OPENAI_TTS_DEFAULT_VOICE
         logger.info(
-            "Video %s: OpenAI TTS starting (voice=%s, %d chars)",
-            video_id,
+            "OpenAI TTS starting (voice=%s, %d chars)",
             effective_voice,
-            len(script_text),
+            len(tts_input.script_text),
         )
 
         try:
             response = self._client.audio.speech.create(
                 model=settings.OPENAI_TTS_MODEL,
                 voice=effective_voice,
-                input=script_text,
+                input=tts_input.script_text,
                 response_format="wav",
             )
-        except Exception as e:
-            raise PipelineStageError("tts", f"OpenAI TTS API call failed: {e}") from e
+        except Exception as error:
+            raise PipelineStageError("tts", f"OpenAI TTS API call failed: {error}") from error
 
         audio_bytes = response.content
-
-        # Get word-level timestamps via transcription
-        word_timestamps = self._get_word_timestamps(audio_bytes, script_text)
-
-        s3_key = f"videos/{video_id}/audio.wav"
-        self._storage.upload_file(s3_key, audio_bytes, "audio/wav")
-
+        word_timestamps = self._get_word_timestamps(audio_bytes, tts_input.script_text)
         duration_ms = int(word_timestamps[-1].end * 1000) if word_timestamps else 0
-        cost_usd = len(script_text) * OPENAI_TTS_COST_PER_CHAR
+        cost_usd = len(tts_input.script_text) * OPENAI_TTS_COST_PER_CHAR
 
         logger.info(
-            "Video %s: OpenAI TTS complete (%d words, %dms, $%.4f)",
-            video_id,
+            "OpenAI TTS complete (%d words, %dms, $%.4f)",
             len(word_timestamps),
             duration_ms,
             cost_usd,
         )
 
         return TTSResult(
-            audio_s3_key=s3_key,
+            audio_bytes=audio_bytes,
+            content_type="audio/wav",
             audio_duration_ms=duration_ms,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=cost_usd),
@@ -83,9 +68,9 @@ class OpenAITTSService(TTSService):
         import tempfile
         from pathlib import Path
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(audio_bytes)
-            tmp_path = f.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+            tmp_file.write(audio_bytes)
+            tmp_path = tmp_file.name
 
         try:
             transcript = self._client.audio.transcriptions.create(
@@ -94,25 +79,25 @@ class OpenAITTSService(TTSService):
                 response_format="verbose_json",
                 timestamp_granularities=["word"],
             )
-        except Exception as e:
-            logger.warning("Failed to get word timestamps via Whisper: %s", e)
+        except Exception as error:
+            logger.warning("Failed to get word timestamps via Whisper: %s", error)
             return self._fallback_timestamps(script_text, audio_bytes)
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
         words: list[WordTimestamp] = []
         if hasattr(transcript, "words") and transcript.words:
-            for w in transcript.words:
+            for word in transcript.words:
                 words.append(
-                    WordTimestamp(word=w.word.strip(), start=w.start, end=w.end)
+                    WordTimestamp(word=word.word.strip(), start=word.start, end=word.end)
                 )
         elif words_data := getattr(transcript, "words", None):
-            for w in words_data:
+            for word in words_data:
                 words.append(
                     WordTimestamp(
-                        word=w["word"].strip(),
-                        start=w["start"],
-                        end=w["end"],
+                        word=word["word"].strip(),
+                        start=word["start"],
+                        end=word["end"],
                     )
                 )
 
@@ -128,14 +113,12 @@ class OpenAITTSService(TTSService):
         """Estimate word timestamps by distributing evenly across audio duration."""
         import struct
 
-        # Parse WAV header to get duration
         try:
-            # WAV: bytes 24-28 = sample rate, bytes 28-32 = byte rate
             byte_rate = struct.unpack_from("<I", audio_bytes, 28)[0]
-            data_size = len(audio_bytes) - 44  # subtract header
+            data_size = len(audio_bytes) - 44
             duration = data_size / byte_rate if byte_rate > 0 else 0
         except Exception:
-            duration = len(script_text) * 0.06  # ~60ms per character estimate
+            duration = len(script_text) * 0.06
 
         raw_words = script_text.split()
         if not raw_words:
@@ -144,9 +127,9 @@ class OpenAITTSService(TTSService):
         word_duration = duration / len(raw_words)
         return [
             WordTimestamp(
-                word=w,
-                start=round(i * word_duration, 3),
-                end=round((i + 1) * word_duration, 3),
+                word=word,
+                start=round(index * word_duration, 3),
+                end=round((index + 1) * word_duration, 3),
             )
-            for i, w in enumerate(raw_words)
+            for index, word in enumerate(raw_words)
         ]

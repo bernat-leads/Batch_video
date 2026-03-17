@@ -13,7 +13,6 @@ from api.deps.storage import s3_client
 from api.events.schemas import EventChannel
 from api.parser import FieldDef, PandasFileParser
 from api.storage import StorageService
-from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 from api.videos.schemas import VideoCreate
 from api.videos.tasks import process_video
@@ -63,28 +62,34 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                 await crud.set_batch_error(batch.id, "No rows found in file")
                 return BatchProcessResult(batch_id=batch_id, error="empty file")
 
-            videos = await service.create_batch_videos(
-                batch,
-                [Video.from_parsed_row(row, batch_uuid) for row in rows],
-            )
-            dispatched = 0
-            failed_count = 0
+            failed_videos = [
+                Video.from_parsed_row(row, batch_uuid)
+                for row in rows
+                if not row.is_valid
+            ]
+            valid_rows = [row for row in rows if row.is_valid]
 
-            for video in videos:
-                if video.status != VideoStatus.processing:
-                    failed_count += 1
-                    continue
+            if failed_videos:
+                await service.create_batch_videos(batch, failed_videos)
+
+            batch.total_videos = len(rows)
+            batch.pending_count = len(valid_rows)
+            batch.failed_count = len(failed_videos)
+            await crud.db_session.commit()
+
+            dispatched = 0
+            for row in valid_rows:
                 process_video.delay(
                     VideoCreate(
-                        script_text=video.script_text,
-                        voice_id=video.voice_id,
-                        style=video.style,
-                        top_text=video.top_text,
+                        script_text=row.data["script_text"],
+                        voice_id=row.data.get("voice_id") or None,
+                        style=row.data.get("style") or None,
+                        top_text=row.data.get("top_text") or None,
                     ).model_dump(),
                     batch_id=batch_id,
-                    video_id=str(video.id),
                 )
                 dispatched += 1
+            failed_count = len(failed_videos)
 
             batch.status = (
                 BatchStatus.processing.value if dispatched else BatchStatus.failed.value
@@ -106,7 +111,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                 dispatched,
                 failed_count,
             )
-            return BatchProcessResult(batch_id=batch_id, videos_created=len(videos))
+            return BatchProcessResult(batch_id=batch_id, videos_created=len(rows))
 
         except (ValueError, BatchParseError) as e:
             logger.warning("Batch %s: parse error — %s", batch_id, e)

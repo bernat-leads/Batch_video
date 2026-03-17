@@ -4,7 +4,6 @@ import asyncio
 import logging
 import uuid
 
-from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.exceptions import SegmentationEmptyError
@@ -13,24 +12,29 @@ from api.events.schemas import EventChannel
 from api.events.service import EventService
 from api.settings_module.crud import AppSettingsCrud
 from api.shots.models.shot import Shot
-from api.shots.service import ShotService
 from api.storage import StorageService
+from api.videos.crud import VideoCrud
 from api.videos.enums import VideoStage, VideoStatus
 from api.videos.models.video import Video
+from api.videos.pipeline.image_generation import ImageGenService
+from api.videos.pipeline.image_generation.schemas import ImageConfig
 from api.videos.pipeline.segmentation import SegmentationService
+from api.videos.pipeline.segmentation.schemas import (
+    SegmentationInput,
+    SegmentationResult,
+    SegmentResult,
+)
 from api.videos.pipeline.tts import TTSService
-from api.videos.pipeline.video_editor import CaptionWord, Segment, VideoTemplate
+from api.videos.pipeline.tts.schemas import TTSInput, TTSResult
+from api.videos.pipeline.video_editor import EditResult, Segment, VideoEditor, VideoTemplate
+from api.videos.pipeline.video_editor.schemas import AssemblyInput
 from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
 
 logger = logging.getLogger(__name__)
 
 
 class VideoService:
-    """Orchestrates the full video generation pipeline.
-
-    Receives all dependencies via constructor. The caller (Celery task)
-    is responsible for constructing this service with the right deps.
-    """
+    """Orchestrates the full video generation pipeline."""
 
     def __init__(
         self,
@@ -38,36 +42,38 @@ class VideoService:
         storage: StorageService,
         events: EventService,
         app_settings: AppSettingsCrud,
+        video_crud: VideoCrud,
         tts: TTSService,
         segmentation: SegmentationService,
-        shots: ShotService,
-        video_template: VideoTemplate,
+        image_gen: ImageGenService,
+        editor: VideoEditor,
     ) -> None:
-        """Initialize with all pipeline dependencies."""
+        """Initialize with pipeline dependencies."""
         self._session = session
         self._storage = storage
         self._events = events
         self._app_settings = app_settings
+        self._video_crud = video_crud
         self._tts = tts
         self._segmentation = segmentation
-        self._shots = shots
-        self._video_template = video_template
+        self._image_gen = image_gen
+        self._editor = editor
 
     async def generate_video(
         self,
-        video_id: uuid.UUID,
         video_input: VideoCreate,
+        template: VideoTemplate,
     ) -> VideoGenerationResult:
-        """Run the full pipeline for an existing video record.
+        """Create a video record and run the full pipeline.
 
-        Resets the video to a clean state (deletes old shots, clears errors),
-        then executes all stages sequentially. On failure, marks the video as
-        failed and cleans up partial S3 artifacts.
+        On failure, marks the video as failed and cleans up partial S3 artifacts.
         """
-        video = await self._reset_video(video_id)
+        video_input.prompt = await self._resolve_prompt(video_input)
+        video = await self._video_crud.create(video_input)
+        await self._emit_progress(video)
 
         try:
-            return await self._run_pipeline(video, video_input)
+            return await self._run_pipeline(video, template)
         except Exception as error:
             await self._handle_failure(video, error)
             raise
@@ -77,146 +83,127 @@ class VideoService:
     # ------------------------------------------------------------------
 
     async def _run_pipeline(
-        self, video: Video, video_input: VideoCreate
+        self,
+        video: Video,
+        template: VideoTemplate,
     ) -> VideoGenerationResult:
         """Execute all pipeline stages and persist the final result."""
-        tts_result = await self._run_tts(video, video_input)
-        seg_result = await self._run_segmentation(video, video_input, tts_result)
-        num_shots, image_cost = await self._run_image_generation(video, seg_result)
-        edit_result = await self._run_assembly(
-            video, seg_result, tts_result, video_input
-        )
-        output_key = await self._run_upload(video, edit_result)
+        tts_result = await self._run_tts(video)
+        seg_result = await self._run_segmentation(video, tts_result, template)
+        shots = await self._run_image_generation(video, seg_result, template)
+        edit_result = await self._run_assembly(video, shots, tts_result, template)
+        await self._run_upload(video, edit_result)
+        return await self._finalize(video, edit_result, tts_result.cost, seg_result.cost)
 
-        return await self._finalize(
-            video,
-            output_key,
-            edit_result,
-            num_shots,
-            tts_result.cost,
-            seg_result.cost,
-            image_cost,
-        )
-
-    async def _run_tts(self, video, video_input):
-        """Stage 1: Convert script to speech with word-level timestamps."""
+    async def _run_tts(self, video: Video) -> TTSResult:
+        """Stage 1: Convert script to speech, upload audio to S3."""
         await self._update_stage(video, VideoStage.tts)
-        return await asyncio.to_thread(
-            self._tts.synthesize,
-            video_input.script_text,
-            video_input.voice_id,
-            video.id,
+        tts_input = TTSInput(
+            script_text=video.script_text,
+            voice_id=video.voice_id,
         )
+        tts_result = await asyncio.to_thread(self._tts.synthesize, tts_input)
 
-    async def _run_segmentation(self, video, video_input, tts_result):
+        self._storage.upload_file(video.audio_s3_key, tts_result.audio_bytes, tts_result.content_type)
+        video.audio_url = video.audio_s3_key
+        return tts_result
+
+    async def _run_segmentation(self, video: Video, tts_result: TTSResult, template: VideoTemplate) -> SegmentationResult:
         """Stage 2: Segment script into visual chunks with image prompts."""
         await self._update_stage(video, VideoStage.segmentation)
-        prompt = await self._resolve_prompt(video_input)
-        video.prompt = prompt
-        seg_result = await self._segmentation.segment_script(
-            video_input.script_text,
-            tts_result.word_timestamps,
-            video_input.style,
-            prompt=prompt,
+        seg_input = SegmentationInput(
+            script_text=video.script_text,
+            word_timestamps=tts_result.word_timestamps,
+            style=video.style,
+            prompt=video.prompt,
+            template_context=template.template_context,
         )
+        seg_result = await self._segmentation.segment_script(seg_input)
         if not seg_result.segments:
             raise SegmentationEmptyError()
         return seg_result
 
-    async def _run_image_generation(self, video, seg_result) -> tuple[int, AICost]:
-        """Stage 3: Generate images for all segments. Returns (count, cost).
-
-        Image generation (network I/O) runs in parallel via asyncio.gather,
-        but shot DB writes run sequentially — AsyncSession is not safe for
-        concurrent coroutine access.
-        """
+    async def _run_image_generation(self, video: Video, seg_result: SegmentationResult, template: VideoTemplate) -> list[Shot]:
+        """Stage 3: Generate images in parallel, upload to S3, create shot records."""
         await self._update_stage(video, VideoStage.image_generation)
 
-        # Parallelize the expensive image generation calls (no DB access)
-        image_tasks = [
-            asyncio.to_thread(self._shots.image_gen.generate_image, segment)
+        tasks = [
+            asyncio.to_thread(self._generate_shot, video, segment, template.image_config)
             for segment in seg_result.segments
         ]
-        image_results = await asyncio.gather(*image_tasks)
+        shots = await asyncio.gather(*tasks)
 
-        # Persist shots sequentially — session is not concurrency-safe
-        shots: list[Shot] = []
-        for segment, image_result in zip(seg_result.segments, image_results):
-            shot = await self._shots.create_shot_with_image(
-                video.id, segment, image_result
-            )
-            shots.append(shot)
+        for shot in shots:
+            self._session.add(shot)
+        await self._session.flush()
+        return list(shots)
 
-        return len(shots), AICost(cost_usd=sum(s.cost_usd for s in shots))
+    def _generate_shot(self, video: Video, segment: SegmentResult, image_config: ImageConfig) -> Shot:
+        """Generate image, upload to S3, and build Shot object (runs in thread)."""
+        image_result = self._image_gen.generate_image(segment.image_prompt, image_config)
 
-    async def _run_assembly(self, video, seg_result, tts_result, video_input):
-        """Stage 4: Compose final video from images, audio, and captions.
+        s3_key = video.shot_s3_key(segment.order)
+        self._storage.upload_file(s3_key, image_result.image_bytes, image_result.content_type)
 
-        Downloads images from S3, then runs the CPU-bound MoviePy render
-        in a thread to avoid blocking the event loop.
-        """
+        shot = Shot(
+            video_id=video.id,
+            order=segment.order,
+            text=segment.text,
+            image_prompt=segment.image_prompt,
+            effect_config=segment.effect.model_dump(),
+            start_time=segment.start_time,
+            end_time=segment.end_time,
+            image_url=s3_key,
+            cost_usd=image_result.cost.cost_usd,
+        )
+        shot.image_bytes = image_result.image_bytes  # transient — used by assembly
+        return shot
+
+    async def _run_assembly(self, video: Video, shots: list[Shot], tts_result: TTSResult, template: VideoTemplate) -> EditResult:
+        """Stage 4: Assemble final video from cached shot images and TTS audio."""
         await self._update_stage(video, VideoStage.assembly)
 
-        # Download images and audio from S3 (sync I/O, run in thread)
-        segments = await asyncio.to_thread(
-            self._download_segments, video.id, seg_result.segments
-        )
-        audio_bytes = await asyncio.to_thread(
-            self._storage.download_file, tts_result.audio_s3_key
-        )
-
-        captions = [
-            CaptionWord(word=word.word, start=word.start, end=word.end)
-            for word in tts_result.word_timestamps
-        ]
-
-        # CPU-bound render — must not block the event loop
-        return await asyncio.to_thread(
-            self._video_template.assemble_video,
-            segments,
-            audio_bytes,
-            captions,
-            video_input.top_text,
+        assembly_input = AssemblyInput(
+            template=template,
+            segments=[
+                Segment(
+                    image_bytes=shot.image_bytes,
+                    duration=shot.end_time - shot.start_time,
+                    effect=shot.effect_config,
+                )
+                for shot in shots
+            ],
+            audio_bytes=tts_result.audio_bytes,
+            word_timestamps=tts_result.word_timestamps,
+            top_text=video.top_text,
         )
 
-    def _download_segments(self, video_id: uuid.UUID, segments) -> list[Segment]:
-        """Download shot images from S3 and build Segment objects."""
-        return [
-            Segment(
-                image_bytes=self._storage.download_file(
-                    f"videos/{video_id}/shots/{seg.order:03d}.png"
-                ),
-                duration=seg.end_time - seg.start_time,
-                ken_burns=seg.ken_burns_config,
-            )
-            for seg in segments
-        ]
+        return await asyncio.to_thread(self._editor.assemble_video, assembly_input)
 
-    async def _run_upload(self, video, edit_result):
+    async def _run_upload(self, video: Video, edit_result: EditResult) -> None:
         """Stage 5: Upload the rendered video to S3."""
         await self._update_stage(video, VideoStage.upload)
-        output_key = f"videos/{video.id}/output.mp4"
-        await asyncio.to_thread(
-            self._storage.upload_file, output_key, edit_result.video_bytes, "video/mp4"
-        )
-        return output_key
+        self._storage.upload_file(video.output_s3_key, edit_result.video_bytes, "video/mp4")
+        video.output_url = video.output_s3_key
+        video.duration_ms = edit_result.duration_ms
+        video.file_size_bytes = len(edit_result.video_bytes)
 
     async def _finalize(
-        self, video, output_key, edit_result, num_shots, tts_cost, seg_cost, image_cost
-    ):
-        """Persist final video state and return the generation result."""
+        self,
+        video: Video,
+        edit_result: EditResult,
+        tts_cost: AICost,
+        seg_cost: AICost,
+    ) -> VideoGenerationResult:
+        """Persist final costs and return the generation result."""
+        image_cost = video.shots_cost(video.shots)
         total = AICost(
-            token_count=tts_cost.token_count
-            + seg_cost.token_count
-            + image_cost.token_count,
+            token_count=tts_cost.token_count + seg_cost.token_count + image_cost.token_count,
             cost_usd=tts_cost.cost_usd + seg_cost.cost_usd + image_cost.cost_usd,
         )
 
         video.status = VideoStatus.finished
         video.current_stage = VideoStage.done
-        video.output_url = output_key
-        video.duration_ms = edit_result.duration_ms
-        video.file_size_bytes = len(edit_result.video_bytes)
         video.tts_cost_usd = tts_cost.cost_usd
         video.tts_token_count = tts_cost.token_count
         video.segmentation_cost_usd = seg_cost.cost_usd
@@ -231,13 +218,8 @@ class VideoService:
         logger.info("Video %s: pipeline complete", video.id)
         return VideoGenerationResult(
             video_id=str(video.id),
-            video_s3_key=output_key,
-            file_size_bytes=len(edit_result.video_bytes),
             duration_ms=edit_result.duration_ms,
-            num_shots=num_shots,
-            tts=tts_cost,
-            segmentation=seg_cost,
-            image_generation=image_cost,
+            num_shots=len(video.shots),
             total=total,
         )
 
@@ -245,19 +227,8 @@ class VideoService:
     # Helpers
     # ------------------------------------------------------------------
 
-    async def _reset_video(self, video_id: uuid.UUID) -> Video:
-        """Load a video, reset its state, and delete any previous shots."""
-        video = await self._session.get(Video, video_id)
-        video.status = VideoStatus.processing
-        video.current_stage = VideoStage.queued
-        video.error_message = None
-        await self._session.execute(sa_delete(Shot).where(Shot.video_id == video.id))
-        await self._session.commit()
-        await self._emit_progress(video)
-        return video
-
     async def _resolve_prompt(self, video_input: VideoCreate) -> str:
-        """Resolve the generation prompt: explicit input takes priority over app settings."""
+        """Resolve the generation prompt from input or app settings."""
         if video_input.prompt:
             return video_input.prompt
         app_settings = await self._app_settings.get()
@@ -281,7 +252,7 @@ class VideoService:
         except Exception:
             logger.exception("Video %s: failed to persist error status", video.id)
         try:
-            self._storage.delete_prefix(f"videos/{video.id}/")
+            self._storage.delete_prefix(f"{video.s3_prefix}/")
         except Exception:
             logger.warning(
                 "Video %s: failed to clean up S3 artifacts", video.id, exc_info=True

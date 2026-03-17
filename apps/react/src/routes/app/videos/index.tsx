@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { VideoRead } from "@packages/api-client";
 import {
@@ -6,9 +6,7 @@ import {
   useListBatchesApiV1BatchesGet,
 } from "@packages/api-client";
 
-const CreateVideoDialog = lazy(() =>
-  import("@/components/dashboard/create-video-dialog").then((m) => ({ default: m.CreateVideoDialog })),
-);
+import { CreateVideoDialog } from "@/components/dashboard/create-video-dialog";
 import { exportSelectedVideosZip } from "@/lib/download";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
@@ -57,7 +55,7 @@ function VideosPage() {
         <EmptyState
           title="No videos yet"
           description="Create a batch to start generating videos"
-          action={<Suspense><CreateVideoDialog /></Suspense>}
+          action={<CreateVideoDialog />}
         />
       ) : (
         <VideoTable
@@ -84,7 +82,7 @@ function VideosPage() {
                 onExport={() => exportSelectedVideosZip(selectedVideos.map((v) => v.id))}
               />
             ) : (
-              <Suspense><CreateVideoDialog /></Suspense>
+              <CreateVideoDialog />
             )
           }
         />

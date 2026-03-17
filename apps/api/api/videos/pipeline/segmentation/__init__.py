@@ -3,17 +3,23 @@
 from api.videos.pipeline.segmentation.base import SegmentationService
 from api.videos.pipeline.segmentation.claude import ClaudeSegmentationService
 from api.videos.pipeline.segmentation.schemas import (
-    KenBurnsConfig,
+    AnySegmentEffect,
     KenBurnsDirection,
-    SegmentationResult,
+    KenBurnsEffect,
+    SegmentEffect,
     SegmentResult,
+    SegmentationInput,
+    SegmentationResult,
 )
 
 __all__ = [
+    "AnySegmentEffect",
     "ClaudeSegmentationService",
-    "KenBurnsConfig",
     "KenBurnsDirection",
+    "KenBurnsEffect",
+    "SegmentEffect",
     "SegmentResult",
+    "SegmentationInput",
     "SegmentationResult",
     "SegmentationService",
 ]

@@ -20,10 +20,11 @@ RUN pip install --no-cache-dir poetry==2.2.1
 RUN addgroup --gid 1000 appuser \
     && adduser --uid 1000 --system --ingroup appuser appuser \
     && mkdir -p /home/appuser && chown appuser:appuser /home/appuser \
-    && mkdir -p /data/uploads && chown appuser:appuser /data/uploads
+    && mkdir -p /tmp/pipeline && chown appuser:appuser /tmp/pipeline
 
 WORKDIR /home/appuser
-ENV PATH="/home/appuser/.venv/bin:$PATH"
+ENV PATH="/home/appuser/.venv/bin:$PATH" \
+    TMPDIR=/tmp/pipeline
 
 # Copy dependency manifests first for better layer caching
 COPY apps/api/pyproject.toml apps/api/poetry.lock ./

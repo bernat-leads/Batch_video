@@ -1,12 +1,11 @@
 """Tests for VideoService edge cases — no real DB or external APIs."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from api.videos.enums import VideoStage, VideoStatus
-from api.videos.models.video import Video
 from api.videos.schemas import VideoCreate
 from api.videos.service import VideoService
 
@@ -35,13 +34,31 @@ def _make_video(**kwargs):
         voice_id=None,
         style=None,
         top_text=None,
-        prompt=None,
+        prompt="",
     )
     defaults.update(kwargs)
     video = MagicMock()
-    for k, v in defaults.items():
-        setattr(video, k, v)
+    for key, value in defaults.items():
+        setattr(video, key, value)
     return video
+
+
+MOCK_TEMPLATE = MagicMock(
+    template_context="", image_config=MagicMock()
+)
+
+
+def _make_video_crud(video):
+    """Create a mock VideoCrud that copies input fields onto the video."""
+    crud = AsyncMock()
+
+    async def create_side_effect(video_input):
+        for field, value in video_input.model_dump(exclude_unset=True).items():
+            setattr(video, field, value)
+        return video
+
+    crud.create.side_effect = create_side_effect
+    return crud
 
 
 def _build_service(
@@ -50,20 +67,21 @@ def _build_service(
     storage=None,
     events=None,
     app_settings=None,
+    video_crud=None,
     tts=None,
     segmentation=None,
-    shots=None,
-    video_template=None,
+    image_gen=None,
 ):
     return VideoService(
         session=session or AsyncMock(),
         storage=storage or MagicMock(),
         events=events or AsyncMock(),
         app_settings=app_settings or AsyncMock(),
+        video_crud=video_crud or AsyncMock(),
         tts=tts or MagicMock(),
         segmentation=segmentation or AsyncMock(),
-        shots=shots or AsyncMock(),
-        video_template=video_template or MagicMock(),
+        image_gen=image_gen or MagicMock(),
+        editor=MagicMock(),
     )
 
 
@@ -73,16 +91,18 @@ class TestVideoCreationInitialState:
         """When TTS fails, the error message should include the current stage name."""
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.side_effect = RuntimeError("API timeout")
 
-        service = _build_service(session=session, tts=tts)
+        service = _build_service(
+            session=session, tts=tts, video_crud=_make_video_crud(video)
+        )
 
         with pytest.raises(RuntimeError):
             await service.generate_video(
-                video_id=VIDEO_ID, video_input=VideoCreate(script_text="hello")
+                template=MOCK_TEMPLATE,
+                video_input=VideoCreate(script_text="hello"),
             )
 
         assert video.status == VideoStatus.failed
@@ -94,16 +114,18 @@ class TestFailureMarksVideoFailed:
     async def test_tts_failure_sets_failed_status(self):
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.side_effect = ConnectionError("ElevenLabs down")
 
-        service = _build_service(session=session, tts=tts)
+        service = _build_service(
+            session=session, tts=tts, video_crud=_make_video_crud(video)
+        )
 
         with pytest.raises(ConnectionError):
             await service.generate_video(
-                video_id=VIDEO_ID, video_input=VideoCreate(script_text="hello")
+                template=MOCK_TEMPLATE,
+                video_input=VideoCreate(script_text="hello"),
             )
 
         assert video.status == VideoStatus.failed
@@ -113,7 +135,6 @@ class TestFailureMarksVideoFailed:
     async def test_segmentation_failure_sets_failed_status(self):
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
@@ -130,12 +151,17 @@ class TestFailureMarksVideoFailed:
         seg.segment_script.side_effect = RuntimeError("Claude API error")
 
         service = _build_service(
-            session=session, tts=tts, app_settings=app_settings, segmentation=seg
+            session=session,
+            tts=tts,
+            app_settings=app_settings,
+            segmentation=seg,
+            video_crud=_make_video_crud(video),
         )
 
         with pytest.raises(RuntimeError):
             await service.generate_video(
-                video_id=VIDEO_ID, video_input=VideoCreate(script_text="hello")
+                template=MOCK_TEMPLATE,
+                video_input=VideoCreate(script_text="hello"),
             )
 
         assert video.status == VideoStatus.failed
@@ -148,7 +174,6 @@ class TestPromptResolution:
         """When VideoInput has a prompt, it should be used instead of master_prompt."""
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
@@ -169,12 +194,13 @@ class TestPromptResolution:
             tts=tts,
             segmentation=seg,
             app_settings=app_settings,
+            video_crud=_make_video_crud(video),
         )
 
         with pytest.raises(RuntimeError):
             await service.generate_video(
+                template=MOCK_TEMPLATE,
                 video_input=VideoCreate(script_text="hello", prompt="custom prompt"),
-                video_id=VIDEO_ID,
             )
 
         assert video.prompt == "custom prompt"
@@ -184,7 +210,6 @@ class TestPromptResolution:
     async def test_falls_back_to_settings_when_no_prompt(self):
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
@@ -205,11 +230,13 @@ class TestPromptResolution:
             tts=tts,
             segmentation=seg,
             app_settings=app_settings,
+            video_crud=_make_video_crud(video),
         )
 
         with pytest.raises(RuntimeError):
             await service.generate_video(
-                video_id=VIDEO_ID, video_input=VideoCreate(script_text="hello")
+                template=MOCK_TEMPLATE,
+                video_input=VideoCreate(script_text="hello"),
             )
 
         assert video.prompt == "from settings"
@@ -219,7 +246,6 @@ class TestPromptResolution:
     async def test_empty_master_prompt_defaults_to_empty_string(self):
         video = _make_video()
         session = AsyncMock()
-        session.get = AsyncMock(return_value=video)
 
         tts = MagicMock()
         tts.synthesize.return_value = MagicMock(
@@ -240,11 +266,13 @@ class TestPromptResolution:
             tts=tts,
             segmentation=seg,
             app_settings=app_settings,
+            video_crud=_make_video_crud(video),
         )
 
         with pytest.raises(RuntimeError):
             await service.generate_video(
-                video_id=VIDEO_ID, video_input=VideoCreate(script_text="hello")
+                template=MOCK_TEMPLATE,
+                video_input=VideoCreate(script_text="hello"),
             )
 
         assert video.prompt == ""
