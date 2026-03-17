@@ -23,9 +23,7 @@ class GeminiImageGenService(ImageGenService):
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
     @pipeline_retry()
-    def generate_image(
-        self, image_prompt: str, config: ImageConfig
-    ) -> ImageGenResult:
+    def generate_image(self, image_prompt: str, config: ImageConfig) -> ImageGenResult:
         """Generate an image using the prompt and template's image config."""
         logger.info("Imagen: generating image")
 

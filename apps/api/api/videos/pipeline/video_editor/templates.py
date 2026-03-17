@@ -27,4 +27,4 @@ TIKTOK_AD_TEMPLATE = VideoTemplate(
         Top text headline is burned at 8% from top — keep the top 15% clear too.
         Image prompts should describe vivid, full-frame 9:16 portrait scenes with the subject centered in the safe middle zone.
         Target 12 characters max per caption group (2-3 words).""",
-    )
+)

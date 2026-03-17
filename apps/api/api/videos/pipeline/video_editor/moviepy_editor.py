@@ -49,16 +49,27 @@ class MoviePyVideoEditor(VideoEditor):
 
         logger.info(
             "Assembly starting (%d segments, %d bytes audio)",
-            len(segments), len(audio_bytes),
+            len(segments),
+            len(audio_bytes),
         )
 
         segments = self._align_to_audio(segments, audio_bytes)
-        caption_groups = self._group_captions(assembly_input.word_timestamps, template.caption_style.max_chars)
+        caption_groups = self._group_captions(
+            assembly_input.word_timestamps, template.caption_style.max_chars
+        )
         caption_font = self._load_font(template.caption_style)
-        top_font = self._load_font(template.top_text_style) if assembly_input.top_text else None
+        top_font = (
+            self._load_font(template.top_text_style)
+            if assembly_input.top_text
+            else None
+        )
 
         overlay_cache = self._build_overlay_cache(
-            template, caption_groups, caption_font, assembly_input.top_text, top_font,
+            template,
+            caption_groups,
+            caption_font,
+            assembly_input.top_text,
+            top_font,
         )
 
         src_w = int(template.width * template.effect_oversample)
@@ -67,18 +78,32 @@ class MoviePyVideoEditor(VideoEditor):
         clips = []
         offset = 0.0
         for segment in segments:
-            clips.append(self._make_clip(
-                template, segment, offset, src_w, src_h, caption_groups, overlay_cache,
-            ))
+            clips.append(
+                self._make_clip(
+                    template,
+                    segment,
+                    offset,
+                    src_w,
+                    src_h,
+                    caption_groups,
+                    overlay_cache,
+                )
+            )
             offset += segment.duration
 
         result = self._render(clips, audio_bytes, template.fps)
-        logger.info("Assembly complete (%dms, %d bytes)", result.duration_ms, len(result.video_bytes))
+        logger.info(
+            "Assembly complete (%dms, %d bytes)",
+            result.duration_ms,
+            len(result.video_bytes),
+        )
         return result
 
     # ── Audio alignment ─────────────────────────────────────────────
 
-    def _align_to_audio(self, segments: list[Segment], audio_bytes: bytes) -> list[Segment]:
+    def _align_to_audio(
+        self, segments: list[Segment], audio_bytes: bytes
+    ) -> list[Segment]:
         """Extend the last segment to match audio duration."""
         if not segments:
             return segments
@@ -95,14 +120,28 @@ class MoviePyVideoEditor(VideoEditor):
         if gap <= 0.05:
             return segments
 
-        logger.info("Extending last segment by %.2fs (video=%.2fs, audio=%.2fs)", gap, video_duration, audio_duration)
+        logger.info(
+            "Extending last segment by %.2fs (video=%.2fs, audio=%.2fs)",
+            gap,
+            video_duration,
+            audio_duration,
+        )
         last = segments[-1]
-        return [*segments[:-1], Segment(image_bytes=last.image_bytes, duration=last.duration + gap, effect=last.effect)]
+        return [
+            *segments[:-1],
+            Segment(
+                image_bytes=last.image_bytes,
+                duration=last.duration + gap,
+                effect=last.effect,
+            ),
+        ]
 
     # ── Caption grouping ─────────────────────────────────────────────
 
     @staticmethod
-    def _group_captions(captions: list[WordTimestamp], max_chars: int) -> list[CaptionGroup]:
+    def _group_captions(
+        captions: list[WordTimestamp], max_chars: int
+    ) -> list[CaptionGroup]:
         """Group words into subtitle chunks limited by max_chars."""
         if not captions:
             return []
@@ -117,7 +156,13 @@ class MoviePyVideoEditor(VideoEditor):
             new_len = current_len + word_len + (1 if current_words else 0)
 
             if new_len > max_chars and current_words:
-                groups.append(CaptionGroup(text=" ".join(current_words), start=group_start, end=caption_word.start))
+                groups.append(
+                    CaptionGroup(
+                        text=" ".join(current_words),
+                        start=group_start,
+                        end=caption_word.start,
+                    )
+                )
                 current_words = [caption_word.word]
                 current_len = word_len
                 group_start = caption_word.start
@@ -126,7 +171,13 @@ class MoviePyVideoEditor(VideoEditor):
                 current_len = new_len
 
         if current_words:
-            groups.append(CaptionGroup(text=" ".join(current_words), start=group_start, end=captions[-1].end))
+            groups.append(
+                CaptionGroup(
+                    text=" ".join(current_words),
+                    start=group_start,
+                    end=captions[-1].end,
+                )
+            )
 
         return groups
 
@@ -138,22 +189,34 @@ class MoviePyVideoEditor(VideoEditor):
         try:
             return ImageFont.truetype(style.font_path, style.font_size)
         except OSError:
-            logger.warning("Font %s not found, falling back to default", style.font_path)
+            logger.warning(
+                "Font %s not found, falling back to default", style.font_path
+            )
             return ImageFont.load_default()
 
-    def _build_overlay_cache(self, template, caption_groups, caption_font, top_text, top_font) -> dict:
+    def _build_overlay_cache(
+        self, template, caption_groups, caption_font, top_text, top_font
+    ) -> dict:
         """Pre-render all text overlays as RGBA numpy arrays."""
         width, height = template.width, template.height
         cache: dict = {"top": None, "groups": {}}
 
         if top_text and top_font:
             cache["top"] = self._render_text_overlay(
-                width, height, top_text.upper(), top_font, template.top_text_style,
+                width,
+                height,
+                top_text.upper(),
+                top_font,
+                template.top_text_style,
             )
 
         for index, group in enumerate(caption_groups):
             cache["groups"][index] = self._render_text_overlay(
-                width, height, group.text.upper(), caption_font, template.caption_style,
+                width,
+                height,
+                group.text.upper(),
+                caption_font,
+                template.caption_style,
             )
 
         return cache
@@ -165,8 +228,12 @@ class MoviePyVideoEditor(VideoEditor):
         draw = ImageDraw.Draw(overlay)
         draw.text(
             (width // 2, int(height * style.y_position)),
-            text, font=font, fill=style.color,
-            stroke_width=style.stroke_width, stroke_fill=style.stroke_color, anchor="mt",
+            text,
+            font=font,
+            fill=style.color,
+            stroke_width=style.stroke_width,
+            stroke_fill=style.stroke_color,
+            anchor="mt",
         )
         return np.array(overlay)
 
@@ -180,11 +247,22 @@ class MoviePyVideoEditor(VideoEditor):
 
     # ── Ken Burns clip ───────────────────────────────────────────────
 
-    def _make_clip(self, template, segment, time_offset, src_w, src_h, caption_groups, overlay_cache) -> VideoClip:
+    def _make_clip(
+        self,
+        template,
+        segment,
+        time_offset,
+        src_w,
+        src_h,
+        caption_groups,
+        overlay_cache,
+    ) -> VideoClip:
         """Create a clip with Ken Burns pan/zoom and pre-rendered text overlays."""
         width, height = template.width, template.height
         src = np.array(
-            Image.open(io.BytesIO(segment.image_bytes)).convert("RGB").resize((src_w, src_h), Image.BILINEAR)
+            Image.open(io.BytesIO(segment.image_bytes))
+            .convert("RGB")
+            .resize((src_w, src_h), Image.BILINEAR)
         )
         source_h, source_w = src.shape[:2]
         direction = segment.effect.direction.value
@@ -195,7 +273,9 @@ class MoviePyVideoEditor(VideoEditor):
 
         def make_frame(local_t: float) -> np.ndarray:
             progress = local_t / duration if duration > 0 else 0.0
-            cur_scale, center_x, center_y = _compute_ken_burns(direction, scale, progress, source_w, source_h)
+            cur_scale, center_x, center_y = _compute_ken_burns(
+                direction, scale, progress, source_w, source_h
+            )
 
             crop_w = int(source_w / cur_scale)
             crop_h = int(source_h / cur_scale)
@@ -203,7 +283,9 @@ class MoviePyVideoEditor(VideoEditor):
             y_start = max(0, center_y - crop_h // 2)
 
             cropped = src[y_start : y_start + crop_h, x_start : x_start + crop_w]
-            frame = np.array(Image.fromarray(cropped).resize((width, height), Image.BILINEAR))
+            frame = np.array(
+                Image.fromarray(cropped).resize((width, height), Image.BILINEAR)
+            )
 
             if top_overlay is not None:
                 frame = self._composite_overlay(frame, top_overlay)
@@ -216,15 +298,22 @@ class MoviePyVideoEditor(VideoEditor):
 
             return frame
 
-        return VideoClip(frame_function=make_frame, duration=duration).with_fps(template.fps)
+        return VideoClip(frame_function=make_frame, duration=duration).with_fps(
+            template.fps
+        )
 
     # ── Render ───────────────────────────────────────────────────────
 
-    def _render(self, clips: list[VideoClip], audio_bytes: bytes, fps: int) -> EditResult:
+    def _render(
+        self, clips: list[VideoClip], audio_bytes: bytes, fps: int
+    ) -> EditResult:
         """Concatenate clips, attach audio, and render to MP4."""
         video_clip = audio_clip = None
 
-        with self._temp_file(".mp3") as audio_path, self._temp_file(".mp4") as output_path:
+        with (
+            self._temp_file(".mp3") as audio_path,
+            self._temp_file(".mp4") as output_path,
+        ):
             Path(audio_path).write_bytes(audio_bytes)
 
             try:
@@ -233,9 +322,13 @@ class MoviePyVideoEditor(VideoEditor):
                 video_clip = video_clip.with_audio(audio_clip)
 
                 video_clip.write_videofile(
-                    output_path, fps=fps,
-                    codec=RENDER_CODEC, audio_codec=RENDER_AUDIO_CODEC,
-                    preset=RENDER_PRESET, threads=RENDER_THREADS, logger="bar",
+                    output_path,
+                    fps=fps,
+                    codec=RENDER_CODEC,
+                    audio_codec=RENDER_AUDIO_CODEC,
+                    preset=RENDER_PRESET,
+                    threads=RENDER_THREADS,
+                    logger="bar",
                 )
 
                 return EditResult(
@@ -263,7 +356,11 @@ class MoviePyVideoEditor(VideoEditor):
 
 
 def _compute_ken_burns(
-    direction: str, scale: float, progress: float, width: int, height: int,
+    direction: str,
+    scale: float,
+    progress: float,
+    width: int,
+    height: int,
 ) -> tuple[float, int, int]:
     """Return (current_scale, center_x, center_y) for a Ken Burns frame."""
     center_x, center_y = width // 2, height // 2

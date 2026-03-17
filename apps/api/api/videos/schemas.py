@@ -37,7 +37,9 @@ class VideoCostTotals(BaseModel):
 class VideoCreate(BaseModel):
     """Schema for creating a video (also used as pipeline input)."""
 
-    script_text: str = Field(min_length=1, description="Ad script text to convert to video")
+    script_text: str = Field(
+        min_length=1, description="Ad script text to convert to video"
+    )
     voice_id: str | None = Field(default=None, max_length=255)
     style: str | None = Field(default=None, max_length=255)
     top_text: str | None = Field(default=None, max_length=500)

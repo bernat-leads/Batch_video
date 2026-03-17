@@ -11,9 +11,7 @@ from api.videos.pipeline.image_generation.schemas import ImageConfig, ImageGenRe
 class PlaceholderImageGenService(ImageGenService):
     """Generates solid-color placeholder images for development."""
 
-    def generate_image(
-        self, image_prompt: str, config: ImageConfig
-    ) -> ImageGenResult:
+    def generate_image(self, image_prompt: str, config: ImageConfig) -> ImageGenResult:
         """Generate a placeholder image matching the config dimensions."""
         width, height = config.dimensions
         image = Image.new("RGB", (width, height), color=(30, 30, 30))

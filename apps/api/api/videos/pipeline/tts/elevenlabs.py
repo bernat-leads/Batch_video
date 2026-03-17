@@ -39,7 +39,9 @@ class ElevenLabsTTSService(TTSService):
                 model_id=settings.ELEVENLABS_MODEL_ID,
             )
         except Exception as error:
-            raise PipelineStageError("tts", f"ElevenLabs API call failed: {error}") from error
+            raise PipelineStageError(
+                "tts", f"ElevenLabs API call failed: {error}"
+            ) from error
 
         audio_bytes = base64.b64decode(response.audio_base_64)
         word_timestamps = self._parse_word_timestamps(response.alignment)

@@ -39,7 +39,9 @@ class OpenAITTSService(TTSService):
                 response_format="wav",
             )
         except Exception as error:
-            raise PipelineStageError("tts", f"OpenAI TTS API call failed: {error}") from error
+            raise PipelineStageError(
+                "tts", f"OpenAI TTS API call failed: {error}"
+            ) from error
 
         audio_bytes = response.content
         word_timestamps = self._get_word_timestamps(audio_bytes, tts_input.script_text)
@@ -89,7 +91,9 @@ class OpenAITTSService(TTSService):
         if hasattr(transcript, "words") and transcript.words:
             for word in transcript.words:
                 words.append(
-                    WordTimestamp(word=word.word.strip(), start=word.start, end=word.end)
+                    WordTimestamp(
+                        word=word.word.strip(), start=word.start, end=word.end
+                    )
                 )
         elif words_data := getattr(transcript, "words", None):
             for word in words_data:

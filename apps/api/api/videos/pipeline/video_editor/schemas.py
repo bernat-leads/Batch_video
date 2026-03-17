@@ -9,7 +9,9 @@ from api.videos.pipeline.segmentation.schemas import AnySegmentEffect
 from api.videos.pipeline.tts.schemas import WordTimestamp
 
 BUNDLED_FONT = str(
-    Path(__file__).resolve().parent.parent.parent.parent / "fonts" / "Montserrat-Bold.ttf"
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "fonts"
+    / "Montserrat-Bold.ttf"
 )
 
 
