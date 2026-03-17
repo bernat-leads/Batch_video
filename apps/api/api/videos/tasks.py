@@ -100,11 +100,7 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
-        # Set video to processing and emit events immediately
-        video.status = "processing"
-        video.error_message = None
-        await ctx.session.commit()
-
+        # Emit processing event (status already set by route)
         try:
             event = VideoProgressEvent(
                 video_id=str(video.id),

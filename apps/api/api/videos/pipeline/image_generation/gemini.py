@@ -5,6 +5,7 @@ import logging
 from google import genai
 from google.genai import types as genai_types
 
+from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
 from api.videos.pipeline.config import IMAGEN_COST_PER_IMAGE, IMAGEN_MODEL
@@ -38,11 +39,16 @@ class GeminiImageGenService(ImageGenService):
                 ),
             )
         except Exception as error:
-            logger.error("Imagen: API call failed — %s", error)
-            raise
+            raise PipelineStageError(
+                "image_generation", f"Imagen API call failed: {error}"
+            ) from error
 
         if not response.generated_images:
-            raise RuntimeError("Imagen: no image returned (prompt may have been blocked)")
+            filters = getattr(response, "filtered_reason", None) or "unknown"
+            raise PipelineStageError(
+                "image_generation",
+                f"Imagen returned no image (filtered: {filters}, prompt: {image_prompt[:200]})",
+            )
 
         image_bytes = response.generated_images[0].image.image_bytes
         logger.info("Imagen: complete (%d bytes)", len(image_bytes))

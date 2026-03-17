@@ -142,10 +142,14 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
 
 
 @videos_router.post("/{video_id}/retry", response_model=VideoRead)
-async def retry_video(video: VideoDep) -> VideoRead:
+async def retry_video(video: VideoDep, crud: VideoCrudDep) -> VideoRead:
     """Retry a failed video from the stage that failed."""
     if video.status != VideoStatus.failed:
         raise HTTPException(status_code=400, detail="Only failed videos can be retried")
+
+    video.status = VideoStatus.processing
+    video.error_message = None
+    await crud.db_session.commit()
 
     from api.videos.tasks import retry_video as retry_video_task
 
