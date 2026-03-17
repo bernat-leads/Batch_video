@@ -39,7 +39,7 @@ async def process_video(
             events=ctx.events,
             app_settings=AppSettingsCrud(ctx.session),
             video_crud=VideoCrud(ctx.session),
-            tts=OpenAITTSService(),
+            tts=ElevenLabsTTSService(),
             segmentation=ClaudeSegmentationService(),
             image_gen=GeminiImageGenService(),
             editor=MoviePyVideoEditor(),

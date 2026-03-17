@@ -98,9 +98,7 @@ class VideoService:
         shots = await self._run_image_generation(video, seg_result, template)
         edit_result = await self._run_assembly(video, shots, tts_result, template)
         await self._run_upload(video, edit_result)
-        return await self._finalize(
-            video, edit_result, tts_result.cost, seg_result.cost
-        )
+        return await self._finalize(video)
 
     async def _run_tts(self, video: Video) -> TTSResult:
         """Stage 1: Convert script to speech, upload audio to S3."""
@@ -115,6 +113,9 @@ class VideoService:
             video.audio_s3_key, tts_result.audio_bytes, tts_result.content_type
         )
         video.audio_url = video.audio_s3_key
+        video.tts_cost_usd = tts_result.cost.cost_usd
+        video.tts_token_count = tts_result.cost.token_count
+        await self._session.commit()
         return tts_result
 
     async def _run_segmentation(
@@ -132,6 +133,9 @@ class VideoService:
         seg_result = await self._segmentation.segment_script(seg_input)
         if not seg_result.segments:
             raise SegmentationEmptyError()
+        video.segmentation_cost_usd = seg_result.cost.cost_usd
+        video.segmentation_token_count = seg_result.cost.token_count
+        await self._session.commit()
         return seg_result
 
     async def _run_image_generation(
@@ -151,6 +155,11 @@ class VideoService:
         for shot in shots:
             self._session.add(shot)
         await self._session.flush()
+
+        image_cost = video.shots_cost(list(shots))
+        video.image_generation_cost_usd = image_cost.cost_usd
+        video.image_generation_token_count = image_cost.token_count
+        await self._session.commit()
         return list(shots)
 
     def _generate_shot(
@@ -217,41 +226,29 @@ class VideoService:
         video.duration_ms = edit_result.duration_ms
         video.file_size_bytes = len(edit_result.video_bytes)
 
-    async def _finalize(
-        self,
-        video: Video,
-        edit_result: EditResult,
-        tts_cost: AICost,
-        seg_cost: AICost,
-    ) -> VideoGenerationResult:
-        """Persist final costs and return the generation result."""
-        image_cost = video.shots_cost(video.shots)
-        total = AICost(
-            token_count=tts_cost.token_count
-            + seg_cost.token_count
-            + image_cost.token_count,
-            cost_usd=tts_cost.cost_usd + seg_cost.cost_usd + image_cost.cost_usd,
+    async def _finalize(self, video: Video) -> VideoGenerationResult:
+        """Compute totals, mark finished, and return the generation result."""
+        video.total_cost_usd = (
+            video.tts_cost_usd
+            + video.segmentation_cost_usd
+            + video.image_generation_cost_usd
         )
-
+        video.total_token_count = (
+            video.tts_token_count
+            + video.segmentation_token_count
+            + video.image_generation_token_count
+        )
         video.status = VideoStatus.finished
         video.current_stage = VideoStage.done
-        video.tts_cost_usd = tts_cost.cost_usd
-        video.tts_token_count = tts_cost.token_count
-        video.segmentation_cost_usd = seg_cost.cost_usd
-        video.segmentation_token_count = seg_cost.token_count
-        video.image_generation_cost_usd = image_cost.cost_usd
-        video.image_generation_token_count = image_cost.token_count
-        video.total_cost_usd = total.cost_usd
-        video.total_token_count = total.token_count
         await self._session.commit()
         await self._emit_progress(video)
 
         logger.info("Video %s: pipeline complete", video.id)
         return VideoGenerationResult(
             video_id=str(video.id),
-            duration_ms=edit_result.duration_ms,
+            duration_ms=video.duration_ms,
             num_shots=len(video.shots),
-            total=total,
+            total=video.total,
         )
 
     # ------------------------------------------------------------------

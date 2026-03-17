@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_DEFAULT_VOICE: str = "coral"
 
+    # ─── Fonts ───────────────────────────────────────────────────────────
+    FONT_DIR: str = "fonts"
+
     # ─── Pipeline ─────────────────────────────────────────────────────────
     PIPELINE_MAX_RETRIES: int = 3
     PIPELINE_RETRY_WAIT_SECONDS: int = 2

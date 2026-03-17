@@ -45,7 +45,8 @@ openai = "^2.28.0"
 [tool.poetry.scripts]
 start = "api.main:main"
 celery-worker = "api.deps.celery:main"
-dev = "api.dev:main"
+dev = "api.scripts.dev:main"
+preview-video = "api.scripts.preview_video:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"

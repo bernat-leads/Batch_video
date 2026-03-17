@@ -44,6 +44,12 @@ celery_app.conf.update(
     worker_prefetch_multiplier=4,
     worker_max_tasks_per_child=1000,
     result_expires=3600,
+    beat_schedule={
+        "cleanup-expired-videos": {
+            "task": "api.deps.tasks.cleanup_expired_videos",
+            "schedule": 86400,  # daily (24h in seconds)
+        },
+    },
 )
 
 

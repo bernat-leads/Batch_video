@@ -11,7 +11,8 @@ ENV PYTHONUNBUFFERED=1 \
 # System dependencies (curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc python3-dev libpq-dev curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /usr/share/fonts/app
 
 # Install Poetry as root
 RUN pip install --no-cache-dir poetry==2.2.1
@@ -24,13 +25,17 @@ RUN addgroup --gid 1000 appuser \
 
 WORKDIR /home/appuser
 ENV PATH="/home/appuser/.venv/bin:$PATH" \
-    TMPDIR=/tmp/pipeline
+    TMPDIR=/tmp/pipeline \
+    API_FONT_DIR=/usr/share/fonts/app
 
 # Copy dependency manifests first for better layer caching
 COPY apps/api/pyproject.toml apps/api/poetry.lock ./
 
 # Install deps without the project itself (layer cache)
 RUN poetry install --only=main --no-root -v
+
+# Copy fonts to system font directory
+COPY apps/api/fonts/ /usr/share/fonts/app/
 
 # Copy the app code
 COPY --chown=appuser apps/api/ .
