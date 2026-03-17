@@ -11,7 +11,6 @@ import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { SectionCard } from "@/components/ui/section-card";
 import { downloadVideo } from "@/lib/download";
 import { useEventSource } from "@/hooks/use-event-source";
-import { PromptScriptPanel } from "./_components/prompt-script-panel";
 import { ShotsTable } from "./_components/shots-table";
 import { VideoHeader } from "./_components/video-header";
 import { VideoMetrics } from "./_components/video-metrics";
@@ -34,11 +33,6 @@ function buildBreadcrumbs(videoId: string, batchId: string, batchName: string | 
     { label: "Videos", to: "/app/videos" },
     { label: `Video ${videoId.slice(0, 8)}` },
   ];
-}
-
-/** Truncates text to maxLen characters with ellipsis. */
-function truncate(text: string, maxLen: number): string {
-  return text.length > maxLen ? `${text.slice(0, maxLen)}...` : text;
 }
 
 function VideoDetailPage() {
@@ -76,7 +70,6 @@ function VideoDetailPage() {
       <VideoHeader
         videoId={videoId}
         video={video}
-        scriptPreview={truncate(video.script_text, 50)}
         onDownload={() => downloadVideo(videoId)}
       />
 
@@ -114,8 +107,6 @@ function VideoDetailPage() {
           />
         </SectionCard>
       </div>
-
-      <PromptScriptPanel prompt={video.prompt} scriptText={video.script_text} />
 
       <ShotsTable shots={shots} />
     </div>

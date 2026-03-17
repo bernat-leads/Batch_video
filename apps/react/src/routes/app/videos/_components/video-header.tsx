@@ -6,7 +6,6 @@ import { AsyncButton } from "@/components/ui/async-button";
 interface VideoHeaderProps {
   videoId: string;
   video: VideoReadWithShots;
-  scriptPreview: string;
   onDownload: () => Promise<void> | void;
 }
 
@@ -18,7 +17,7 @@ function formatCreatedDate(iso: string): string {
   });
 }
 
-export function VideoHeader({ videoId, video, scriptPreview, onDownload }: VideoHeaderProps) {
+export function VideoHeader({ videoId, video, onDownload }: VideoHeaderProps) {
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
@@ -31,7 +30,6 @@ export function VideoHeader({ videoId, video, scriptPreview, onDownload }: Video
         <p className="mt-0.5 text-xs text-text-muted">
           Created {formatCreatedDate(video.created_at)}
         </p>
-        <p className="mt-1 text-sm text-text-secondary">{scriptPreview}</p>
       </div>
       <div className="flex items-center gap-2 pt-1">
         <AsyncButton
