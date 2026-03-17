@@ -1,17 +1,77 @@
-"""Scheduled Celery tasks — retention cleanup."""
+"""Scheduled Celery tasks — retention cleanup and stale task recovery."""
 
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
+from api.batches.crud import BatchCrud
 from api.batches.models.batch import Batch
+from api.batches.service import BatchService
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
 from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 
 logger = logging.getLogger(__name__)
+
+# Time after which a "processing" video is considered stuck (killed by deploy).
+# Must be longer than the slowest pipeline stage (assembly can take 10+ minutes).
+STALE_PROCESSING_MINUTES = 60
+
+
+@async_task(celery_app, bind=True)
+async def recover_stale_videos(self) -> int:
+    """Mark videos stuck in 'processing' as failed.
+
+    Runs on worker startup. Catches videos abandoned by a killed worker
+    (e.g. during deployment). Uses updated_at to detect staleness.
+    """
+    async with task_context() as ctx:
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=STALE_PROCESSING_MINUTES)
+
+        # Find affected batch IDs before updating
+        stale_batch_ids_result = await ctx.session.execute(
+            select(Video.batch_id)
+            .where(
+                Video.status == VideoStatus.processing,
+                Video.updated_at < cutoff,
+                Video.batch_id.is_not(None),
+            )
+            .distinct()
+        )
+        affected_batch_ids = [row[0] for row in stale_batch_ids_result.all()]
+
+        # Mark stale videos as failed
+        result = await ctx.session.execute(
+            update(Video)
+            .where(
+                Video.status == VideoStatus.processing,
+                Video.updated_at < cutoff,
+            )
+            .values(
+                status=VideoStatus.failed,
+                error_message="Interrupted — worker was restarted during processing",
+            )
+        )
+        await ctx.session.commit()
+
+        recovered_count = result.rowcount
+        if recovered_count:
+            logger.info("Recovered %d stale processing videos", recovered_count)
+
+        # Recompute batch counters for affected batches
+        if affected_batch_ids:
+            batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
+            for batch_id in affected_batch_ids:
+                try:
+                    batch = await batch_service.recompute_counters(batch_id)
+                    if batch:
+                        await batch_service.emit_progress(ctx.events, batch)
+                except Exception:
+                    logger.exception("Failed to update batch %s after stale recovery", batch_id)
+
+        return recovered_count
 
 
 @async_task(celery_app, bind=True)

@@ -100,16 +100,14 @@ class KenBurnsEffect(SegmentEffect):
         elif direction == "pan_down":
             center_y -= int(pan_offset_y * (1 - progress))
 
+        import cv2
+
         x_start = max(0, center_x - crop_width // 2)
         y_start = max(0, center_y - crop_height // 2)
         cropped = source_image[
             y_start : y_start + crop_height, x_start : x_start + crop_width
         ]
-        return np.array(
-            Image.fromarray(cropped).resize(
-                (output_width, output_height), Image.BILINEAR
-            )
-        )
+        return cv2.resize(cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR)
 
 
 # When adding new effect types, change this to a discriminated union:

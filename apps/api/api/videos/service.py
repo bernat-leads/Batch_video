@@ -84,13 +84,11 @@ class VideoService:
         video: Video,
         template: VideoTemplate,
     ) -> VideoGenerationResult:
-        """Retry a failed video from the stage that failed."""
-        logger.info("Video %s: retrying from stage %s", video.id, video.current_stage)
+        """Retry a failed video from the stage that failed.
 
-        video.status = VideoStatus.processing
-        video.error_message = None
-        await self._session.commit()
-        await self._emit_progress(video)
+        Caller must set video.status to processing before calling this.
+        """
+        logger.info("Video %s: retrying from stage %s", video.id, video.current_stage)
 
         try:
             return await self._run_pipeline(

@@ -47,10 +47,16 @@ celery_app.conf.update(
     beat_schedule={
         "cleanup-expired-videos": {
             "task": "api.deps.tasks.cleanup_expired_videos",
-            "schedule": 86400,  # daily (24h in seconds)
+            "schedule": 86400,  # daily
+        },
+        "recover-stale-videos": {
+            "task": "api.deps.tasks.recover_stale_videos",
+            "schedule": 300,  # every 5 minutes
         },
     },
 )
+
+
 
 
 # ---------------------------------------------------------------------------

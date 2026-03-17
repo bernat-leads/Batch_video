@@ -98,6 +98,19 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
+        # Set video to processing and recompute batch counters immediately
+        video.status = "processing"
+        video.error_message = None
+        await ctx.session.commit()
+        if video.batch_id:
+            try:
+                batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
+                batch = await batch_service.recompute_counters(video.batch_id)
+                if batch:
+                    await batch_service.emit_progress(ctx.events, batch)
+            except Exception:
+                logger.exception("Failed to update batch counters at retry start (batch=%s)", video.batch_id)
+
         try:
             result = await service.retry_video(
                 video=video,

@@ -14,7 +14,7 @@ from api.videos.pipeline.tts.schemas import WordTimestamp
 
 logger = logging.getLogger(__name__)
 
-BUNDLED_FONT = str(Path(settings.FONT_DIR) / "Montserrat-Bold.ttf")
+BUNDLED_FONT = str(Path(settings.FONT_DIR) / "Montserrat-Black.ttf")
 
 
 class TextStyle(BaseModel):
@@ -27,6 +27,7 @@ class TextStyle(BaseModel):
     stroke_width: int = 4
     y_position: float = 0.5
     max_chars: int = 30
+    max_words: int = 5
 
     def load_font(self) -> ImageFont.FreeTypeFont:
         """Load the configured font, falling back to PIL default."""
@@ -37,23 +38,65 @@ class TextStyle(BaseModel):
             return ImageFont.load_default()
 
     def render_overlay(self, width: int, height: int, text: str) -> np.ndarray:
-        """Render text into a transparent RGBA overlay array using this style."""
+        """Render text into a transparent RGBA overlay, wrapping if too wide.
+
+        Wraps text into multiple centered lines if it exceeds 90% of frame width.
+        Each line is centered horizontally, stacked vertically from y_position.
+        """
         font = self.load_font()
         overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=self.stroke_width)
-        text_width = bbox[2] - bbox[0]
-        text_x = (width - text_width) // 2
-        text_y = int(height * self.y_position)
-        draw.text(
-            (text_x, text_y),
-            text,
-            font=font,
-            fill=self.color,
-            stroke_width=self.stroke_width,
-            stroke_fill=self.stroke_color,
-        )
+        max_width = int(width * 0.9)
+
+        lines = self._wrap_text(draw, text, font, max_width)
+        line_height = draw.textbbox((0, 0), "Ay", font=font, stroke_width=self.stroke_width)[3]
+        total_height = line_height * len(lines)
+        start_y = int(height * self.y_position) - total_height // 2
+
+        for line_index, line in enumerate(lines):
+            bbox = draw.textbbox((0, 0), line, font=font, stroke_width=self.stroke_width)
+            line_width = bbox[2] - bbox[0]
+            line_x = (width - line_width) // 2
+            line_y = start_y + line_index * line_height
+            draw.text(
+                (line_x, line_y),
+                line,
+                font=font,
+                fill=self.color,
+                stroke_width=self.stroke_width,
+                stroke_fill=self.stroke_color,
+            )
+
         return np.array(overlay)
+
+    @staticmethod
+    def _wrap_text(
+        draw: ImageDraw.ImageDraw,
+        text: str,
+        font: ImageFont.FreeTypeFont,
+        max_width: int,
+    ) -> list[str]:
+        """Split text into lines that fit within max_width pixels."""
+        words = text.split()
+        if not words:
+            return [text]
+
+        lines: list[str] = []
+        current_line: list[str] = []
+
+        for word in words:
+            test_line = " ".join([*current_line, word])
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            if bbox[2] - bbox[0] > max_width and current_line:
+                lines.append(" ".join(current_line))
+                current_line = [word]
+            else:
+                current_line.append(word)
+
+        if current_line:
+            lines.append(" ".join(current_line))
+
+        return lines
 
 
 class VideoTemplate(BaseModel):
@@ -94,9 +137,13 @@ class CaptionGroup(BaseModel):
 
     @classmethod
     def from_word_timestamps(
-        cls, words: list[WordTimestamp], max_chars: int
+        cls, words: list[WordTimestamp], max_chars: int, max_words: int = 3
     ) -> list["CaptionGroup"]:
-        """Group words into subtitle chunks limited by max_chars."""
+        """Group words into TikTok-style caption chunks.
+
+        Each group is limited by both max_chars and max_words,
+        producing short punchy captions (1-3 words) that pop on screen.
+        """
         if not words:
             return []
 
@@ -108,15 +155,14 @@ class CaptionGroup(BaseModel):
         for word in words:
             word_len = len(word.word)
             new_len = current_len + word_len + (1 if current_words else 0)
+            word_count = len(current_words) + 1
 
-            if new_len > max_chars and current_words:
-                groups.append(
-                    cls(
-                        text=" ".join(current_words),
-                        start=group_start,
-                        end=word.start,
-                    )
-                )
+            if (new_len > max_chars or word_count > max_words) and current_words:
+                groups.append(cls(
+                    text=" ".join(current_words),
+                    start=group_start,
+                    end=word.start,
+                ))
                 current_words = [word.word]
                 current_len = word_len
                 group_start = word.start
@@ -125,24 +171,57 @@ class CaptionGroup(BaseModel):
                 current_len = new_len
 
         if current_words:
-            groups.append(
-                cls(
-                    text=" ".join(current_words),
-                    start=group_start,
-                    end=words[-1].end,
-                )
-            )
+            groups.append(cls(
+                text=" ".join(current_words),
+                start=group_start,
+                end=words[-1].end,
+            ))
 
         return groups
 
 
-class OverlayCache(BaseModel):
-    """Pre-rendered RGBA text overlays for compositing onto frames."""
+CAPTION_SLIDE_DURATION = 0.15  # seconds for slide-up animation
+CAPTION_SLIDE_DISTANCE = 80  # pixels to slide up from
+
+
+class PrecomputedOverlay(BaseModel):
+    """Pre-computed overlay data for fast per-frame compositing."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    top_overlay: np.ndarray | None = None
-    caption_overlays: dict[int, np.ndarray] = {}
+    inv_alpha: np.ndarray
+    premultiplied_rgb: np.ndarray
+
+    def shifted(self, offset_y: int) -> tuple[np.ndarray, np.ndarray]:
+        """Return (inv_alpha, premultiplied_rgb) shifted down by offset_y pixels.
+
+        Positive offset_y shifts the overlay downward. Used for slide-up animation.
+        """
+        if offset_y == 0:
+            return self.inv_alpha, self.premultiplied_rgb
+
+        height = self.inv_alpha.shape[0]
+        ones = np.ones_like(self.inv_alpha[:1])
+        zeros = np.zeros_like(self.premultiplied_rgb[:1])
+
+        if offset_y > 0:
+            shifted_inv = np.concatenate([np.broadcast_to(ones, (offset_y, *ones.shape[1:])), self.inv_alpha[:height - offset_y]], axis=0)
+            shifted_rgb = np.concatenate([np.broadcast_to(zeros, (offset_y, *zeros.shape[1:])), self.premultiplied_rgb[:height - offset_y]], axis=0)
+        else:
+            abs_offset = abs(offset_y)
+            shifted_inv = np.concatenate([self.inv_alpha[abs_offset:], np.broadcast_to(ones, (abs_offset, *ones.shape[1:]))], axis=0)
+            shifted_rgb = np.concatenate([self.premultiplied_rgb[abs_offset:], np.broadcast_to(zeros, (abs_offset, *zeros.shape[1:]))], axis=0)
+
+        return shifted_inv, shifted_rgb
+
+
+class OverlayCache(BaseModel):
+    """Pre-rendered and pre-computed text overlays for fast frame compositing."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    top: PrecomputedOverlay | None = None
+    captions: dict[int, PrecomputedOverlay] = {}
 
     @classmethod
     def build(
@@ -151,23 +230,24 @@ class OverlayCache(BaseModel):
         caption_groups: list[CaptionGroup],
         top_text: str | None,
     ) -> "OverlayCache":
-        """Pre-render all text overlays from template styles."""
+        """Pre-render all text overlays and pre-compute alpha channels."""
+        from api.videos.utils import precompute_overlay
+
         width, height = template.width, template.height
 
-        top_overlay = (
-            template.top_text_style.render_overlay(width, height, top_text.upper())
-            if top_text
-            else None
-        )
+        top = None
+        if top_text:
+            rgba = template.top_text_style.render_overlay(width, height, top_text.upper())
+            _, inv_alpha, premultiplied_rgb = precompute_overlay(rgba)
+            top = PrecomputedOverlay(inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb)
 
-        caption_overlays = {
-            index: template.caption_style.render_overlay(
-                width, height, group.text.upper()
-            )
-            for index, group in enumerate(caption_groups)
-        }
+        captions: dict[int, PrecomputedOverlay] = {}
+        for index, group in enumerate(caption_groups):
+            rgba = template.caption_style.render_overlay(width, height, group.text.upper())
+            _, inv_alpha, premultiplied_rgb = precompute_overlay(rgba)
+            captions[index] = PrecomputedOverlay(inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb)
 
-        return cls(top_overlay=top_overlay, caption_overlays=caption_overlays)
+        return cls(top=top, captions=captions)
 
 
 class AssemblyInput(BaseModel):

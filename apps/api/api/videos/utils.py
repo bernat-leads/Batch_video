@@ -28,12 +28,25 @@ def temp_file(suffix: str):
             Path(path).unlink(missing_ok=True)
 
 
-def composite_overlay(frame: np.ndarray, overlay: np.ndarray) -> np.ndarray:
-    """Alpha-composite an RGBA overlay onto an RGB frame."""
-    alpha = overlay[:, :, 3:4].astype(np.float32) / 255.0
-    rgb = overlay[:, :, :3].astype(np.float32)
-    blended = frame.astype(np.float32) * (1 - alpha) + rgb * alpha
-    return blended.astype(np.uint8)
+def precompute_overlay(rgba: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Pre-compute alpha, inv_alpha, and premultiplied RGB from an RGBA overlay.
+
+    Returns (alpha, inv_alpha, premultiplied_rgb) as float32 arrays.
+    Call once per overlay, then use fast_composite per frame.
+    """
+    alpha = rgba[:, :, 3:4].astype(np.float32) / 255.0
+    inv_alpha = 1.0 - alpha
+    premultiplied_rgb = rgba[:, :, :3].astype(np.float32) * alpha
+    return alpha, inv_alpha, premultiplied_rgb
+
+
+def fast_composite(
+    frame: np.ndarray,
+    inv_alpha: np.ndarray,
+    premultiplied_rgb: np.ndarray,
+) -> np.ndarray:
+    """Alpha-composite a pre-computed overlay onto an RGB frame."""
+    return (frame.astype(np.float32) * inv_alpha + premultiplied_rgb).astype(np.uint8)
 
 
 def pipeline_retry():
