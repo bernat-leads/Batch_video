@@ -52,6 +52,10 @@ class NumpyEffectService(EffectService):
         output_height: int,
     ) -> np.ndarray:
         """Apply Ken Burns pan/zoom crop and resize."""
+        effect = KenBurnsEffect(
+            direction=effect.direction,
+            scale=max(1.1, min(1.4, effect.scale)),
+        )
         source_height, source_width = source_image.shape[:2]
         center_x = source_width // 2
         center_y = source_height // 2

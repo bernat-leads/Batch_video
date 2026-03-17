@@ -37,7 +37,9 @@ class ClaudeSegmentationService(SegmentationService):
             model=SEGMENTATION_MODEL,
             api_key=settings.ANTHROPIC_API_KEY,
             max_tokens=SEGMENTATION_MAX_TOKENS,
-        ).with_structured_output(SegmentationOutput, include_raw=True)
+        ).with_structured_output(
+            SegmentationOutput, method="json_schema", include_raw=True
+        )
 
     @pipeline_retry()
     async def segment_script(
@@ -60,13 +62,7 @@ class ClaudeSegmentationService(SegmentationService):
                 "segmentation", f"Claude API call failed: {error}"
             ) from error
 
-        parsed: SegmentationOutput | None = result["parsed"]
-        if parsed is None:
-            raw = result.get("raw", "")
-            raise PipelineStageError(
-                "segmentation",
-                f"Claude returned unparseable response: {str(raw)[:500]}",
-            )
+        parsed: SegmentationOutput = result["parsed"]
 
         cost = AICost.from_chain_result(
             result,

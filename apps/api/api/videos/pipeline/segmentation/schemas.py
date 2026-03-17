@@ -43,7 +43,7 @@ class KenBurnsEffect(SegmentEffect):
 
     type: Literal["ken_burns"] = "ken_burns"
     direction: KenBurnsDirection
-    scale: float = Field(ge=1.1, le=1.4)
+    scale: float = Field(description="Zoom scale factor, ideally between 1.1 and 1.4")
 
 
 # When adding new effect types, change this to a discriminated union:
