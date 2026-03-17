@@ -120,6 +120,13 @@ class SegmentationInput(BaseModel):
                 )
             )
 
+        messages.append(
+            (
+                "human",
+                "Now segment the script. Return the result as structured JSON data using the provided tool schema. Do not respond with plain text.",
+            )
+        )
+
         return ChatPromptTemplate.from_messages(messages)
 
 

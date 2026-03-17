@@ -60,7 +60,13 @@ class ClaudeSegmentationService(SegmentationService):
                 "segmentation", f"Claude API call failed: {error}"
             ) from error
 
-        parsed: SegmentationOutput = result["parsed"]
+        parsed: SegmentationOutput | None = result["parsed"]
+        if parsed is None:
+            raw = result.get("raw", "")
+            raise PipelineStageError(
+                "segmentation",
+                f"Claude returned unparseable response: {str(raw)[:500]}",
+            )
 
         cost = AICost.from_chain_result(
             result,
