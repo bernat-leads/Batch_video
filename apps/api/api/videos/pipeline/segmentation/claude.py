@@ -56,7 +56,13 @@ class ClaudeSegmentationService(SegmentationService):
                 "segmentation", f"Claude API call failed: {error}"
             ) from error
 
-        parsed: SegmentationOutput = result["parsed"]
+        parsed: SegmentationOutput | None = result["parsed"]
+        if parsed is None:
+            parsing_error = result.get("parsing_error")
+            raise PipelineStageError(
+                "segmentation",
+                f"Structured output validation failed: {parsing_error}",
+            )
 
         input_cost, output_cost = get_token_costs(SEGMENTATION_MODEL)
         cost = AICost.from_chain_result(

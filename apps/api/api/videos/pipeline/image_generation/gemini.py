@@ -37,6 +37,7 @@ class GeminiImageGenService(ImageGenService):
                     number_of_images=1,
                     aspect_ratio=config.aspect_ratio,
                     output_mime_type=config.output_format,
+                    include_safety_attributes=True,
                 ),
             )
         except Exception as error:
@@ -45,9 +46,19 @@ class GeminiImageGenService(ImageGenService):
             ) from error
 
         if not response.generated_images:
+            safety = response.positive_prompt_safety_attributes
+            if safety and safety.categories:
+                flagged = [
+                    f"{cat}({score:.2f})"
+                    for cat, score in zip(safety.categories, safety.scores or [])
+                    if score and score > 0.5
+                ]
+                reason = f"Safety filter: {', '.join(flagged)}" if flagged else "Safety filter triggered"
+            else:
+                reason = "No image returned (unknown reason)"
             raise PipelineStageError(
                 "image_generation",
-                f"Imagen returned no image (prompt likely blocked: {image_prompt[:200]})",
+                f"{reason} — prompt: {image_prompt[:200]}",
             )
 
         generated = response.generated_images[0]
