@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     # ─── Google Gemini ─────────────────────────────────────────────────────
     GEMINI_API_KEY: str
-    GEMINI_IMAGEN_MODEL: str = "imagen-3.0-generate-002"
+    GEMINI_IMAGEN_MODEL: str = "imagen-3.0-generate-001"
 
     # ─── OpenAI ──────────────────────────────────────────────────────────
     OPENAI_API_KEY: str
