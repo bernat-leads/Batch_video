@@ -91,15 +91,19 @@ class VideoService:
         Assembly/upload failures resume from assembly (shots + audio in S3).
         Earlier failures clean up and re-run the full pipeline.
         """
-        failed_stage = video.current_stage
-        logger.info("Video %s: retrying from stage %s", video.id, failed_stage.value)
+        failed_stage = str(video.current_stage)
+        logger.info("Video %s: retrying from stage %s", video.id, failed_stage)
 
         video.status = VideoStatus.processing
         video.error_message = None
         await self._session.commit()
         await self._emit_progress(video)
 
-        can_resume = failed_stage in (VideoStage.assembly, VideoStage.upload) and video.shots and video.audio_url
+        can_resume = (
+            failed_stage in (VideoStage.assembly.value, VideoStage.upload.value)
+            and video.shots
+            and video.audio_url
+        )
 
         try:
             if can_resume:
@@ -116,7 +120,9 @@ class VideoService:
     # Pipeline
     # ------------------------------------------------------------------
 
-    async def _run_pipeline(self, video: Video, template: VideoTemplate) -> VideoGenerationResult:
+    async def _run_pipeline(
+        self, video: Video, template: VideoTemplate
+    ) -> VideoGenerationResult:
         """Run the full pipeline from scratch."""
         tts_result = await self._run_tts(video)
         seg_result = await self._run_segmentation(video, tts_result, template)
@@ -125,7 +131,9 @@ class VideoService:
         await self._run_upload(video, edit_result)
         return await self._finalize(video)
 
-    async def _resume_pipeline(self, video: Video, template: VideoTemplate) -> VideoGenerationResult:
+    async def _resume_pipeline(
+        self, video: Video, template: VideoTemplate
+    ) -> VideoGenerationResult:
         """Resume from assembly/upload using existing shots + audio from S3."""
         tts_result = await self._build_tts_result_from_storage(video)
         shots = list(video.shots)
@@ -138,7 +146,9 @@ class VideoService:
         """Rebuild a minimal TTSResult from S3 audio for assembly retry."""
         if not video.audio_url:
             raise ValueError(f"Video {video.id} has no audio_url")
-        audio_bytes = await asyncio.to_thread(self._storage.download_file, video.audio_url)
+        audio_bytes = await asyncio.to_thread(
+            self._storage.download_file, video.audio_url
+        )
 
         # Rebuild word timestamps from shot timing (approximate, sufficient for captions)
         word_timestamps = []
@@ -148,16 +158,22 @@ class VideoService:
                 continue
             word_duration = (shot.end_time - shot.start_time) / len(words)
             for word_index, word in enumerate(words):
-                word_timestamps.append(WordTimestamp(
-                    word=word,
-                    start=round(shot.start_time + word_index * word_duration, 3),
-                    end=round(shot.start_time + (word_index + 1) * word_duration, 3),
-                ))
+                word_timestamps.append(
+                    WordTimestamp(
+                        word=word,
+                        start=round(shot.start_time + word_index * word_duration, 3),
+                        end=round(
+                            shot.start_time + (word_index + 1) * word_duration, 3
+                        ),
+                    )
+                )
 
         return TTSResult(
             audio_bytes=audio_bytes,
             content_type="audio/mpeg",
-            audio_duration_ms=int(word_timestamps[-1].end * 1000) if word_timestamps else 0,
+            audio_duration_ms=int(word_timestamps[-1].end * 1000)
+            if word_timestamps
+            else 0,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
         )
@@ -347,10 +363,10 @@ class VideoService:
         The retention cleanup task handles orphaned artifacts.
         """
         logger.error(
-            "Video %s: failed at %s — %s", video.id, video.current_stage.value, error
+            "Video %s: failed at %s — %s", video.id, video.current_stage, error
         )
         video.status = VideoStatus.failed
-        video.error_message = f"Failed at {video.current_stage.value}: {error}"
+        video.error_message = f"Failed at {video.current_stage}: {error}"
         try:
             await self._session.commit()
         except Exception:
@@ -363,8 +379,8 @@ class VideoService:
             event = VideoProgressEvent(
                 video_id=str(video.id),
                 batch_id=str(video.batch_id) if video.batch_id else None,
-                status=video.status.value,
-                stage=video.current_stage.value,
+                status=video.status,
+                stage=video.current_stage,
             )
             video_channel = EventChannel.video.value.format(video_id=video.id)
             await self._events.emit(video_channel, event)

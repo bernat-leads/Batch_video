@@ -40,7 +40,9 @@ class VideoCreate(BaseModel):
     script_text: str = Field(
         min_length=1, description="Ad script text to convert to video"
     )
-    voice_id: str = Field(min_length=1, max_length=255, description="TTS voice identifier")
+    voice_id: str = Field(
+        min_length=1, max_length=255, description="TTS voice identifier"
+    )
     style: str | None = Field(default=None, max_length=255)
     top_text: str | None = Field(default=None, max_length=500)
     prompt: str | None = Field(default=None, max_length=5000)

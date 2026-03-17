@@ -35,7 +35,6 @@ class GeminiImageGenService(ImageGenService):
                     number_of_images=1,
                     aspect_ratio=config.aspect_ratio,
                     output_mime_type=config.output_format,
-                    image_size=config.size,
                 ),
             )
         except Exception as error:

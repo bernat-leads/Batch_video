@@ -107,9 +107,13 @@ class CaptionGroup(BaseModel):
             new_len = current_len + word_len + (1 if current_words else 0)
 
             if new_len > max_chars and current_words:
-                groups.append(cls(
-                    text=" ".join(current_words), start=group_start, end=word.start,
-                ))
+                groups.append(
+                    cls(
+                        text=" ".join(current_words),
+                        start=group_start,
+                        end=word.start,
+                    )
+                )
                 current_words = [word.word]
                 current_len = word_len
                 group_start = word.start
@@ -118,9 +122,13 @@ class CaptionGroup(BaseModel):
                 current_len = new_len
 
         if current_words:
-            groups.append(cls(
-                text=" ".join(current_words), start=group_start, end=words[-1].end,
-            ))
+            groups.append(
+                cls(
+                    text=" ".join(current_words),
+                    start=group_start,
+                    end=words[-1].end,
+                )
+            )
 
         return groups
 
@@ -150,7 +158,9 @@ class OverlayCache(BaseModel):
         )
 
         caption_overlays = {
-            index: template.caption_style.render_overlay(width, height, group.text.upper())
+            index: template.caption_style.render_overlay(
+                width, height, group.text.upper()
+            )
             for index, group in enumerate(caption_groups)
         }
 

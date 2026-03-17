@@ -49,20 +49,29 @@ class MoviePyVideoEditor(VideoEditor):
             len(assembly_input.audio_bytes),
         )
 
-        segments = self._align_segments_to_audio(assembly_input.segments, assembly_input.audio_bytes)
+        segments = self._align_segments_to_audio(
+            assembly_input.segments, assembly_input.audio_bytes
+        )
         caption_groups = CaptionGroup.from_word_timestamps(
-            assembly_input.word_timestamps, template.caption_style.max_chars,
+            assembly_input.word_timestamps,
+            template.caption_style.max_chars,
         )
         overlays = OverlayCache.build(template, caption_groups, assembly_input.top_text)
         clips = self._build_clips(template, segments, caption_groups, overlays)
         result = self._render_to_mp4(clips, assembly_input.audio_bytes, template.fps)
 
-        logger.info("Assembly complete (%dms, %d bytes)", result.duration_ms, len(result.video_bytes))
+        logger.info(
+            "Assembly complete (%dms, %d bytes)",
+            result.duration_ms,
+            len(result.video_bytes),
+        )
         return result
 
     # ── Step 1: Align segments ────────────────────────────────────────
 
-    def _align_segments_to_audio(self, segments: list[Segment], audio_bytes: bytes) -> list[Segment]:
+    def _align_segments_to_audio(
+        self, segments: list[Segment], audio_bytes: bytes
+    ) -> list[Segment]:
         """Extend the last segment so total video duration matches audio."""
         if not segments:
             return segments
@@ -79,11 +88,20 @@ class MoviePyVideoEditor(VideoEditor):
         if gap <= AUDIO_SYNC_TOLERANCE:
             return segments
 
-        logger.info("Extending last segment by %.2fs (video=%.2fs, audio=%.2fs)", gap, video_duration, audio_duration)
+        logger.info(
+            "Extending last segment by %.2fs (video=%.2fs, audio=%.2fs)",
+            gap,
+            video_duration,
+            audio_duration,
+        )
         last = segments[-1]
         return [
             *segments[:-1],
-            Segment(image_bytes=last.image_bytes, duration=last.duration + gap, effect=last.effect),
+            Segment(
+                image_bytes=last.image_bytes,
+                duration=last.duration + gap,
+                effect=last.effect,
+            ),
         ]
 
     # ── Step 2: Build clips ───────────────────────────────────────────
@@ -105,10 +123,15 @@ class MoviePyVideoEditor(VideoEditor):
 
         for segment in segments:
             clip = self._make_segment_clip(
-                segment, time_offset,
-                source_width, source_height,
-                output_width, output_height,
-                caption_groups, overlays, template.fps,
+                segment,
+                time_offset,
+                source_width,
+                source_height,
+                output_width,
+                output_height,
+                caption_groups,
+                overlays,
+                template.fps,
             )
             clips.append(clip)
             time_offset += segment.duration
@@ -138,7 +161,9 @@ class MoviePyVideoEditor(VideoEditor):
 
         def make_frame(local_time: float) -> np.ndarray:
             progress = local_time / duration if duration > 0 else 0.0
-            frame = effect.apply_frame(source_image, progress, output_width, output_height)
+            frame = effect.apply_frame(
+                source_image, progress, output_width, output_height
+            )
 
             if overlays.top_overlay is not None:
                 frame = composite_overlay(frame, overlays.top_overlay)
@@ -146,7 +171,9 @@ class MoviePyVideoEditor(VideoEditor):
             global_time = time_offset + local_time
             for group_index, group in enumerate(caption_groups):
                 if group.start <= global_time < group.end:
-                    frame = composite_overlay(frame, overlays.caption_overlays[group_index])
+                    frame = composite_overlay(
+                        frame, overlays.caption_overlays[group_index]
+                    )
                     break
 
             return frame
@@ -155,7 +182,9 @@ class MoviePyVideoEditor(VideoEditor):
 
     # ── Step 3: Render to MP4 ─────────────────────────────────────────
 
-    def _render_to_mp4(self, clips: list[VideoClip], audio_bytes: bytes, fps: int) -> EditResult:
+    def _render_to_mp4(
+        self, clips: list[VideoClip], audio_bytes: bytes, fps: int
+    ) -> EditResult:
         """Concatenate clips, attach audio, and render to MP4 bytes."""
         video_clip = audio_clip = None
 
