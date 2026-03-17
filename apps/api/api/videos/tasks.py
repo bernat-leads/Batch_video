@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.events.schemas import EventChannel
+from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
 from api.videos.service import VideoService
@@ -100,7 +101,11 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
-        # Emit processing event (status already set by route)
+        # Set video to processing and emit events
+        video.status = VideoStatus.processing
+        video.error_message = None
+        await ctx.session.commit()
+
         try:
             event = VideoProgressEvent(
                 video_id=str(video.id),
