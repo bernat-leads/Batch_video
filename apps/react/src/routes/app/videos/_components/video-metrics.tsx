@@ -90,10 +90,10 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
       </div>
 
       {/* Pipeline Cost + Technical Details */}
-      <div className="flex flex-wrap gap-5">
-        <div className="min-w-[280px] flex-1">
+      <div className="flex flex-wrap items-stretch gap-5">
+        <div className="flex min-w-[280px] flex-1 flex-col">
           <p className="mb-2 text-sm font-medium text-text-primary">Pipeline Cost</p>
-          <div className="overflow-hidden rounded-xl border border-border bg-card-bg">
+          <div className="flex-1 overflow-hidden rounded-xl border border-border bg-card-bg">
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-content-bg">
@@ -133,9 +133,9 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
           </div>
         </div>
 
-        <div className="min-w-[180px] flex-1">
+        <div className="flex min-w-[180px] flex-1 flex-col">
           <p className="mb-2 text-sm font-medium text-text-primary">Technical</p>
-          <SectionCard>
+          <SectionCard className="flex-1">
             <div className="space-y-2 text-sm">
               <StatRow
                 label="Duration"
