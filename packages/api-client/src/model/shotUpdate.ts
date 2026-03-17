@@ -7,7 +7,7 @@
 import type { ShotUpdateOrder } from './shotUpdateOrder';
 import type { ShotUpdateText } from './shotUpdateText';
 import type { ShotUpdateImagePrompt } from './shotUpdateImagePrompt';
-import type { ShotUpdateKenBurnsConfig } from './shotUpdateKenBurnsConfig';
+import type { ShotUpdateEffectConfig } from './shotUpdateEffectConfig';
 import type { ShotUpdateStartTime } from './shotUpdateStartTime';
 import type { ShotUpdateEndTime } from './shotUpdateEndTime';
 import type { ShotUpdateImageUrl } from './shotUpdateImageUrl';
@@ -19,7 +19,7 @@ export interface ShotUpdate {
   order?: ShotUpdateOrder;
   text?: ShotUpdateText;
   image_prompt?: ShotUpdateImagePrompt;
-  ken_burns_config?: ShotUpdateKenBurnsConfig;
+  effect_config?: ShotUpdateEffectConfig;
   start_time?: ShotUpdateStartTime;
   end_time?: ShotUpdateEndTime;
   image_url?: ShotUpdateImageUrl;

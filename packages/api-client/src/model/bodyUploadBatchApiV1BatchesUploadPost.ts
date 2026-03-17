@@ -6,6 +6,10 @@
  */
 
 export interface BodyUploadBatchApiV1BatchesUploadPost {
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
   batch_name: string;
   column_mapping: string;
   file: string;

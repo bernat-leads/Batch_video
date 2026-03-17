@@ -5,7 +5,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VideoReadBatchId } from './videoReadBatchId';
-import type { VideoReadVoiceId } from './videoReadVoiceId';
 import type { VideoReadStyle } from './videoReadStyle';
 import type { VideoReadTopText } from './videoReadTopText';
 import type { VideoReadPrompt } from './videoReadPrompt';
@@ -23,7 +22,7 @@ export interface VideoRead {
   id: string;
   batch_id?: VideoReadBatchId;
   script_text: string;
-  voice_id?: VideoReadVoiceId;
+  voice_id: string;
   style?: VideoReadStyle;
   top_text?: VideoReadTopText;
   prompt?: VideoReadPrompt;
@@ -33,8 +32,6 @@ export interface VideoRead {
   output_url?: VideoReadOutputUrl;
   duration_ms?: number;
   file_size_bytes?: number;
-  width?: number;
-  height?: number;
   tts?: AICost;
   segmentation?: AICost;
   image_generation?: AICost;

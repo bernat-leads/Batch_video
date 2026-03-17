@@ -825,7 +825,7 @@ export function useGetBatchApiV1BatchesBatchIdGet<TData = Awaited<ReturnType<typ
 
 
 /**
- * Delete a batch, its videos, and R2 files.
+ * Delete a batch, its videos, and S3 files.
  * @summary Delete Batch
  */
 export const deleteBatchApiV1BatchesBatchIdDelete = (
@@ -1648,6 +1648,70 @@ export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<Re
 
 
 
+/**
+ * Retry a failed video from the stage that failed.
+ * @summary Retry Video
+ */
+export const retryVideoApiV1VideosVideoIdRetryPost = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VideoRead>(
+      {url: `/api/v1/videos/${videoId}/retry`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getRetryVideoApiV1VideosVideoIdRetryPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext> => {
+
+const mutationKey = ['retryVideoApiV1VideosVideoIdRetryPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, {videoId: string}> = (props) => {
+          const {videoId} = props ?? {};
+
+          return  retryVideoApiV1VideosVideoIdRetryPost(videoId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryVideoApiV1VideosVideoIdRetryPostMutationResult = NonNullable<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>>
+    
+    export type RetryVideoApiV1VideosVideoIdRetryPostMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Retry Video
+ */
+export const useRetryVideoApiV1VideosVideoIdRetryPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>,
+        TError,
+        {videoId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRetryVideoApiV1VideosVideoIdRetryPostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 /**
  * Create a shot for a video.
  * @summary Create Shot

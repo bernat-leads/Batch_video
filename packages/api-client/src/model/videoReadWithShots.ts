@@ -5,7 +5,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VideoReadWithShotsBatchId } from './videoReadWithShotsBatchId';
-import type { VideoReadWithShotsVoiceId } from './videoReadWithShotsVoiceId';
 import type { VideoReadWithShotsStyle } from './videoReadWithShotsStyle';
 import type { VideoReadWithShotsTopText } from './videoReadWithShotsTopText';
 import type { VideoReadWithShotsPrompt } from './videoReadWithShotsPrompt';
@@ -24,7 +23,7 @@ export interface VideoReadWithShots {
   id: string;
   batch_id?: VideoReadWithShotsBatchId;
   script_text: string;
-  voice_id?: VideoReadWithShotsVoiceId;
+  voice_id: string;
   style?: VideoReadWithShotsStyle;
   top_text?: VideoReadWithShotsTopText;
   prompt?: VideoReadWithShotsPrompt;
@@ -34,8 +33,6 @@ export interface VideoReadWithShots {
   output_url?: VideoReadWithShotsOutputUrl;
   duration_ms?: number;
   file_size_bytes?: number;
-  width?: number;
-  height?: number;
   tts?: AICost;
   segmentation?: AICost;
   image_generation?: AICost;

@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   useGetVideoApiV1VideosVideoIdGet,
   useGetBatchApiV1BatchesBatchIdGet,
+  useRetryVideoApiV1VideosVideoIdRetryPost,
   getGetVideoApiV1VideosVideoIdGetQueryKey,
 } from "@packages/api-client";
 import { videoEventsUrl } from "@packages/api-client/urls";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
-import { customInstance } from "@packages/api-client/custom-instance";
+import { useQueryClient } from "@tanstack/react-query";
 import { StageIndicator } from "@/components/dashboard/stage-indicator";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { SectionCard } from "@/components/ui/section-card";
@@ -38,8 +39,18 @@ function buildBreadcrumbs(videoId: string, batchId: string, batchName: string | 
 
 function VideoDetailPage() {
   const { videoId } = Route.useParams();
+  const queryClient = useQueryClient();
 
   const { data: video, isLoading } = useGetVideoApiV1VideosVideoIdGet(videoId);
+  const videoQueryKey = getGetVideoApiV1VideosVideoIdGetQueryKey(videoId);
+
+  const { mutateAsync: retryVideo } = useRetryVideoApiV1VideosVideoIdRetryPost({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: videoQueryKey });
+      },
+    },
+  });
   const batchId = video?.batch_id ?? "";
   const { data: batch } = useGetBatchApiV1BatchesBatchIdGet(batchId, {
     query: { enabled: !!batchId },
@@ -47,9 +58,7 @@ function VideoDetailPage() {
 
   // Poll for updates while video is processing
   const isActive = video?.status === "processing";
-  useEventSource(videoEventsUrl(videoId), !!isActive, [
-    getGetVideoApiV1VideosVideoIdGetQueryKey(videoId),
-  ]);
+  useEventSource(videoEventsUrl(videoId), !!isActive, [videoQueryKey]);
 
   if (isLoading) return <VideoDetailSkeleton />;
 
@@ -72,9 +81,7 @@ function VideoDetailPage() {
         videoId={videoId}
         video={video}
         onDownload={() => downloadVideo(videoId)}
-        onRetry={async () => {
-          await customInstance({ url: `/api/v1/videos/${videoId}/retry`, method: "POST" });
-        }}
+        onRetry={() => retryVideo({ videoId })}
       />
 
       {video.error_message && (

@@ -44,13 +44,19 @@ class GeminiImageGenService(ImageGenService):
             ) from error
 
         if not response.generated_images:
-            filters = getattr(response, "filtered_reason", None) or "unknown"
             raise PipelineStageError(
                 "image_generation",
-                f"Imagen returned no image (filtered: {filters}, prompt: {image_prompt[:200]})",
+                f"Imagen returned no image (prompt likely blocked: {image_prompt[:200]})",
             )
 
-        image_bytes = response.generated_images[0].image.image_bytes
+        generated = response.generated_images[0]
+        if generated.rai_filtered_reason:
+            raise PipelineStageError(
+                "image_generation",
+                f"Imagen filtered: {generated.rai_filtered_reason} (prompt: {image_prompt[:200]})",
+            )
+
+        image_bytes = generated.image.image_bytes
         logger.info("Imagen: complete (%d bytes)", len(image_bytes))
 
         return ImageGenResult(

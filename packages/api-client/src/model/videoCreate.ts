@@ -4,7 +4,6 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
-import type { VideoCreateVoiceId } from './videoCreateVoiceId';
 import type { VideoCreateStyle } from './videoCreateStyle';
 import type { VideoCreateTopText } from './videoCreateTopText';
 import type { VideoCreatePrompt } from './videoCreatePrompt';
@@ -14,8 +13,17 @@ import type { VideoCreateBatchId } from './videoCreateBatchId';
  * Schema for creating a video (also used as pipeline input).
  */
 export interface VideoCreate {
+  /**
+   * Ad script text to convert to video
+   * @minLength 1
+   */
   script_text: string;
-  voice_id?: VideoCreateVoiceId;
+  /**
+   * TTS voice identifier
+   * @minLength 1
+   * @maxLength 255
+   */
+  voice_id: string;
   style?: VideoCreateStyle;
   top_text?: VideoCreateTopText;
   prompt?: VideoCreatePrompt;
