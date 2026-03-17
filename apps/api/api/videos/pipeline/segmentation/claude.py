@@ -37,9 +37,7 @@ class ClaudeSegmentationService(SegmentationService):
             model=SEGMENTATION_MODEL,
             api_key=settings.ANTHROPIC_API_KEY,
             max_tokens=SEGMENTATION_MAX_TOKENS,
-        ).with_structured_output(
-            SegmentationOutput, method="json_schema", include_raw=True
-        )
+        ).with_structured_output(SegmentationOutput, include_raw=True)
 
     @pipeline_retry()
     async def segment_script(
