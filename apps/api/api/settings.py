@@ -54,23 +54,11 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str
     S3_REGION: str = "us-east-1"
 
-    # ─── ElevenLabs ────────────────────────────────────────────────────────
+    # ─── API Keys ─────────────────────────────────────────────────────────
     ELEVENLABS_API_KEY: str
-    ELEVENLABS_DEFAULT_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
-    ELEVENLABS_MODEL_ID: str = "eleven_multilingual_v2"
-
-    # ─── Anthropic (Claude) ───────────────────────────────────────────────
     ANTHROPIC_API_KEY: str
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
-
-    # ─── Google Gemini ─────────────────────────────────────────────────────
     GEMINI_API_KEY: str
-    GEMINI_IMAGEN_MODEL: str = "imagen-4.0-generate-001"
-
-    # ─── OpenAI ──────────────────────────────────────────────────────────
     OPENAI_API_KEY: str
-    OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
-    OPENAI_TTS_DEFAULT_VOICE: str = "coral"
 
     # ─── Fonts ───────────────────────────────────────────────────────────
     FONT_DIR: str = "fonts"

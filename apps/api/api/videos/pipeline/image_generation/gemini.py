@@ -7,7 +7,7 @@ from google.genai import types as genai_types
 
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import IMAGEN_COST_PER_IMAGE
+from api.videos.pipeline.config import IMAGEN_COST_PER_IMAGE, IMAGEN_MODEL
 from api.videos.pipeline.image_generation.base import ImageGenService
 from api.videos.pipeline.image_generation.schemas import ImageConfig, ImageGenResult
 from api.videos.utils import pipeline_retry
@@ -29,7 +29,7 @@ class GeminiImageGenService(ImageGenService):
 
         try:
             response = self._client.models.generate_images(
-                model=settings.GEMINI_IMAGEN_MODEL,
+                model=IMAGEN_MODEL,
                 prompt=image_prompt,
                 config=genai_types.GenerateImagesConfig(
                     number_of_images=1,

@@ -14,6 +14,7 @@ from api.settings import settings
 from api.videos.pipeline.config import (
     SEGMENTATION_INPUT_TOKEN_COST,
     SEGMENTATION_MAX_TOKENS,
+    SEGMENTATION_MODEL,
     SEGMENTATION_OUTPUT_TOKEN_COST,
 )
 from api.videos.pipeline.segmentation.base import SegmentationService
@@ -33,7 +34,7 @@ class ClaudeSegmentationService(SegmentationService):
     def __init__(self) -> None:
         """Initialize the Claude LLM chain with structured output."""
         self._chain = ChatAnthropic(
-            model=settings.ANTHROPIC_MODEL,
+            model=SEGMENTATION_MODEL,
             api_key=settings.ANTHROPIC_API_KEY,
             max_tokens=SEGMENTATION_MAX_TOKENS,
         ).with_structured_output(SegmentationOutput, include_raw=True)

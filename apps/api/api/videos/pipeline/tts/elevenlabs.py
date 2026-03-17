@@ -8,7 +8,11 @@ from elevenlabs import ElevenLabs
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import ELEVENLABS_TTS_COST_PER_CHAR
+from api.videos.pipeline.config import (
+    ELEVENLABS_DEFAULT_VOICE_ID,
+    ELEVENLABS_MODEL_ID,
+    ELEVENLABS_TTS_COST_PER_CHAR,
+)
 from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry
@@ -25,7 +29,7 @@ class ElevenLabsTTSService(TTSService):
     @pipeline_retry()
     def synthesize(self, tts_input: TTSInput) -> TTSResult:
         """Generate TTS audio with word-level timestamps."""
-        effective_voice_id = tts_input.voice_id or settings.ELEVENLABS_DEFAULT_VOICE_ID
+        effective_voice_id = tts_input.voice_id or ELEVENLABS_DEFAULT_VOICE_ID
         logger.info(
             "ElevenLabs TTS starting (voice=%s, %d chars)",
             effective_voice_id,
@@ -36,7 +40,7 @@ class ElevenLabsTTSService(TTSService):
             response = self._client.text_to_speech.convert_with_timestamps(
                 text=tts_input.script_text,
                 voice_id=effective_voice_id,
-                model_id=settings.ELEVENLABS_MODEL_ID,
+                model_id=ELEVENLABS_MODEL_ID,
             )
         except Exception as error:
             raise PipelineStageError(

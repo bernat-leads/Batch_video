@@ -7,7 +7,11 @@ from openai import OpenAI
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import OPENAI_TTS_COST_PER_CHAR
+from api.videos.pipeline.config import (
+    OPENAI_TTS_COST_PER_CHAR,
+    OPENAI_TTS_DEFAULT_VOICE,
+    OPENAI_TTS_MODEL,
+)
 from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry
@@ -24,7 +28,7 @@ class OpenAITTSService(TTSService):
     @pipeline_retry()
     def synthesize(self, tts_input: TTSInput) -> TTSResult:
         """Generate TTS audio with word-level timestamps."""
-        effective_voice = tts_input.voice_id or settings.OPENAI_TTS_DEFAULT_VOICE
+        effective_voice = tts_input.voice_id or OPENAI_TTS_DEFAULT_VOICE
         logger.info(
             "OpenAI TTS starting (voice=%s, %d chars)",
             effective_voice,
@@ -33,7 +37,7 @@ class OpenAITTSService(TTSService):
 
         try:
             response = self._client.audio.speech.create(
-                model=settings.OPENAI_TTS_MODEL,
+                model=OPENAI_TTS_MODEL,
                 voice=effective_voice,
                 input=tts_input.script_text,
                 response_format="wav",

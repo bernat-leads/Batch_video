@@ -70,24 +70,14 @@ function SettingsPage() {
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      master_prompt: "",
-      retention_days: 7,
-      default_script_column: "script_text",
-      default_voice_column: "voice_id",
-      default_style_column: "style",
-      default_top_text_column: "top_text",
+    values: {
+      master_prompt: settings?.master_prompt ?? "",
+      retention_days: settings?.retention_days ?? 7,
+      default_script_column: settings?.default_script_column ?? "script_text",
+      default_voice_column: settings?.default_voice_column ?? "voice_id",
+      default_style_column: settings?.default_style_column ?? "style",
+      default_top_text_column: settings?.default_top_text_column ?? "top_text",
     },
-    ...(settings && {
-      values: {
-        master_prompt: settings.master_prompt,
-        retention_days: settings.retention_days,
-        default_script_column: settings.default_script_column,
-        default_voice_column: settings.default_voice_column,
-        default_style_column: settings.default_style_column,
-        default_top_text_column: settings.default_top_text_column,
-      },
-    }),
   });
 
   const updateSettings = useUpdateSettingsApiV1SettingsPut({
@@ -231,7 +221,7 @@ function SettingsPage() {
                     </FormDescription>
                     <Select
                       onValueChange={(val) => field.onChange(Number(val))}
-                      value={String(field.value)}
+                      value={String(field.value ?? 7)}
                     >
                       <FormControl>
                         <SelectTrigger className="w-48 bg-card-bg border-border text-text-primary">

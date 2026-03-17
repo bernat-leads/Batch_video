@@ -117,7 +117,8 @@ def generate_preview(
     segments = [
         Segment(
             image_bytes=_make_placeholder_image(
-                src_width, src_height,
+                src_width,
+                src_height,
                 SEGMENT_COLORS[index % len(SEGMENT_COLORS)],
                 f"Shot {index + 1}",
             ),
@@ -148,12 +149,22 @@ def generate_preview(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate a preview video for testing text overlays")
+    parser = argparse.ArgumentParser(
+        description="Generate a preview video for testing text overlays"
+    )
     parser.add_argument("--output", default="preview.mp4", help="Output file path")
     parser.add_argument("--segments", type=int, default=4, help="Number of segments")
-    parser.add_argument("--duration", type=float, default=5.0, help="Duration per segment (seconds)")
-    parser.add_argument("--top-text", default="LIMITED OFFER", help="Top text overlay (empty to disable)")
-    parser.add_argument("--script", default=SAMPLE_SCRIPT, help="Script text for captions")
+    parser.add_argument(
+        "--duration", type=float, default=5.0, help="Duration per segment (seconds)"
+    )
+    parser.add_argument(
+        "--top-text",
+        default="LIMITED OFFER",
+        help="Top text overlay (empty to disable)",
+    )
+    parser.add_argument(
+        "--script", default=SAMPLE_SCRIPT, help="Script text for captions"
+    )
     args = parser.parse_args()
 
     generate_preview(
