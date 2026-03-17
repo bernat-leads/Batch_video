@@ -16,6 +16,7 @@ from PIL import Image, ImageDraw
 
 from api.videos.pipeline.segmentation.schemas import KenBurnsDirection, KenBurnsEffect
 from api.videos.pipeline.tts.schemas import WordTimestamp
+from api.videos.pipeline.video_editor.effects import NumpyEffectService
 from api.videos.pipeline.video_editor.moviepy_editor import MoviePyVideoEditor
 from api.videos.pipeline.video_editor.schemas import AssemblyInput, Segment
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
@@ -139,7 +140,7 @@ def generate_preview(
         top_text=top_text,
     )
 
-    editor = MoviePyVideoEditor()
+    editor = MoviePyVideoEditor(NumpyEffectService())
     result = editor.assemble_video(assembly_input)
 
     path = Path(output_path)

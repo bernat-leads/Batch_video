@@ -1,7 +1,7 @@
 """Claude segmentation implementation.
 
 The LLM returns segments with text, timing, image prompts, and Ken Burns
-config directly — no post-processing needed.
+config directly via structured output (tool_use) — no post-processing needed.
 """
 
 import logging
@@ -54,11 +54,13 @@ class ClaudeSegmentationService(SegmentationService):
         prompt_messages = segmentation_input.build_prompt().format_messages()
 
         try:
-            result = self._chain.invoke(prompt_messages)
+            result = await self._chain.ainvoke(prompt_messages)
         except Exception as error:
             raise PipelineStageError(
                 "segmentation", f"Claude API call failed: {error}"
             ) from error
+
+        parsed: SegmentationOutput = result["parsed"]
 
         cost = AICost.from_chain_result(
             result,
@@ -68,13 +70,13 @@ class ClaudeSegmentationService(SegmentationService):
 
         logger.info(
             "Segmentation complete (%d segments, %d tokens, $%.4f)",
-            len(result["parsed"].segments),
+            len(parsed.segments),
             cost.token_count,
             cost.cost_usd,
         )
 
         return SegmentationResult(
-            segments=result["parsed"].segments,
+            segments=parsed.segments,
             prompt=segmentation_input.prompt,
             cost=cost,
         )

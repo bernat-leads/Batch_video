@@ -12,6 +12,7 @@ from api.videos.pipeline.segmentation import ClaudeSegmentationService
 from api.videos.pipeline.tts import OpenAITTSService
 from api.videos.crud import VideoCrud
 from api.videos.pipeline.video_editor import MoviePyVideoEditor
+from api.videos.pipeline.video_editor.effects import NumpyEffectService
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -35,7 +36,7 @@ def _build_service(ctx) -> VideoService:
         tts=ElevenLabsTTSService(),
         segmentation=ClaudeSegmentationService(),
         image_gen=GeminiImageGenService(),
-        editor=MoviePyVideoEditor(),
+        editor=MoviePyVideoEditor(NumpyEffectService()),
     )
 
 

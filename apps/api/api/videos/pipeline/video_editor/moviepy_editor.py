@@ -9,6 +9,7 @@ from moviepy import AudioFileClip, VideoClip, concatenate_videoclips
 
 from api.videos.utils import fast_composite, temp_file
 from api.videos.pipeline.video_editor.base import VideoEditor
+from api.videos.pipeline.video_editor.effects import EffectService
 from api.videos.pipeline.video_editor.schemas import (
     CAPTION_SLIDE_DISTANCE,
     CAPTION_SLIDE_DURATION,
@@ -31,6 +32,9 @@ AUDIO_SYNC_TOLERANCE = 0.05
 
 class MoviePyVideoEditor(VideoEditor):
     """Renders videos using MoviePy with Ken Burns effects and text overlays."""
+
+    def __init__(self, effects: EffectService) -> None:
+        self._effects = effects
 
     def assemble_video(self, assembly_input: AssemblyInput) -> EditResult:
         """Assemble final video from assembly input data."""
@@ -147,8 +151,8 @@ class MoviePyVideoEditor(VideoEditor):
 
         def make_frame(local_time: float) -> np.ndarray:
             progress = local_time / duration if duration > 0 else 0.0
-            frame = effect.apply_frame(
-                source_image, progress, output_width, output_height
+            frame = self._effects.apply(
+                effect, source_image, progress, output_width, output_height
             )
             frame = self._composite_overlays(
                 frame, overlays, caption_groups, time_offset + local_time

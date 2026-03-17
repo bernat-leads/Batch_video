@@ -1,12 +1,9 @@
 """Segmentation schemas."""
 
-from abc import abstractmethod
 from enum import Enum
 from typing import Literal
 
-import numpy as np
 from langchain_core.prompts import ChatPromptTemplate
-from PIL import Image
 from pydantic import BaseModel, Field
 
 from api.core.schemas import AICost
@@ -21,27 +18,13 @@ class SegmentEffect(BaseModel):
 
     Each segment has exactly one effect that controls how the still image
     is animated over its duration (e.g. Ken Burns pan/zoom, static hold, etc.).
-    Subclasses must set a unique `type` literal for discriminated union dispatch
-    and implement `apply_frame()`.
+    Subclasses must set a unique `type` literal for discriminated union dispatch.
+
+    The apply_frame() rendering logic lives in the video editor, not here —
+    this schema must stay clean for LLM structured output generation.
     """
 
     type: str
-
-    @abstractmethod
-    def apply_frame(
-        self,
-        source_image: np.ndarray,
-        progress: float,
-        output_width: int,
-        output_height: int,
-    ) -> np.ndarray:
-        """Transform a source image for the given animation progress (0–1).
-
-        Returns an RGB numpy array of shape (output_height, output_width, 3).
-        """
-        ...
-
-    model_config = {"arbitrary_types_allowed": True}
 
 
 class KenBurnsDirection(str, Enum):
@@ -56,60 +39,11 @@ class KenBurnsDirection(str, Enum):
 
 
 class KenBurnsEffect(SegmentEffect):
-    """Ken Burns pan/zoom camera movement applied to a still image.
-
-    Animates a crop window across an oversampled source image,
-    creating the illusion of camera movement over the segment duration.
-    """
+    """Ken Burns pan/zoom camera movement applied to a still image."""
 
     type: Literal["ken_burns"] = "ken_burns"
     direction: KenBurnsDirection
     scale: float = Field(ge=1.1, le=1.4)
-
-    def apply_frame(
-        self,
-        source_image: np.ndarray,
-        progress: float,
-        output_width: int,
-        output_height: int,
-    ) -> np.ndarray:
-        """Apply Ken Burns pan/zoom crop and resize to output dimensions."""
-        source_height, source_width = source_image.shape[:2]
-        center_x = source_width // 2
-        center_y = source_height // 2
-        direction = self.direction.value
-
-        if direction == "zoom_in":
-            current_scale = 1.0 + (self.scale - 1.0) * progress
-        elif direction == "zoom_out":
-            current_scale = self.scale - (self.scale - 1.0) * progress
-        else:
-            current_scale = self.scale
-
-        crop_width = int(source_width / current_scale)
-        crop_height = int(source_height / current_scale)
-        pan_offset_x = (source_width - crop_width) // 2
-        pan_offset_y = (source_height - crop_height) // 2
-
-        if direction == "pan_left":
-            center_x += int(pan_offset_x * (1 - progress))
-        elif direction == "pan_right":
-            center_x -= int(pan_offset_x * (1 - progress))
-        elif direction == "pan_up":
-            center_y += int(pan_offset_y * (1 - progress))
-        elif direction == "pan_down":
-            center_y -= int(pan_offset_y * (1 - progress))
-
-        import cv2
-
-        x_start = max(0, center_x - crop_width // 2)
-        y_start = max(0, center_y - crop_height // 2)
-        cropped = source_image[
-            y_start : y_start + crop_height, x_start : x_start + crop_width
-        ]
-        return cv2.resize(
-            cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR
-        )
 
 
 # When adding new effect types, change this to a discriminated union:
