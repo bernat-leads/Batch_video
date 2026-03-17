@@ -109,7 +109,10 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
                 if batch:
                     await batch_service.emit_progress(ctx.events, batch)
             except Exception:
-                logger.exception("Failed to update batch counters at retry start (batch=%s)", video.batch_id)
+                logger.exception(
+                    "Failed to update batch counters at retry start (batch=%s)",
+                    video.batch_id,
+                )
 
         try:
             result = await service.retry_video(

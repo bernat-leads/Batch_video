@@ -28,7 +28,9 @@ async def recover_stale_videos(self) -> int:
     (e.g. during deployment). Uses updated_at to detect staleness.
     """
     async with task_context() as ctx:
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=STALE_PROCESSING_MINUTES)
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            minutes=STALE_PROCESSING_MINUTES
+        )
 
         # Find affected batch IDs before updating
         stale_batch_ids_result = await ctx.session.execute(
@@ -69,7 +71,9 @@ async def recover_stale_videos(self) -> int:
                     if batch:
                         await batch_service.emit_progress(ctx.events, batch)
                 except Exception:
-                    logger.exception("Failed to update batch %s after stale recovery", batch_id)
+                    logger.exception(
+                        "Failed to update batch %s after stale recovery", batch_id
+                    )
 
         return recovered_count
 

@@ -107,7 +107,9 @@ class KenBurnsEffect(SegmentEffect):
         cropped = source_image[
             y_start : y_start + crop_height, x_start : x_start + crop_width
         ]
-        return cv2.resize(cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR)
+        return cv2.resize(
+            cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR
+        )
 
 
 # When adding new effect types, change this to a discriminated union:

@@ -49,12 +49,16 @@ class TextStyle(BaseModel):
         max_width = int(width * 0.9)
 
         lines = self._wrap_text(draw, text, font, max_width)
-        line_height = draw.textbbox((0, 0), "Ay", font=font, stroke_width=self.stroke_width)[3]
+        line_height = draw.textbbox(
+            (0, 0), "Ay", font=font, stroke_width=self.stroke_width
+        )[3]
         total_height = line_height * len(lines)
         start_y = int(height * self.y_position) - total_height // 2
 
         for line_index, line in enumerate(lines):
-            bbox = draw.textbbox((0, 0), line, font=font, stroke_width=self.stroke_width)
+            bbox = draw.textbbox(
+                (0, 0), line, font=font, stroke_width=self.stroke_width
+            )
             line_width = bbox[2] - bbox[0]
             line_x = (width - line_width) // 2
             line_y = start_y + line_index * line_height
@@ -158,11 +162,13 @@ class CaptionGroup(BaseModel):
             word_count = len(current_words) + 1
 
             if (new_len > max_chars or word_count > max_words) and current_words:
-                groups.append(cls(
-                    text=" ".join(current_words),
-                    start=group_start,
-                    end=word.start,
-                ))
+                groups.append(
+                    cls(
+                        text=" ".join(current_words),
+                        start=group_start,
+                        end=word.start,
+                    )
+                )
                 current_words = [word.word]
                 current_len = word_len
                 group_start = word.start
@@ -171,11 +177,13 @@ class CaptionGroup(BaseModel):
                 current_len = new_len
 
         if current_words:
-            groups.append(cls(
-                text=" ".join(current_words),
-                start=group_start,
-                end=words[-1].end,
-            ))
+            groups.append(
+                cls(
+                    text=" ".join(current_words),
+                    start=group_start,
+                    end=words[-1].end,
+                )
+            )
 
         return groups
 
@@ -205,12 +213,36 @@ class PrecomputedOverlay(BaseModel):
         zeros = np.zeros_like(self.premultiplied_rgb[:1])
 
         if offset_y > 0:
-            shifted_inv = np.concatenate([np.broadcast_to(ones, (offset_y, *ones.shape[1:])), self.inv_alpha[:height - offset_y]], axis=0)
-            shifted_rgb = np.concatenate([np.broadcast_to(zeros, (offset_y, *zeros.shape[1:])), self.premultiplied_rgb[:height - offset_y]], axis=0)
+            shifted_inv = np.concatenate(
+                [
+                    np.broadcast_to(ones, (offset_y, *ones.shape[1:])),
+                    self.inv_alpha[: height - offset_y],
+                ],
+                axis=0,
+            )
+            shifted_rgb = np.concatenate(
+                [
+                    np.broadcast_to(zeros, (offset_y, *zeros.shape[1:])),
+                    self.premultiplied_rgb[: height - offset_y],
+                ],
+                axis=0,
+            )
         else:
             abs_offset = abs(offset_y)
-            shifted_inv = np.concatenate([self.inv_alpha[abs_offset:], np.broadcast_to(ones, (abs_offset, *ones.shape[1:]))], axis=0)
-            shifted_rgb = np.concatenate([self.premultiplied_rgb[abs_offset:], np.broadcast_to(zeros, (abs_offset, *zeros.shape[1:]))], axis=0)
+            shifted_inv = np.concatenate(
+                [
+                    self.inv_alpha[abs_offset:],
+                    np.broadcast_to(ones, (abs_offset, *ones.shape[1:])),
+                ],
+                axis=0,
+            )
+            shifted_rgb = np.concatenate(
+                [
+                    self.premultiplied_rgb[abs_offset:],
+                    np.broadcast_to(zeros, (abs_offset, *zeros.shape[1:])),
+                ],
+                axis=0,
+            )
 
         return shifted_inv, shifted_rgb
 
@@ -237,15 +269,23 @@ class OverlayCache(BaseModel):
 
         top = None
         if top_text:
-            rgba = template.top_text_style.render_overlay(width, height, top_text.upper())
+            rgba = template.top_text_style.render_overlay(
+                width, height, top_text.upper()
+            )
             _, inv_alpha, premultiplied_rgb = precompute_overlay(rgba)
-            top = PrecomputedOverlay(inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb)
+            top = PrecomputedOverlay(
+                inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb
+            )
 
         captions: dict[int, PrecomputedOverlay] = {}
         for index, group in enumerate(caption_groups):
-            rgba = template.caption_style.render_overlay(width, height, group.text.upper())
+            rgba = template.caption_style.render_overlay(
+                width, height, group.text.upper()
+            )
             _, inv_alpha, premultiplied_rgb = precompute_overlay(rgba)
-            captions[index] = PrecomputedOverlay(inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb)
+            captions[index] = PrecomputedOverlay(
+                inv_alpha=inv_alpha, premultiplied_rgb=premultiplied_rgb
+            )
 
         return cls(top=top, captions=captions)
 
