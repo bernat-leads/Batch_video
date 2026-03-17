@@ -130,6 +130,11 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
                 </TableRow>
               </TableFooter>
             </Table>
+            {video.total?.cost_usd && video.duration_ms ? (
+              <div className="border-t border-border px-3 py-2 text-right text-xs text-text-muted">
+                {formatCostPrecise(video.total.cost_usd / (video.duration_ms / 60000))}/min
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -147,7 +147,9 @@ class VideoService:
 
     async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
         """Rebuild TTSResult from S3 audio + approximate word timestamps from shots."""
-        audio_bytes = await asyncio.to_thread(self._storage.download_file, video.audio_url)
+        audio_bytes = await asyncio.to_thread(
+            self._storage.download_file, video.audio_url
+        )
 
         word_timestamps: list[WordTimestamp] = []
         for shot in sorted(video.shots, key=lambda shot: shot.order):
@@ -156,16 +158,22 @@ class VideoService:
                 continue
             word_duration = (shot.end_time - shot.start_time) / len(words)
             for word_index, word in enumerate(words):
-                word_timestamps.append(WordTimestamp(
-                    word=word,
-                    start=round(shot.start_time + word_index * word_duration, 3),
-                    end=round(shot.start_time + (word_index + 1) * word_duration, 3),
-                ))
+                word_timestamps.append(
+                    WordTimestamp(
+                        word=word,
+                        start=round(shot.start_time + word_index * word_duration, 3),
+                        end=round(
+                            shot.start_time + (word_index + 1) * word_duration, 3
+                        ),
+                    )
+                )
 
         return TTSResult(
             audio_bytes=audio_bytes,
             content_type="audio/mpeg",
-            audio_duration_ms=int(word_timestamps[-1].end * 1000) if word_timestamps else 0,
+            audio_duration_ms=int(word_timestamps[-1].end * 1000)
+            if word_timestamps
+            else 0,
             word_timestamps=word_timestamps,
             cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
         )

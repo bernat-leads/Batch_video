@@ -13,6 +13,9 @@ from api.videos.pipeline.tts import OpenAITTSService
 from api.videos.crud import VideoCrud
 from api.videos.pipeline.video_editor import MoviePyVideoEditor
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
 from api.videos.models.video import Video
 from api.videos.schemas import VideoCreate, VideoGenerationResult
 from api.videos.service import VideoService
@@ -85,7 +88,13 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
 
     async with task_context() as ctx:
         service = _build_service(ctx)
-        video = await ctx.session.get(Video, uuid.UUID(video_id))
+        # Eagerly load shots — lazy load fails in async context (greenlet error)
+        result = await ctx.session.execute(
+            select(Video)
+            .options(selectinload(Video.shots))
+            .where(Video.id == uuid.UUID(video_id))
+        )
+        video = result.scalars().first()
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
