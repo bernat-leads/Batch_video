@@ -1,5 +1,6 @@
 """Celery application configuration, async task decorator, and task context."""
 
+import json
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from typing import Any, ParamSpec, TypeVar
 
 from asgiref.sync import async_to_sync
 from celery import Celery, Task
+from kombu.serialization import register
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps.db import async_session_factory
@@ -19,6 +22,37 @@ from api.storage import StorageService
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
+
+
+# ---------------------------------------------------------------------------
+# Pydantic-aware JSON serializer for Celery
+# ---------------------------------------------------------------------------
+
+
+class _PydanticEncoder(json.JSONEncoder):
+    """JSON encoder that serializes Pydantic models via model_dump."""
+
+    def default(self, o: object) -> Any:
+        if isinstance(o, BaseModel):
+            return o.model_dump(mode="json")
+        return super().default(o)
+
+
+def _pydantic_dumps(obj: Any) -> str:
+    return json.dumps(obj, cls=_PydanticEncoder)
+
+
+def _pydantic_loads(data: str) -> Any:
+    return json.loads(data)
+
+
+register(
+    "pydantic_json",
+    _pydantic_dumps,
+    _pydantic_loads,
+    content_type="application/x-pydantic+json",
+    content_encoding="utf-8",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +68,8 @@ celery_app = Celery(
 
 celery_app.conf.update(
     task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
+    accept_content=["json", "pydantic_json"],
+    result_serializer="pydantic_json",
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,

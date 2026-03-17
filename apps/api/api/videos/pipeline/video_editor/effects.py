@@ -37,7 +37,9 @@ class NumpyEffectService(EffectService):
     ) -> np.ndarray:
         match effect.type:
             case "ken_burns":
-                return self._ken_burns(effect, source_image, progress, output_width, output_height)
+                return self._ken_burns(
+                    effect, source_image, progress, output_width, output_height
+                )
             case _:
                 raise ValueError(f"Unknown effect type: {effect.type}")
 
@@ -78,5 +80,9 @@ class NumpyEffectService(EffectService):
 
         x_start = max(0, center_x - crop_width // 2)
         y_start = max(0, center_y - crop_height // 2)
-        cropped = source_image[y_start:y_start + crop_height, x_start:x_start + crop_width]
-        return cv2.resize(cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR)
+        cropped = source_image[
+            y_start : y_start + crop_height, x_start : x_start + crop_width
+        ]
+        return cv2.resize(
+            cropped, (output_width, output_height), interpolation=cv2.INTER_LINEAR
+        )

@@ -41,6 +41,9 @@ class GeminiImageGenService(ImageGenService):
             logger.error("Imagen: API call failed — %s", error)
             raise
 
+        if not response.generated_images:
+            raise RuntimeError("Imagen: no image returned (prompt may have been blocked)")
+
         image_bytes = response.generated_images[0].image.image_bytes
         logger.info("Imagen: complete (%d bytes)", len(image_bytes))
 

@@ -147,6 +147,8 @@ class CaptionGroup(BaseModel):
 
         Each group is limited by both max_chars and max_words,
         producing short punchy captions (1-3 words) that pop on screen.
+        Groups are extended to meet the next group's start so captions
+        stay on screen during pauses (no blank frames).
         """
         if not words:
             return []
@@ -155,6 +157,7 @@ class CaptionGroup(BaseModel):
         current_words: list[str] = []
         current_len = 0
         group_start = words[0].start
+        last_word_end = words[0].end
 
         for word in words:
             word_len = len(word.word)
@@ -166,15 +169,17 @@ class CaptionGroup(BaseModel):
                     cls(
                         text=" ".join(current_words),
                         start=group_start,
-                        end=word.start,
+                        end=last_word_end,
                     )
                 )
                 current_words = [word.word]
                 current_len = word_len
                 group_start = word.start
+                last_word_end = word.end
             else:
                 current_words.append(word.word)
                 current_len = new_len
+                last_word_end = word.end
 
         if current_words:
             groups.append(
@@ -183,6 +188,14 @@ class CaptionGroup(BaseModel):
                     start=group_start,
                     end=words[-1].end,
                 )
+            )
+
+        # Extend each group to meet the next so captions hold during pauses
+        for i in range(len(groups) - 1):
+            groups[i] = cls(
+                text=groups[i].text,
+                start=groups[i].start,
+                end=groups[i + 1].start,
             )
 
         return groups

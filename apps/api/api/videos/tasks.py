@@ -17,8 +17,9 @@ from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from api.events.schemas import EventChannel
 from api.videos.models.video import Video
-from api.videos.schemas import VideoCreate, VideoGenerationResult
+from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
 from api.videos.service import VideoService
 from api.videos.pipeline.tts.elevenlabs import ElevenLabsTTSService
 
@@ -99,10 +100,23 @@ async def retry_video(self, video_id: str) -> VideoGenerationResult:
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
-        # Set video to processing and recompute batch counters immediately
+        # Set video to processing and emit events immediately
         video.status = "processing"
         video.error_message = None
         await ctx.session.commit()
+
+        try:
+            event = VideoProgressEvent(
+                video_id=str(video.id),
+                batch_id=str(video.batch_id) if video.batch_id else None,
+                status=video.status,
+                stage=video.current_stage,
+            )
+            channel = EventChannel.video.value.format(video_id=video.id)
+            await ctx.events.emit(channel, event)
+        except Exception:
+            logger.debug("Failed to emit video event (video=%s)", video_id)
+
         if video.batch_id:
             try:
                 batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)

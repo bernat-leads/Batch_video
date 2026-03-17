@@ -53,6 +53,11 @@ class MoviePyVideoEditor(VideoEditor):
             max_chars=template.caption_style.max_chars,
             max_words=template.caption_style.max_words,
         )
+        for i, group in enumerate(caption_groups):
+            logger.debug(
+                "Caption[%d] %.2fs-%.2fs: %s", i, group.start, group.end, group.text
+            )
+
         overlays = OverlayCache.build(template, caption_groups, assembly_input.top_text)
         clips = self._build_clips(template, segments, caption_groups, overlays)
         result = self._render_to_mp4(clips, assembly_input.audio_bytes, template.fps)
