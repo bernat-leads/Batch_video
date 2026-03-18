@@ -42,7 +42,6 @@ class Batch(BaseModel):
     file_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-
     videos: Mapped[list[Video]] = relationship(
         back_populates="batch",
         cascade="all, delete-orphan",
