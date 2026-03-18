@@ -13,7 +13,7 @@ OPENAI_TTS_COST_PER_CHAR = 0.000012  # $12 per 1M chars
 OPENAI_TTS_MODEL = "gpt-4o-mini-tts"
 
 # ── Segmentation (Claude) ────────────────────────────────────────────
-SEGMENTATION_MAX_TOKENS = 4096
+SEGMENTATION_MAX_TOKENS = 16384
 SEGMENTATION_MODEL = "claude-sonnet-4-20250514"
 
 # ── Image generation (Gemini Imagen) ─────────────────────────────────

@@ -197,7 +197,9 @@ class CaptionGroup(BaseModel):
             has_pause = i > 0 and (word.start - last_word_end) > PAUSE_BREAK_THRESHOLD
 
             # Check if this long word should stand alone
-            long_word_break = word_len >= 7 and current_words and len(current_words) >= 1
+            long_word_break = (
+                word_len >= 7 and current_words and len(current_words) >= 1
+            )
 
             should_break = (
                 prev_ends_sentence
