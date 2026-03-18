@@ -137,7 +137,7 @@ function getBatchColumns(onDelete?: (id: string) => void) {
       id: "cost",
       header: "Cost",
       cell: ({ row }) => {
-        const val = row.original.total?.cost_usd ?? 0;
+        const val = row.original.total_cost_usd ?? 0;
         return (
           <span className="text-sm text-text-secondary">
             {val > 0 ? formatCurrency(val) : "\u2014"}

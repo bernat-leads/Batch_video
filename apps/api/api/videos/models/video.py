@@ -6,7 +6,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.core.models import BaseModel
@@ -46,23 +46,9 @@ class Video(BaseModel):
     output_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    # Per-stage costs
-    tts_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    tts_token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    segmentation_cost_usd: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
-    segmentation_token_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
-    image_generation_cost_usd: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
-    image_generation_token_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
+    # Per-model costs: {model_name: {token_count: int, cost_usd: float}}
+    model_costs: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    total_token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     @classmethod
@@ -113,27 +99,24 @@ class Video(BaseModel):
         """Calculate combined AI cost across all shots."""
         return AICost(cost_usd=sum(shot.cost_usd for shot in shots))
 
-    @property
-    def tts(self) -> AICost:
-        return AICost(token_count=self.tts_token_count, cost_usd=self.tts_cost_usd)
+    def record_model_cost(
+        self, model: str, cost_usd: float, token_count: int = 0
+    ) -> None:
+        """Add or update a model's cost entry. Reassigns dict for SQLAlchemy dirty tracking."""
+        costs = dict(self.model_costs or {})
+        existing = costs.get(model, {"token_count": 0, "cost_usd": 0.0})
+        costs[model] = {
+            "token_count": existing["token_count"] + token_count,
+            "cost_usd": existing["cost_usd"] + cost_usd,
+        }
+        self.model_costs = costs
 
-    @property
-    def segmentation(self) -> AICost:
-        return AICost(
-            token_count=self.segmentation_token_count,
-            cost_usd=self.segmentation_cost_usd,
+    def recompute_totals(self) -> None:
+        """Recompute total_cost_usd from model_costs."""
+        self.total_cost_usd = sum(
+            entry.get("cost_usd", 0.0)
+            for entry in (self.model_costs or {}).values()
         )
-
-    @property
-    def image_generation(self) -> AICost:
-        return AICost(
-            token_count=self.image_generation_token_count,
-            cost_usd=self.image_generation_cost_usd,
-        )
-
-    @property
-    def total(self) -> AICost:
-        return AICost(token_count=self.total_token_count, cost_usd=self.total_cost_usd)
 
     batch: Mapped[Batch | None] = relationship(back_populates="videos")  # noqa: F821
     shots: Mapped[list[Shot]] = relationship(

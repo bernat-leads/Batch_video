@@ -17,6 +17,11 @@ from api.storage import StorageService
 from api.videos.crud import VideoCrud
 from api.videos.enums import VideoStage, VideoStatus
 from api.videos.models.video import Video
+from api.videos.pipeline.config import (
+    ELEVENLABS_MODEL_ID,
+    IMAGEN_MODEL,
+    SEGMENTATION_MODEL,
+)
 from api.videos.pipeline.image_generation.schemas import ImageConfig
 from api.videos.pipeline.providers import PipelineProviders
 from api.videos.pipeline.segmentation.schemas import (
@@ -174,7 +179,7 @@ class VideoService:
             if word_timestamps
             else 0,
             word_timestamps=word_timestamps,
-            cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
+            cost=AICost(**((video.model_costs or {}).get(ELEVENLABS_MODEL_ID, {}))),
         )
 
     @staticmethod
@@ -232,9 +237,12 @@ class VideoService:
             video.word_timestamps_s3_key, timestamps_json, "application/json"
         )
         video.audio_url = video.audio_s3_key
-        video.tts_cost_usd = tts_result.cost.cost_usd
-        video.tts_token_count = tts_result.cost.token_count
-        self._update_totals(video)
+        video.record_model_cost(
+            ELEVENLABS_MODEL_ID,
+            cost_usd=tts_result.cost.cost_usd,
+            token_count=tts_result.cost.token_count,
+        )
+        video.recompute_totals()
         await self._session.commit()
         return tts_result
 
@@ -253,9 +261,12 @@ class VideoService:
         seg_result = await self._segmentation.segment_script(seg_input)
         if not seg_result.segments:
             raise SegmentationEmptyError()
-        video.segmentation_cost_usd = seg_result.cost.cost_usd
-        video.segmentation_token_count = seg_result.cost.token_count
-        self._update_totals(video)
+        video.record_model_cost(
+            SEGMENTATION_MODEL,
+            cost_usd=seg_result.cost.cost_usd,
+            token_count=seg_result.cost.token_count,
+        )
+        video.recompute_totals()
         await self._session.commit()
         return seg_result
 
@@ -299,9 +310,12 @@ class VideoService:
             shots_with_images.append(ShotWithImage(shot=shot, image_bytes=image_bytes))
 
         image_cost = video.shots_cost(shots)
-        video.image_generation_cost_usd = image_cost.cost_usd
-        video.image_generation_token_count = image_cost.token_count
-        self._update_totals(video)
+        video.record_model_cost(
+            IMAGEN_MODEL,
+            cost_usd=image_cost.cost_usd,
+            token_count=image_cost.token_count,
+        )
+        video.recompute_totals()
         await self._session.commit()
         return shots_with_images
 
@@ -372,7 +386,7 @@ class VideoService:
             video_id=str(video.id),
             duration_ms=video.duration_ms,
             num_shots=num_shots,
-            total=video.total,
+            total_cost_usd=video.total_cost_usd,
         )
 
     # ------------------------------------------------------------------
@@ -385,20 +399,6 @@ class VideoService:
             return video_input.prompt
         app_settings = await self._app_settings.get()
         return app_settings.master_prompt or ""
-
-    @staticmethod
-    def _update_totals(video: Video) -> None:
-        """Recompute total cost and token count from per-stage values."""
-        video.total_cost_usd = (
-            video.tts_cost_usd
-            + video.segmentation_cost_usd
-            + video.image_generation_cost_usd
-        )
-        video.total_token_count = (
-            video.tts_token_count
-            + video.segmentation_token_count
-            + video.image_generation_token_count
-        )
 
     async def _update_stage(self, video: Video, stage: VideoStage) -> None:
         """Transition video to a new pipeline stage, persist, and emit SSE."""

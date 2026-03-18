@@ -87,41 +87,32 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
             await self.db_session.execute(
                 select(
                     func.coalesce(func.sum(Video.duration_ms), 0).label("duration"),
-                    func.coalesce(func.sum(Video.tts_cost_usd), 0.0).label("tts_cost"),
-                    func.coalesce(func.sum(Video.tts_token_count), 0).label(
-                        "tts_tokens"
-                    ),
-                    func.coalesce(func.sum(Video.segmentation_cost_usd), 0.0).label(
-                        "seg_cost"
-                    ),
-                    func.coalesce(func.sum(Video.segmentation_token_count), 0).label(
-                        "seg_tokens"
-                    ),
-                    func.coalesce(func.sum(Video.image_generation_cost_usd), 0.0).label(
-                        "img_cost"
-                    ),
-                    func.coalesce(
-                        func.sum(Video.image_generation_token_count), 0
-                    ).label("img_tokens"),
                     func.coalesce(func.sum(Video.total_cost_usd), 0.0).label(
                         "total_cost"
-                    ),
-                    func.coalesce(func.sum(Video.total_token_count), 0).label(
-                        "total_tokens"
                     ),
                 ).where(Video.batch_id == batch_id)
             )
         ).one()
+
+        # Aggregate model_costs from individual videos
+        video_costs = (
+            await self.db_session.execute(
+                select(Video.model_costs).where(Video.batch_id == batch_id)
+            )
+        ).scalars().all()
+
+        merged: dict[str, dict[str, float | int]] = {}
+        for mc in video_costs:
+            for model, costs in (mc or {}).items():
+                if model not in merged:
+                    merged[model] = {"token_count": 0, "cost_usd": 0.0}
+                merged[model]["token_count"] += costs.get("token_count", 0)
+                merged[model]["cost_usd"] += costs.get("cost_usd", 0.0)
+
         return VideoCostTotals(
             duration_ms=row.duration,
-            tts=AICost(cost_usd=float(row.tts_cost), token_count=row.tts_tokens),
-            segmentation=AICost(
-                cost_usd=float(row.seg_cost), token_count=row.seg_tokens
-            ),
-            image_generation=AICost(
-                cost_usd=float(row.img_cost), token_count=row.img_tokens
-            ),
-            total=AICost(cost_usd=float(row.total_cost), token_count=row.total_tokens),
+            model_costs={k: AICost(**v) for k, v in merged.items()},
+            total_cost_usd=float(row.total_cost),
         )
 
     async def get_finished_by_ids(self, video_ids: list[uuid.UUID]) -> list[Video]:

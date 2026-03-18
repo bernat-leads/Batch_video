@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import type { AICost, ShotRead, VideoReadWithShots } from "@packages/api-client";
+import type { ShotRead, VideoReadWithShots } from "@packages/api-client";
 import {
   Table,
   TableBody,
@@ -25,16 +25,17 @@ function formatCostPrecise(usd?: number): string {
   return `$${usd.toFixed(4)}`;
 }
 
-function formatTokens(count?: number): string {
+function formatUsage(count: number | undefined, unit: string): string {
   if (count == null || count === 0) return "\u2014";
-  return count.toLocaleString();
+  return `${count.toLocaleString()} ${unit}`;
 }
 
-const PIPELINE_STEPS = [
-  { label: "TTS", key: "tts" as const },
-  { label: "Segmentation", key: "segmentation" as const },
-  { label: "Image Generation", key: "image_generation" as const },
-];
+/** Map model name to the unit its token_count represents. */
+function getUsageUnit(model: string): string {
+  if (model.includes("eleven")) return "chars";
+  if (model.includes("imagen")) return "images";
+  return "tokens";
+}
 
 function CollapsibleText({ label, text }: { label: string; text: string }) {
   const [open, setOpen] = useState(false);
@@ -64,6 +65,9 @@ function CollapsibleText({ label, text }: { label: string; text: string }) {
 }
 
 export function VideoMetrics({ video, shots }: VideoMetricsProps) {
+  const modelCosts = video.model_costs ?? {};
+  const totalCostUsd = video.total_cost_usd ?? 0;
+
   return (
     <div className="flex min-w-[320px] flex-1 flex-col gap-5">
       {/* Input Details */}
@@ -98,42 +102,38 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-content-bg">
-                  <TableHead className="text-text-secondary">Step</TableHead>
-                  <TableHead className="text-right text-text-secondary">Tokens</TableHead>
+                  <TableHead className="text-text-secondary">Model</TableHead>
+                  <TableHead className="text-right text-text-secondary">Usage</TableHead>
                   <TableHead className="text-right text-text-secondary">Cost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PIPELINE_STEPS.map(({ label, key }) => {
-                  const cost: AICost | undefined = video[key];
-                  return (
-                    <TableRow key={key} className="border-border">
-                      <TableCell className="text-sm text-text-primary">{label}</TableCell>
-                      <TableCell className="text-right text-sm tabular-nums text-text-secondary">
-                        {formatTokens(cost?.token_count)}
-                      </TableCell>
-                      <TableCell className="text-right text-sm tabular-nums text-text-secondary">
-                        {formatCostPrecise(cost?.cost_usd)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {Object.entries(modelCosts).map(([model, cost]) => (
+                  <TableRow key={model} className="border-border">
+                    <TableCell className="font-mono text-xs text-text-primary">
+                      {model}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                      {formatUsage(cost.token_count, getUsageUnit(model))}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                      {formatCostPrecise(cost.cost_usd)}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
               <TableFooter>
                 <TableRow className="border-border">
-                  <TableCell className="text-sm font-medium text-text-primary">Total</TableCell>
+                  <TableCell colSpan={2} className="text-sm font-medium text-text-primary">Total</TableCell>
                   <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
-                    {formatTokens(video.total?.token_count)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
-                    {formatCostPrecise(video.total?.cost_usd)}
+                    {formatCostPrecise(totalCostUsd)}
                   </TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
-            {video.total?.cost_usd && video.duration_ms ? (
+            {totalCostUsd > 0 && video.duration_ms ? (
               <div className="border-t border-border px-3 py-2 text-right text-xs text-text-muted">
-                {formatCostPrecise(video.total.cost_usd / (video.duration_ms / 60000))}/min
+                {formatCostPrecise(totalCostUsd / (video.duration_ms / 60000))}/min
               </div>
             ) : null}
           </div>

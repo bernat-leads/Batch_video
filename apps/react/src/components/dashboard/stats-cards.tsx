@@ -29,16 +29,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
             <div className="self-stretch w-px bg-border" />
             <div className="flex-1 space-y-2 text-sm">
               <StatRow
-                label="Tokens"
-                value={(stats.total?.token_count ?? 0).toLocaleString()}
-              />
-              <StatRow
                 label="Video Length"
                 value={formatDuration(stats.total_duration_ms)}
               />
               <StatRow
                 label="Cost"
-                value={formatCurrency(stats.total?.cost_usd ?? 0)}
+                value={formatCurrency(stats.total_cost_usd ?? 0)}
               />
             </div>
           </div>
@@ -49,16 +45,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
         <SectionCard>
           <div className="space-y-2 text-sm">
             <StatRow
-              label="Tokens"
-              value={(stats.avg_total?.token_count ?? 0).toLocaleString()}
-            />
-            <StatRow
               label="Video Length"
               value={formatDuration(stats.avg_duration_ms)}
             />
             <StatRow
               label="Cost"
-              value={formatCurrency(stats.avg_total?.cost_usd ?? 0)}
+              value={formatCurrency(stats.avg_cost_usd ?? 0)}
             />
           </div>
         </SectionCard>

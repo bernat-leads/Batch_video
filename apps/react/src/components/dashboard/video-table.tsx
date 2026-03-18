@@ -161,22 +161,11 @@ function getVideoColumns(options: {
         );
       },
     }),
-    col.accessor("total", {
-      header: "Tokens",
-      cell: (info) => {
-        const val = info.getValue()?.token_count ?? 0;
-        return (
-          <span className="text-sm text-text-secondary">
-            {val > 0 ? val.toLocaleString() : "\u2014"}
-          </span>
-        );
-      },
-    }),
     col.display({
       id: "cost",
       header: "Cost",
       cell: ({ row }) => {
-        const val = row.original.total?.cost_usd ?? 0;
+        const val = row.original.total_cost_usd ?? 0;
         return (
           <span className="text-sm text-text-secondary">
             {val > 0 ? formatCurrency(val) : "\u2014"}

@@ -12,7 +12,7 @@ import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
 import type { VideoReadErrorMessage } from './videoReadErrorMessage';
 import type { VideoReadOutputUrl } from './videoReadOutputUrl';
-import type { AICost } from './aICost';
+import type { VideoReadModelCosts } from './videoReadModelCosts';
 import type { VideoReadUpdatedAt } from './videoReadUpdatedAt';
 
 /**
@@ -32,10 +32,8 @@ export interface VideoRead {
   output_url?: VideoReadOutputUrl;
   duration_ms?: number;
   file_size_bytes?: number;
-  tts?: AICost;
-  segmentation?: AICost;
-  image_generation?: AICost;
-  total?: AICost;
+  model_costs?: VideoReadModelCosts;
+  total_cost_usd?: number;
   created_at: string;
   updated_at?: VideoReadUpdatedAt;
 }

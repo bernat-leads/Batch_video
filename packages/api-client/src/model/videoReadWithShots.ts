@@ -12,7 +12,7 @@ import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
 import type { VideoReadWithShotsErrorMessage } from './videoReadWithShotsErrorMessage';
 import type { VideoReadWithShotsOutputUrl } from './videoReadWithShotsOutputUrl';
-import type { AICost } from './aICost';
+import type { VideoReadWithShotsModelCosts } from './videoReadWithShotsModelCosts';
 import type { VideoReadWithShotsUpdatedAt } from './videoReadWithShotsUpdatedAt';
 import type { ShotRead } from './shotRead';
 
@@ -33,10 +33,8 @@ export interface VideoReadWithShots {
   output_url?: VideoReadWithShotsOutputUrl;
   duration_ms?: number;
   file_size_bytes?: number;
-  tts?: AICost;
-  segmentation?: AICost;
-  image_generation?: AICost;
-  total?: AICost;
+  model_costs?: VideoReadWithShotsModelCosts;
+  total_cost_usd?: number;
   created_at: string;
   updated_at?: VideoReadWithShotsUpdatedAt;
   shots?: ShotRead[];
