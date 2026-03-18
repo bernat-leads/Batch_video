@@ -27,11 +27,12 @@ class MockEventSource implements MockEventSourceInstance {
   constructor(url: string, opts?: { withCredentials?: boolean }) {
     this.url = url;
     this.withCredentials = opts?.withCredentials ?? false;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- mock pattern requires capturing instance
     latestEventSource = this;
   }
 
   addEventListener(event: string, cb: () => void) {
-    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event] ??= [];
     this.listeners[event].push(cb);
   }
 }
@@ -69,7 +70,9 @@ describe("useEventSource", () => {
     );
 
     expect(latestEventSource).not.toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guarded by assertion above
     expect(latestEventSource!.url).toBe("/api/v1/sse/stream");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guarded by assertion above
     expect(latestEventSource!.withCredentials).toBe(true);
   });
 
@@ -86,6 +89,7 @@ describe("useEventSource", () => {
       useEventSource("/api/v1/sse/stream", true, [["videos"]]),
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- EventSource created by renderHook above
     const es = latestEventSource!;
     expect(es.close).not.toHaveBeenCalled();
 
@@ -99,9 +103,10 @@ describe("useEventSource", () => {
       useEventSource("/api/v1/sse/stream", true, [["videos"]]),
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- EventSource created by renderHook above
     const es = latestEventSource!;
-    expect(es.listeners["video_progress"]).toHaveLength(1);
-    expect(es.listeners["batch_progress"]).toHaveLength(1);
+    expect(es.listeners.video_progress).toHaveLength(1);
+    expect(es.listeners.batch_progress).toHaveLength(1);
     expect(es.onmessage).not.toBeNull();
   });
 
@@ -111,11 +116,13 @@ describe("useEventSource", () => {
       { initialProps: { url: "/api/v1/sse/stream-1" } },
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- EventSource created by renderHook above
     const firstEs = latestEventSource!;
 
     rerender({ url: "/api/v1/sse/stream-2" });
 
     expect(firstEs.close).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- EventSource created by rerender above
     expect(latestEventSource!.url).toBe("/api/v1/sse/stream-2");
   });
 });

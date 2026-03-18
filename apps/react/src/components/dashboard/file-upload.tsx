@@ -78,7 +78,7 @@ export function FileUpload({ onFileParsed }: FileUploadProps) {
     (file: File) => {
       if (
         !ACCEPTED_TYPES.includes(file.type) &&
-        !file.name.match(/\.(xlsx|xls|csv)$/i)
+        !/\.(xlsx|xls|csv)$/i.exec(file.name)
       ) {
         setError("Please upload an Excel (.xlsx, .xls) or CSV file");
         return;

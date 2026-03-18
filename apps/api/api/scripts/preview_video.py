@@ -22,6 +22,7 @@ from api.videos.pipeline.video_editor.schemas import AssemblyInput, Segment
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 SEGMENT_COLORS = [
     (45, 55, 72),
@@ -145,7 +146,7 @@ def generate_preview(
 
     path = Path(output_path)
     path.write_bytes(result.video_bytes)
-    print(f"Preview video saved to {path.resolve()} ({result.duration_ms}ms)")
+    logger.info("Preview video saved to %s (%dms)", path.resolve(), result.duration_ms)
     return path
 
 

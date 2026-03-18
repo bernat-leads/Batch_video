@@ -101,10 +101,10 @@ function VideoDetailPage() {
           await retryVideo({ videoId });
           setRetryRequested(true);
           // Invalidate related queries so lists and batch detail reflect the retry
-          queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
           if (batchId) {
-            queryClient.invalidateQueries({ queryKey: getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId) });
+            void queryClient.invalidateQueries({ queryKey: getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId) });
           }
         }}
       />

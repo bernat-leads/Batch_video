@@ -72,9 +72,10 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
         <SectionCard>
           <div className="space-y-2 text-sm">
             <StatRow label="Style" value={video.style ?? "\u2014"} valueClassName="capitalize" />
-            <StatRow label="Voice ID" value={video.voice_id ?? "\u2014"} valueClassName="break-all" />
+            <StatRow label="Voice ID" value={video.voice_id || "\u2014"} valueClassName="break-all" />
             <StatRow label="Top Text" value={video.top_text ?? "\u2014"} />
           </div>
+          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentionally treat empty string as falsy */}
           {(video.prompt || video.script_text) && (
             <>
               <div className="my-3 h-px bg-border" />

@@ -12,6 +12,7 @@ export const Route = createFileRoute("/app")({
     try {
       await meApiV1AuthMeGet();
     } catch {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router requires throwing redirect()
       throw redirect({ to: "/login" });
     }
   },

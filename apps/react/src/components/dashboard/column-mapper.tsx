@@ -206,10 +206,10 @@ export function ColumnMapper({
 }: ColumnMapperProps) {
   const autoMapped = useMemo(() => autoDetect(headers, settingsDefaults), [headers, settingsDefaults]);
   const [mapping, setMapping] = useState<ColumnMapping>({
-    script_text: initialMapping?.script_text ?? autoMapped["script_text"] ?? UNMAPPED,
-    voice_id: initialMapping?.voice_id ?? autoMapped["voice_id"] ?? UNMAPPED,
-    style: initialMapping?.style ?? autoMapped["style"] ?? UNMAPPED,
-    top_text: initialMapping?.top_text ?? autoMapped["top_text"] ?? UNMAPPED,
+    script_text: initialMapping?.script_text ?? autoMapped.script_text ?? UNMAPPED,
+    voice_id: initialMapping?.voice_id ?? autoMapped.voice_id ?? UNMAPPED,
+    style: initialMapping?.style ?? autoMapped.style ?? UNMAPPED,
+    top_text: initialMapping?.top_text ?? autoMapped.top_text ?? UNMAPPED,
   });
 
   const isValid = FIELDS.filter((f) => f.required).every(

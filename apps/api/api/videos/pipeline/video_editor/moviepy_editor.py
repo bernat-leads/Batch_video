@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 from moviepy import AudioFileClip, VideoClip, concatenate_videoclips
 
-from api.videos.utils import fast_composite, temp_file
 from api.videos.pipeline.video_editor.base import VideoEditor
 from api.videos.pipeline.video_editor.effects import EffectService
 from api.videos.pipeline.video_editor.schemas import (
@@ -20,6 +19,7 @@ from api.videos.pipeline.video_editor.schemas import (
     Segment,
     VideoTemplate,
 )
+from api.videos.utils import fast_composite, temp_file
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +159,9 @@ class MoviePyVideoEditor(VideoEditor):
             frame = self._effects.apply(
                 effect, source_image, progress, output_width, output_height
             )
-            frame = self._composite_overlays(
+            return self._composite_overlays(
                 frame, overlays, caption_groups, time_offset + local_time
             )
-            return frame
 
         return VideoClip(frame_function=make_frame, duration=duration).with_fps(fps)
 

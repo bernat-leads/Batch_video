@@ -1,6 +1,9 @@
 """Batch SQLAlchemy model."""
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -9,6 +12,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from api.batches.enums import BatchStatus
 from api.core.models import BaseModel
 from api.core.schemas import AICost
+
+if TYPE_CHECKING:
+    from api.videos.models.video import Video
 
 
 class Batch(BaseModel):
@@ -73,7 +79,7 @@ class Batch(BaseModel):
     def total(self) -> AICost:
         return AICost(token_count=self.total_token_count, cost_usd=self.total_cost_usd)
 
-    videos: Mapped[list["Video"]] = relationship(
+    videos: Mapped[list[Video]] = relationship(
         back_populates="batch",
         cascade="all, delete-orphan",
     )

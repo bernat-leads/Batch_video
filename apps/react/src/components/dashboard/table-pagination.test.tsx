@@ -121,6 +121,7 @@ describe("TablePagination", () => {
     );
 
     const buttons = screen.getAllByRole("button");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- test assertion, buttons[0] always exists
     await user.click(buttons[0]!); // prev button
     expect(onPageChange).toHaveBeenCalledWith(2);
   });

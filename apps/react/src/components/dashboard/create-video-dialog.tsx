@@ -73,13 +73,13 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
   const createVideo = useCreateVideoApiV1VideosPost({
     mutation: {
       onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
         setOpen(false);
         resetDialog();
         toast.success("Video created");
         onVideoCreated?.();
-        navigate({ to: "/app/videos/$videoId", params: { videoId: data.id } });
+        void navigate({ to: "/app/videos/$videoId", params: { videoId: data.id } });
       },
       onError: () => {
         toast.error("Failed to create video");
@@ -107,7 +107,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
     createVideo.mutate({
       data: {
         script_text: values.scriptText,
-        prompt: values.prompt || settings?.master_prompt || "",
+        prompt: values.prompt || settings?.master_prompt ?? "",
         voice_id: values.voiceId || "",
         style: values.style || undefined,
         top_text: values.topText || undefined,

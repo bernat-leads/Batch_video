@@ -12,8 +12,8 @@ from api.videos.pipeline.config import (
     ELEVENLABS_MODEL_ID,
     ELEVENLABS_TTS_COST_PER_CHAR,
 )
-from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.rate_limiter import elevenlabs_limiter, wait_for_slot
+from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry
 

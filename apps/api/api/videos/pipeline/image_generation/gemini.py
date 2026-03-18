@@ -84,7 +84,9 @@ class GeminiImageGenService(ImageGenService):
             if safety and safety.categories:
                 all_scores = [
                     f"{cat}={score:.2f}"
-                    for cat, score in zip(safety.categories, safety.scores or [])
+                    for cat, score in zip(
+                        safety.categories, safety.scores or [], strict=False
+                    )
                 ]
                 details = f" [{', '.join(all_scores)}]"
             raise PipelineStageError(

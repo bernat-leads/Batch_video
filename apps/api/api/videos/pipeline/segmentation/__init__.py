@@ -6,10 +6,10 @@ from api.videos.pipeline.segmentation.schemas import (
     AnySegmentEffect,
     KenBurnsDirection,
     KenBurnsEffect,
-    SegmentEffect,
-    SegmentResult,
     SegmentationInput,
     SegmentationResult,
+    SegmentEffect,
+    SegmentResult,
 )
 
 __all__ = [

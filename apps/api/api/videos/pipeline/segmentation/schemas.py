@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 from api.core.schemas import AICost
 from api.videos.pipeline.tts.schemas import WordTimestamp
 
-
 # ── Segment effects ──────────────────────────────────────────────────
 
 
