@@ -14,7 +14,7 @@ from api.videos.crud import VideoCrud
 from api.videos.pipeline.video_editor import MoviePyVideoEditor
 from api.videos.pipeline.video_editor.effects import NumpyEffectService
 from api.videos.pipeline.video_editor.templates import TIKTOK_AD_TEMPLATE
-from apps.api.api.videos.pipeline.image_generation.gemini import GeminiImageGenService
+from api.videos.pipeline.image_generation.gemini import GeminiImageGenService
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
