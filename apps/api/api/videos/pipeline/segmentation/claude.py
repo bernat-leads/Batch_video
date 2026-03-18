@@ -8,7 +8,9 @@ import logging
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.exceptions import OutputParserException
 from langchain_core.outputs import LLMResult
+from pydantic import ValidationError
 
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
@@ -72,6 +74,8 @@ class ClaudeSegmentationService(SegmentationService):
             parsed: SegmentationOutput = await self._chain.ainvoke(
                 prompt_messages, config={"callbacks": [usage_cb]}
             )
+        except (OutputParserException, ValidationError):
+            raise  # Retryable — let tenacity handle it
         except Exception as error:
             raise PipelineStageError(
                 "segmentation", f"Claude API call failed: {error}"

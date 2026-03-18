@@ -1,5 +1,6 @@
 """Segmentation schemas."""
 
+import json
 from enum import Enum
 from typing import Literal
 
@@ -41,7 +42,9 @@ class KenBurnsDirection(str, Enum):
 class KenBurnsEffect(SegmentEffect):
     """Ken Burns pan/zoom camera movement for a segment image."""
 
-    type: Literal["ken_burns"] = Field(default="ken_burns", description="Always 'ken_burns'")
+    type: Literal["ken_burns"] = Field(
+        default="ken_burns", description="Always 'ken_burns'"
+    )
     direction: KenBurnsDirection = Field(description="Camera movement direction")
     scale: float = Field(description="Zoom scale factor, ideally between 1.1 and 1.4")
 
@@ -59,10 +62,16 @@ class SegmentResult(BaseModel):
 
     order: int = Field(description="Segment number starting from 1")
     text: str = Field(description="The script text spoken during this segment")
-    start_time: float = Field(description="Start time in seconds from the word timestamps")
+    start_time: float = Field(
+        description="Start time in seconds from the word timestamps"
+    )
     end_time: float = Field(description="End time in seconds from the word timestamps")
-    image_prompt: str = Field(description="Detailed image generation prompt for this segment's visual")
-    effect: KenBurnsEffect = Field(description="Ken Burns camera movement effect for this segment")
+    image_prompt: str = Field(
+        description="Detailed image generation prompt for this segment's visual"
+    )
+    effect: KenBurnsEffect = Field(
+        description="Ken Burns camera movement effect for this segment"
+    )
 
     model_config = {"frozen": True}
 
@@ -88,8 +97,19 @@ class SegmentationInput(BaseModel):
             for index, word in enumerate(self.word_timestamps)
         )
 
+        schema_json = json.dumps(
+            SegmentationOutput.model_json_schema(), indent=2
+        )
+
+        system_prompt = (
+            f"{self.prompt}\n\n"
+            f"## Required Output Schema\n\n"
+            f"You MUST respond with data matching this JSON schema:\n\n"
+            f"```json\n{schema_json}\n```"
+        )
+
         messages = [
-            ("system", self.prompt),
+            ("system", system_prompt),
             (
                 "human",
                 f"## Script\n\nThe full ad script to segment into visual scenes:\n\n{self.script_text}",

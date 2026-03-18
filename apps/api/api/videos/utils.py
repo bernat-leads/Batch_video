@@ -52,6 +52,8 @@ def fast_composite(
 def pipeline_retry():
     """Retry decorator: exponential backoff for transient API errors and rate limits."""
     from google.genai.errors import ClientError
+    from langchain_core.exceptions import OutputParserException
+    from pydantic import ValidationError
 
     return retry(
         stop=stop_after_attempt(settings.PIPELINE_MAX_RETRIES),
@@ -59,7 +61,14 @@ def pipeline_retry():
             multiplier=settings.PIPELINE_RETRY_WAIT_SECONDS, min=2, max=60
         ),
         retry=retry_if_exception_type(
-            (ConnectionError, TimeoutError, OSError, ClientError)
+            (
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ClientError,
+                OutputParserException,
+                ValidationError,
+            )
         ),
         reraise=True,
     )
