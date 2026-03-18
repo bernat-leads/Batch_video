@@ -141,7 +141,7 @@ class VideoService:
         # Stage 5: Upload
         await self._run_upload(video, edit_result)
 
-        return await self._finalize(video)
+        return await self._finalize(video, num_shots=len(shots))
 
     async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
         """Rebuild TTSResult from S3 audio + approximate word timestamps from shots."""
@@ -318,7 +318,9 @@ class VideoService:
         video.duration_ms = edit_result.duration_ms
         video.file_size_bytes = len(edit_result.video_bytes)
 
-    async def _finalize(self, video: Video) -> VideoGenerationResult:
+    async def _finalize(
+        self, video: Video, num_shots: int
+    ) -> VideoGenerationResult:
         """Mark finished and return the generation result."""
         video.status = VideoStatus.finished
         video.current_stage = VideoStage.done
@@ -329,7 +331,7 @@ class VideoService:
         return VideoGenerationResult(
             video_id=str(video.id),
             duration_ms=video.duration_ms,
-            num_shots=len(video.shots),
+            num_shots=num_shots,
             total=video.total,
         )
 

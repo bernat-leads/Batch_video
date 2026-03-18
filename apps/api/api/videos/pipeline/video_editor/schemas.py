@@ -137,6 +137,9 @@ SENTENCE_ENDERS = frozenset(".!?")
 MAX_GROUP_DURATION = 2.0
 # Pause between words that forces a group break (seconds)
 PAUSE_BREAK_THRESHOLD = 0.4
+# Show captions this many seconds before the word is spoken
+# so the slide-in animation finishes right when speech starts
+CAPTION_PRE_ROLL = 0.15
 
 
 class CaptionGroup(BaseModel):
@@ -222,6 +225,15 @@ class CaptionGroup(BaseModel):
                 last_word_end = word.end
 
         _flush()
+
+        # Pre-roll: shift each group earlier so the slide-in animation
+        # finishes exactly when the first word is spoken
+        for i in range(len(groups)):
+            groups[i] = cls(
+                text=groups[i].text,
+                start=max(0, groups[i].start - CAPTION_PRE_ROLL),
+                end=groups[i].end,
+            )
 
         # Extend each group to meet the next so captions hold during pauses
         for i in range(len(groups) - 1):
