@@ -112,7 +112,6 @@ class StorageService:
         logger.info("Deleted %d files under prefix '%s'", deleted, prefix)
         return deleted
 
-
     def build_zip_response(
         self,
         files: list[tuple[str, str]],

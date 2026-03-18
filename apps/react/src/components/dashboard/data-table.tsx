@@ -10,10 +10,15 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 
-// TanStack Table's ColumnDef requires `any` for the value type parameter due to
-// accessor variance — ColumnDef<T, string> is not assignable to ColumnDef<T, unknown>.
-// This is a known limitation: https://github.com/TanStack/table/issues/4241
-type AnyColumnDef<T> = ColumnDef<T, never> | ColumnDef<T, unknown>;
+// TanStack Table's ColumnDef uses `any` for the value type parameter.
+// Columns with different accessor types (string, number, enum) cannot share a
+// common generic — this is a known TanStack Table design limitation.
+// https://github.com/TanStack/table/issues/4241
+//
+// We use ColumnDef<T, unknown> as the public API and cast at the useReactTable
+// boundary. Callers pass columns from createColumnHelper<T>() which produces
+// ColumnDef<T, SomeValue> — the cast is safe because useReactTable only reads
+// column definitions, never writes to the value type parameter.
 import { ArrowUpDown, Search } from "lucide-react";
 import {
   Table,
@@ -30,8 +35,9 @@ import { TablePagination } from "./table-pagination";
 interface DataTableProps<T> {
   /** Array of data items to render as rows. */
   data: T[];
-  /** TanStack Table column definitions. */
-  columns: AnyColumnDef<T>[];
+  /** TanStack Table column definitions. Cast to unknown[] at the useReactTable boundary. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Table requires any for mixed column value types
+  columns: ColumnDef<T, any>[];
   /** Search input placeholder text. */
   searchPlaceholder?: string;
   /** Optional toolbar rendered to the right of the search bar. */

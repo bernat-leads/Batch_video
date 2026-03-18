@@ -14,7 +14,10 @@ from api.videos.crud import VideoCrud
 from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 from api.videos.pipeline.factory import create_pipeline_providers
-from api.videos.pipeline.video_editor.templates import DEFAULT_TEMPLATE_NAME, get_template
+from api.videos.pipeline.video_editor.templates import (
+    DEFAULT_TEMPLATE_NAME,
+    get_template,
+)
 from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
 from api.videos.service import VideoService
 

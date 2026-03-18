@@ -91,9 +91,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                 dispatched += 1
             failed_count = len(failed_videos)
 
-            batch.status = (
-                BatchStatus.processing if dispatched else BatchStatus.failed
-            )
+            batch.status = BatchStatus.processing if dispatched else BatchStatus.failed
 
             try:
                 channel = EventChannel.batch.value.format(batch_id=batch_id)
