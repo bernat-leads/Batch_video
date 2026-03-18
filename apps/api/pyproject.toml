@@ -52,7 +52,7 @@ dev = "api.scripts.dev:main"
 preview-video = "api.scripts.preview_video:main"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.4.2"
+pytest = "^9.0.2"
 pytest-asyncio = "^1.2.0"
 mypy = "^1.18.2"
 ruff = "^0.13.2"
