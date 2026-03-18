@@ -7,7 +7,7 @@ from api.batches.crud import BatchCrud
 from api.batches.service import BatchService
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
-from api.videos.pipeline.image_generation import GeminiImageGenService
+from api.videos.pipeline.image_generation.placeholder import PlaceholderImageGenService
 from api.videos.pipeline.segmentation import ClaudeSegmentationService
 from api.videos.pipeline.tts import OpenAITTSService
 from api.videos.crud import VideoCrud
@@ -37,7 +37,7 @@ def _build_service(ctx) -> VideoService:
         video_crud=VideoCrud(ctx.session),
         tts=ElevenLabsTTSService(),
         segmentation=ClaudeSegmentationService(),
-        image_gen=GeminiImageGenService(),
+        image_gen=PlaceholderImageGenService(),
         editor=MoviePyVideoEditor(NumpyEffectService()),
     )
 
