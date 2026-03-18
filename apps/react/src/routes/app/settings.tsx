@@ -221,7 +221,7 @@ function SettingsPage() {
                     </FormDescription>
                     <Select
                       onValueChange={(val) => field.onChange(Number(val))}
-                      value={String(field.value ?? 7)}
+                      value={String(field.value)}
                     >
                       <FormControl>
                         <SelectTrigger className="w-48 bg-card-bg border-border text-text-primary">

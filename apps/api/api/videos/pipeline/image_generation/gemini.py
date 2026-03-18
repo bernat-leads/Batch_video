@@ -12,6 +12,7 @@ from api.videos.pipeline.config import IMAGEN_MODEL
 from api.videos.pipeline.costs import get_image_cost
 from api.videos.pipeline.image_generation.base import ImageGenService
 from api.videos.pipeline.image_generation.schemas import ImageConfig, ImageGenResult
+from api.videos.pipeline.rate_limiter import gemini_limiter, wait_for_slot
 from api.videos.utils import pipeline_retry
 
 logger = logging.getLogger(__name__)
@@ -24,9 +25,14 @@ class GeminiImageGenService(ImageGenService):
         """Initialize with Gemini API client."""
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-    @pipeline_retry()
     def generate_image(self, image_prompt: str, config: ImageConfig) -> ImageGenResult:
         """Generate an image using the prompt and template's image config."""
+        wait_for_slot(gemini_limiter, "gemini:imagen")
+        return self._call_api(image_prompt, config)
+
+    @pipeline_retry()
+    def _call_api(self, image_prompt: str, config: ImageConfig) -> ImageGenResult:
+        """Call the Gemini API (retries on transient errors)."""
         logger.info("Imagen: generating image")
 
         try:
