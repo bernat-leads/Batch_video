@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +17,7 @@ import {
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
 import { Stepper } from "@/components/ui/stepper";
+import { useDialogForm } from "@/hooks/use-dialog-form";
 import { ColumnMapper, type ColumnMapping } from "./column-mapper";
 import type { ColumnDefaults } from "./column-mapper";
 import { FileUpload, type ParsedFile } from "./file-upload";
@@ -54,26 +54,37 @@ const STEP_DESCRIPTIONS: Record<Step, string> = {
  * Multi-step dialog for batch creation: Upload → Map Columns → Review.
  * Handles file parsing, column mapping, and batch upload submission.
  */
+interface DialogFormState {
+  step: Step;
+  parsedFile: ParsedFile | null;
+  mapping: ColumnMapping | null;
+  batchName: string;
+  isSubmitting: boolean;
+}
+
+const INITIAL_DIALOG_STATE: DialogFormState = {
+  step: "upload",
+  parsedFile: null,
+  mapping: null,
+  batchName: "",
+  isSubmitting: false,
+};
+
 export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatchDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<Step>("upload");
-  const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null);
-  const [mapping, setMapping] = useState<ColumnMapping | null>(null);
-  const [batchName, setBatchName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { open, setOpen, state, setState, onOpenChange } =
+    useDialogForm<DialogFormState>(INITIAL_DIALOG_STATE);
+  const { step, parsedFile, mapping, batchName, isSubmitting } = state;
+
+  const setStep = (s: Step) => setState((prev) => ({ ...prev, step: s }));
+  const setParsedFile = (f: ParsedFile | null) => setState((prev) => ({ ...prev, parsedFile: f }));
+  const setMapping = (m: ColumnMapping | null) => setState((prev) => ({ ...prev, mapping: m }));
+  const setBatchName = (n: string) => setState((prev) => ({ ...prev, batchName: n }));
+  const setIsSubmitting = (v: boolean) => setState((prev) => ({ ...prev, isSubmitting: v }));
 
   const { data: settings } = useGetSettingsApiV1SettingsGet();
   const uploadBatch = useUploadBatchApiV1BatchesUploadPost();
-
-  const reset = () => {
-    setStep("upload");
-    setParsedFile(null);
-    setMapping(null);
-    setBatchName("");
-    setIsSubmitting(false);
-  };
 
   const handleFileParsed = (data: ParsedFile) => {
     setParsedFile(data);
@@ -104,8 +115,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
 
       queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
-      setOpen(false);
-      reset();
+      onOpenChange(false);
       toast.success(`Batch "${finalName}" uploaded — processing started`);
       onBatchCreated?.();
       navigate({ to: "/app/batches/$batchId", params: { batchId: batch.id } });
@@ -118,10 +128,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
-        setOpen(v);
-        if (!v) reset();
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogTrigger asChild>
         <Button className="bg-brand text-white">

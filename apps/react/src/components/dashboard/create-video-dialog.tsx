@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import {
@@ -17,6 +18,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@packages/ui/components/shadcn/form";
 import { cn } from "@packages/ui/lib/utils";
 import { Stepper } from "@/components/ui/stepper";
 
@@ -26,6 +34,14 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "details", label: "Video Details" },
   { key: "prompt", label: "Generation Prompt" },
 ];
+
+interface VideoFormData {
+  scriptText: string;
+  voiceId: string;
+  style: string;
+  topText: string;
+  prompt: string;
+}
 
 interface CreateVideoDialogProps {
   onVideoCreated?: () => void;
@@ -40,14 +56,19 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("details");
-
-  const [scriptText, setScriptText] = useState("");
-  const [voiceId, setVoiceId] = useState("");
-  const [style, setStyle] = useState("");
-  const [topText, setTopText] = useState("");
-  const [prompt, setPrompt] = useState<string | null>(null);
+  const [promptInitialized, setPromptInitialized] = useState(false);
 
   const { data: settings } = useGetSettingsApiV1SettingsGet();
+
+  const form = useForm<VideoFormData>({
+    defaultValues: {
+      scriptText: "",
+      voiceId: "",
+      style: "",
+      topText: "",
+      prompt: "",
+    },
+  });
 
   const createVideo = useCreateVideoApiV1VideosPost({
     mutation: {
@@ -55,7 +76,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
         queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
         setOpen(false);
-        reset();
+        resetDialog();
         toast.success("Video created");
         onVideoCreated?.();
         navigate({ to: "/app/videos/$videoId", params: { videoId: data.id } });
@@ -66,41 +87,44 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
     },
   });
 
-  const reset = () => {
+  const resetDialog = () => {
     setStep("details");
-    setScriptText("");
-    setVoiceId("");
-    setStyle("");
-    setTopText("");
-    setPrompt(null);
+    setPromptInitialized(false);
+    form.reset();
   };
 
   const handleNext = () => {
+    const { scriptText, voiceId } = form.getValues();
     if (!scriptText.trim() || !voiceId.trim()) return;
-    if (prompt === null) {
-      setPrompt(settings?.master_prompt ?? "");
+    if (!promptInitialized) {
+      form.setValue("prompt", settings?.master_prompt ?? "");
+      setPromptInitialized(true);
     }
     setStep("prompt");
   };
 
-  const handleCreate = () => {
+  const handleCreate = (values: VideoFormData) => {
     createVideo.mutate({
       data: {
-        script_text: scriptText,
-        prompt: prompt ?? settings?.master_prompt ?? "",
-        voice_id: voiceId || "",
-        style: style || undefined,
-        top_text: topText || undefined,
+        script_text: values.scriptText,
+        prompt: values.prompt || settings?.master_prompt || "",
+        voice_id: values.voiceId || "",
+        style: values.style || undefined,
+        top_text: values.topText || undefined,
       },
     });
   };
+
+  const scriptText = form.watch("scriptText");
+  const voiceId = form.watch("voiceId");
+  const isNextDisabled = !scriptText.trim() || !voiceId.trim();
 
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (!v) reset();
+        if (!v) resetDialog();
       }}
     >
       <DialogTrigger asChild>
@@ -123,106 +147,147 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
           </div>
         </DialogHeader>
 
-        {step === "details" && (
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                Script Text <span className="text-status-error">*</span>
-              </label>
-              <textarea
-                value={scriptText}
-                onChange={(e) => setScriptText(e.target.value)}
-                placeholder="Write your video ad script..."
-                className="min-h-[100px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                Style
-              </label>
-              <textarea
-                value={style}
-                onChange={(e) => setStyle(e.target.value)}
-                placeholder="Additional style instructions for this video, e.g. warm golden tones, cinematic lighting, luxury brand feel..."
-                className="min-h-[60px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                  Voice ID <span className="text-status-error">*</span>
-                </label>
-                <input
-                  value={voiceId}
-                  onChange={(e) => setVoiceId(e.target.value)}
-                  placeholder="e.g. EXAVITQu4vr4xnSDxMaL"
-                  className="h-9 w-full rounded-lg border border-border bg-content-bg px-3 text-sm text-text-primary outline-none"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleCreate)}>
+            {step === "details" && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="scriptText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-text-primary">
+                        Script Text <span className="text-status-error">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <textarea
+                          placeholder="Write your video ad script..."
+                          className="min-h-[100px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                  Top Text
-                </label>
-                <input
-                  value={topText}
-                  onChange={(e) => setTopText(e.target.value)}
-                  placeholder="e.g. LIMITED OFFER"
-                  className="h-9 w-full rounded-lg border border-border bg-content-bg px-3 text-sm text-text-primary outline-none"
+
+                <FormField
+                  control={form.control}
+                  name="style"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-text-primary">
+                        Style
+                      </FormLabel>
+                      <FormControl>
+                        <textarea
+                          placeholder="Additional style instructions for this video, e.g. warm golden tones, cinematic lighting, luxury brand feel..."
+                          className="min-h-[60px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="voiceId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text-primary">
+                          Voice ID <span className="text-status-error">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <input
+                            placeholder="e.g. EXAVITQu4vr4xnSDxMaL"
+                            className="h-9 w-full rounded-lg border border-border bg-content-bg px-3 text-sm text-text-primary outline-none"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="topText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text-primary">
+                          Top Text
+                        </FormLabel>
+                        <FormControl>
+                          <input
+                            placeholder="e.g. LIMITED OFFER"
+                            className="h-9 w-full rounded-lg border border-border bg-content-bg px-3 text-sm text-text-primary outline-none"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={isNextDisabled}
+                    className={cn(
+                      "bg-brand text-white",
+                      isNextDisabled && "opacity-50",
+                    )}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-end pt-1">
-              <Button
-                onClick={handleNext}
-                disabled={!scriptText.trim() || !voiceId.trim()}
-                className={cn(
-                  "bg-brand text-white",
-                  (!scriptText.trim() || !voiceId.trim()) && "opacity-50",
-                )}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+            {step === "prompt" && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="prompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-text-primary">
+                        Generation Prompt
+                      </FormLabel>
+                      <p className="mb-2 text-xs text-text-muted">
+                        Pre-filled from your settings. Changes here apply only to this video.
+                      </p>
+                      <FormControl>
+                        <textarea
+                          placeholder="Enter generation prompt..."
+                          className="min-h-[180px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-        {step === "prompt" && (
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                Generation Prompt
-              </label>
-              <p className="mb-2 text-xs text-text-muted">
-                Pre-filled from your settings. Changes here apply only to this video.
-              </p>
-              <textarea
-                value={prompt ?? ""}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Enter generation prompt..."
-                className="min-h-[180px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
-              />
-            </div>
-
-            <div className="flex justify-between pt-1">
-              <Button
-                variant="outline"
-                onClick={() => setStep("details")}
-                className="border-border text-text-secondary"
-              >
-                Back
-              </Button>
-              <Button
-                onClick={handleCreate}
-                className="bg-brand text-white"
-              >
-                Create Video
-              </Button>
-            </div>
-          </div>
-        )}
+                <div className="flex justify-between pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep("details")}
+                    className="border-border text-text-secondary"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-brand text-white"
+                  >
+                    Create Video
+                  </Button>
+                </div>
+              </div>
+            )}
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -18,8 +18,8 @@ class Batch(BaseModel):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=BatchStatus.processing.value
+    status: Mapped[BatchStatus] = mapped_column(
+        String(30), nullable=False, default=BatchStatus.processing
     )
     total_videos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     completed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

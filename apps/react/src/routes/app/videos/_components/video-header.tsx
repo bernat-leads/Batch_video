@@ -1,6 +1,7 @@
 import type { VideoReadWithShots } from "@packages/api-client";
 import { Download, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { formatDate } from "@/lib/format";
 import { AsyncButton } from "@/components/ui/async-button";
 
 interface VideoHeaderProps {
@@ -8,14 +9,6 @@ interface VideoHeaderProps {
   video: VideoReadWithShots;
   onDownload: () => Promise<void> | void;
   onRetry: () => Promise<void> | void;
-}
-
-function formatCreatedDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export function VideoHeader({ videoId, video, onDownload, onRetry }: VideoHeaderProps) {
@@ -29,7 +22,7 @@ export function VideoHeader({ videoId, video, onDownload, onRetry }: VideoHeader
           <StatusBadge status={video.status} stage={video.current_stage} />
         </div>
         <p className="mt-0.5 text-xs text-text-muted">
-          Created {formatCreatedDate(video.created_at)}
+          Created {formatDate(video.created_at)}
         </p>
       </div>
       <div className="flex items-center gap-2 pt-1">

@@ -58,7 +58,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
             rows = parser.parse()
 
             if not rows:
-                batch.status = BatchStatus.failed.value
+                batch.status = BatchStatus.failed
                 await crud.set_batch_error(batch.id, "No rows found in file")
                 return BatchProcessResult(batch_id=batch_id, error="empty file")
 
@@ -92,7 +92,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
             failed_count = len(failed_videos)
 
             batch.status = (
-                BatchStatus.processing.value if dispatched else BatchStatus.failed.value
+                BatchStatus.processing if dispatched else BatchStatus.failed
             )
 
             try:
@@ -115,11 +115,11 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
 
         except (ValueError, BatchParseError) as e:
             logger.warning("Batch %s: parse error — %s", batch_id, e)
-            batch.status = BatchStatus.failed.value
+            batch.status = BatchStatus.failed
             await crud.set_batch_error(batch.id, str(e))
             return BatchProcessResult(batch_id=batch_id, error=str(e))
         except Exception as e:
             logger.exception("Batch %s: unexpected error", batch_id)
-            batch.status = BatchStatus.failed.value
+            batch.status = BatchStatus.failed
             await crud.set_batch_error(batch.id, f"Processing failed: {e}")
             return BatchProcessResult(batch_id=batch_id, error=str(e))

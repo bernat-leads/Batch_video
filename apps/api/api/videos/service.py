@@ -17,23 +17,25 @@ from api.storage import StorageService
 from api.videos.crud import VideoCrud
 from api.videos.enums import VideoStage, VideoStatus
 from api.videos.models.video import Video
-from api.videos.pipeline.image_generation import ImageGenService
 from api.videos.pipeline.image_generation.schemas import ImageConfig
-from api.videos.pipeline.segmentation import SegmentationService
+from api.videos.pipeline.providers import PipelineProviders
 from api.videos.pipeline.segmentation.schemas import (
     SegmentationInput,
     SegmentationResult,
 )
-from api.videos.pipeline.tts import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.pipeline.video_editor import (
     EditResult,
     Segment,
-    VideoEditor,
     VideoTemplate,
 )
 from api.videos.pipeline.video_editor.schemas import AssemblyInput
-from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
+from api.videos.schemas import (
+    ShotWithImage,
+    VideoCreate,
+    VideoGenerationResult,
+    VideoProgressEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +50,7 @@ class VideoService:
         events: EventService,
         app_settings: AppSettingsCrud,
         video_crud: VideoCrud,
-        tts: TTSService,
-        segmentation: SegmentationService,
-        image_gen: ImageGenService,
-        editor: VideoEditor,
+        providers: PipelineProviders,
     ) -> None:
         """Initialize with pipeline dependencies."""
         self._session = session
@@ -59,10 +58,10 @@ class VideoService:
         self._events = events
         self._app_settings = app_settings
         self._video_crud = video_crud
-        self._tts = tts
-        self._segmentation = segmentation
-        self._image_gen = image_gen
-        self._editor = editor
+        self._tts = providers.tts
+        self._segmentation = providers.segmentation
+        self._image_gen = providers.image_gen
+        self._editor = providers.editor
 
     async def generate_video(
         self,
@@ -133,11 +132,18 @@ class VideoService:
 
         # Stage 3: Image generation (skips shots that already have images)
         if start_index <= stages.index(VideoStage.image_generation.value):
-            await self._run_image_generation(video, shots, template)
+            shots_with_images = await self._run_image_generation(
+                video, shots, template
+            )
+        else:
+            shots_with_images = await asyncio.to_thread(
+                self._load_shot_images, shots
+            )
 
         # Stage 4: Assembly
-        await asyncio.to_thread(self._load_shot_images, shots)
-        edit_result = await self._run_assembly(video, shots, tts_result, template)
+        edit_result = await self._run_assembly(
+            video, shots_with_images, tts_result, template
+        )
 
         # Stage 5: Upload
         await self._run_upload(video, edit_result)
@@ -201,11 +207,14 @@ class VideoService:
         await self._session.execute(delete(Shot).where(Shot.video_id == video.id))
         await self._session.flush()
 
-    def _load_shot_images(self, shots: list[Shot]) -> None:
-        """Download shot images from S3 for shots that don't have them in memory."""
+    def _load_shot_images(self, shots: list[Shot]) -> list[ShotWithImage]:
+        """Download shot images from S3 and return ShotWithImage containers."""
+        result: list[ShotWithImage] = []
         for shot in shots:
-            if not getattr(shot, "image_bytes", None) and shot.image_url:
-                shot.image_bytes = self._storage.download_file(shot.image_url)
+            if shot.image_url:
+                image_bytes = self._storage.download_file(shot.image_url)
+                result.append(ShotWithImage(shot=shot, image_bytes=image_bytes))
+        return result
 
     async def _run_tts(self, video: Video) -> TTSResult:
         """Stage 1: Convert script to speech, upload audio to S3."""
@@ -276,15 +285,23 @@ class VideoService:
 
     async def _run_image_generation(
         self, video: Video, shots: list[Shot], template: VideoTemplate
-    ) -> None:
+    ) -> list[ShotWithImage]:
         """Stage 3: Generate images for each shot and upload to S3."""
         await self._update_stage(video, VideoStage.image_generation)
 
+        shots_with_images: list[ShotWithImage] = []
         for shot in shots:
             if shot.image_url:
-                continue  # already generated (partial retry)
-            await asyncio.to_thread(
-                self._generate_shot_image, video, shot, template.image_config
+                # Already generated (partial retry) — download existing image
+                image_bytes = await asyncio.to_thread(
+                    self._storage.download_file, shot.image_url
+                )
+            else:
+                image_bytes = await asyncio.to_thread(
+                    self._generate_shot_image, video, shot, template.image_config
+                )
+            shots_with_images.append(
+                ShotWithImage(shot=shot, image_bytes=image_bytes)
             )
 
         image_cost = video.shots_cost(shots)
@@ -292,11 +309,15 @@ class VideoService:
         video.image_generation_token_count = image_cost.token_count
         self._update_totals(video)
         await self._session.commit()
+        return shots_with_images
 
     def _generate_shot_image(
         self, video: Video, shot: Shot, image_config: ImageConfig
-    ) -> None:
-        """Generate image for a shot and upload to S3 (runs in thread)."""
+    ) -> bytes:
+        """Generate image for a shot and upload to S3 (runs in thread).
+
+        Returns the image bytes for use in assembly.
+        """
         image_result = self._image_gen.generate_image(shot.image_prompt, image_config)
 
         s3_key = video.shot_s3_key(shot.order)
@@ -306,12 +327,12 @@ class VideoService:
 
         shot.image_url = s3_key
         shot.cost_usd = image_result.cost.cost_usd
-        shot.image_bytes = image_result.image_bytes  # transient — used by assembly
+        return image_result.image_bytes
 
     async def _run_assembly(
         self,
         video: Video,
-        shots: list[Shot],
+        shots_with_images: list[ShotWithImage],
         tts_result: TTSResult,
         template: VideoTemplate,
     ) -> EditResult:
@@ -322,11 +343,11 @@ class VideoService:
             template=template,
             segments=[
                 Segment(
-                    image_bytes=shot.image_bytes,
-                    duration=shot.end_time - shot.start_time,
-                    effect=shot.effect_config,
+                    image_bytes=swi.image_bytes,
+                    duration=swi.shot.end_time - swi.shot.start_time,
+                    effect=swi.shot.effect_config,
                 )
-                for shot in shots
+                for swi in shots_with_images
             ],
             audio_bytes=tts_result.audio_bytes,
             word_timestamps=tts_result.word_timestamps,

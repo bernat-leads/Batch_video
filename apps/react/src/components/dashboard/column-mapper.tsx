@@ -36,30 +36,38 @@ interface ColumnMapperProps {
 
 const UNMAPPED = "__unmapped__";
 
-const FIELDS = [
+interface FieldDefinition {
+  key: keyof ColumnMapping;
+  label: string;
+  description: string;
+  required: boolean;
+  autoMatch: readonly string[];
+}
+
+const FIELDS: readonly FieldDefinition[] = [
   {
-    key: "script_text" as const,
+    key: "script_text",
     label: "Script Text",
     description: "The ad script / video text",
     required: true,
     autoMatch: ["script_text", "script", "text", "content", "copy", "ad_text"],
   },
   {
-    key: "voice_id" as const,
+    key: "voice_id",
     label: "Voice ID",
     description: "ElevenLabs voice identifier",
     required: true,
     autoMatch: ["voice_id", "voice", "voiceid"],
   },
   {
-    key: "style" as const,
+    key: "style",
     label: "Style",
     description: "Visual style (professional, energetic, etc.)",
     required: false,
     autoMatch: ["style", "visual_style", "theme"],
   },
   {
-    key: "top_text" as const,
+    key: "top_text",
     label: "Top Text",
     description: "Text overlay at top of video",
     required: false,
@@ -70,7 +78,7 @@ const FIELDS = [
 /**
  * Auto-detects column mappings by matching spreadsheet headers against
  * known field names. Checks settings defaults first, then falls back to
- * built-in aliases (e.g. "script", "text", "copy" → script_text).
+ * built-in aliases (e.g. "script", "text", "copy" -> script_text).
  */
 function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record<string, string> {
   const mapping: Record<string, string> = {};
@@ -101,6 +109,88 @@ function autoDetect(headers: string[], defaults?: ColumnDefaults | null): Record
   return mapping;
 }
 
+interface FieldMappingRowProps {
+  field: FieldDefinition;
+  selectedValue: string;
+  headers: string[];
+  samples: string[];
+  isLastRow: boolean;
+  onValueChange: (value: string) => void;
+}
+
+/**
+ * A single row in the column mapping table. Shows the field label,
+ * required badge, dropdown select for column, and sample data.
+ */
+function FieldMappingRow({
+  field,
+  selectedValue,
+  headers,
+  samples,
+  isLastRow,
+  onValueChange,
+}: FieldMappingRowProps) {
+  return (
+    <tr
+      className={cn(
+        "border-border bg-card-bg",
+        !isLastRow && "border-b",
+      )}
+    >
+      <td className="border-border px-3 py-4 align-top">
+        <p className="font-medium text-text-primary">
+          {field.label}
+          {field.required && <span className="text-status-error"> *</span>}
+        </p>
+        <p className="text-xs text-text-muted">
+          {field.description}
+        </p>
+      </td>
+      <td className="border-border px-3 py-4 align-top">
+        <Select
+          value={selectedValue}
+          onValueChange={onValueChange}
+        >
+          <SelectTrigger
+            className={cn(
+              "w-full bg-content-bg border-border",
+              selectedValue === UNMAPPED ? "text-text-muted" : "text-text-primary",
+            )}
+          >
+            <SelectValue placeholder="Select column..." />
+          </SelectTrigger>
+          <SelectContent className="bg-card-bg border-border">
+            <SelectItem value={UNMAPPED}>Select column...</SelectItem>
+            {headers.map((header) => (
+              <SelectItem key={header} value={header}>
+                {header}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </td>
+      <td className="border-border px-3 py-4 align-top">
+        {samples.length > 0 ? (
+          <div className="space-y-0.5">
+            {samples.map((s, i) => (
+              <p
+                key={i}
+                className="truncate text-xs text-text-muted"
+              >
+                {s.length > 50 ? s.slice(0, 50) + "\u2026" : s}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-border">
+            —
+          </span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 /**
  * Step 2 of batch creation — lets the user map spreadsheet columns
  * to video fields (script_text, voice_id, style, top_text).
@@ -115,12 +205,7 @@ export function ColumnMapper({
   onBack,
 }: ColumnMapperProps) {
   const autoMapped = useMemo(() => autoDetect(headers, settingsDefaults), [headers, settingsDefaults]);
-  const [mapping, setMapping] = useState<{
-    script_text: string;
-    voice_id: string;
-    style: string;
-    top_text: string;
-  }>({
+  const [mapping, setMapping] = useState<ColumnMapping>({
     script_text: initialMapping?.script_text ?? autoMapped["script_text"] ?? UNMAPPED,
     voice_id: initialMapping?.voice_id ?? autoMapped["voice_id"] ?? UNMAPPED,
     style: initialMapping?.style ?? autoMapped["style"] ?? UNMAPPED,
@@ -164,70 +249,21 @@ export function ColumnMapper({
           </thead>
           <tbody>
             {FIELDS.map((field, idx) => {
-              const selectedValue = mapping[field.key as keyof typeof mapping];
+              const selectedValue = mapping[field.key];
               const samples = getSamples(selectedValue);
 
               return (
-                <tr
+                <FieldMappingRow
                   key={field.key}
-                  className={cn(
-                    "border-border bg-card-bg",
-                    idx < FIELDS.length - 1 && "border-b",
-                  )}
-                >
-                  <td className="border-border px-3 py-4 align-top">
-                    <p className="font-medium text-text-primary">
-                      {field.label}
-                      {field.required && <span className="text-status-error"> *</span>}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {field.description}
-                    </p>
-                  </td>
-                  <td className="border-border px-3 py-4 align-top">
-                    <Select
-                      value={selectedValue}
-                      onValueChange={(v) =>
-                        setMapping((prev) => ({ ...prev, [field.key]: v }))
-                      }
-                    >
-                      <SelectTrigger
-                        className={cn(
-                          "w-full bg-content-bg border-border",
-                          selectedValue === UNMAPPED ? "text-text-muted" : "text-text-primary",
-                        )}
-                      >
-                        <SelectValue placeholder="Select column..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card-bg border-border">
-                        <SelectItem value={UNMAPPED}>Select column...</SelectItem>
-                        {headers.map((header) => (
-                          <SelectItem key={header} value={header}>
-                            {header}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="border-border px-3 py-4 align-top">
-                    {samples.length > 0 ? (
-                      <div className="space-y-0.5">
-                        {samples.map((s, i) => (
-                          <p
-                            key={i}
-                            className="truncate text-xs text-text-muted"
-                          >
-                            {s.length > 50 ? s.slice(0, 50) + "\u2026" : s}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-border">
-                        —
-                      </span>
-                    )}
-                  </td>
-                </tr>
+                  field={field}
+                  selectedValue={selectedValue}
+                  headers={headers}
+                  samples={samples}
+                  isLastRow={idx === FIELDS.length - 1}
+                  onValueChange={(v) =>
+                    setMapping((prev) => ({ ...prev, [field.key]: v }))
+                  }
+                />
               );
             })}
           </tbody>

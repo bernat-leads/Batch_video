@@ -3,9 +3,10 @@
 import logging
 import uuid
 from pathlib import PurePosixPath
-from typing import Annotated
+from typing import Annotated, Protocol
 
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.batches.crud import BatchCrudDep
 from api.batches.models.batch import Batch
@@ -14,7 +15,7 @@ from api.constants import UPLOAD_CONTENT_TYPES
 from api.deps.celery import celery_app
 from api.events.schemas import EventChannel
 from api.events.service import EventService
-from api.storage import StorageDep
+from api.storage import StorageDep, StorageService
 from api.videos.crud import VideoCrud
 from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
@@ -124,7 +125,7 @@ class BatchService:
         batch.total_cost_usd = totals.total.cost_usd
         batch.total_token_count = totals.total.token_count
 
-        batch.status = batch.derive_status().value
+        batch.status = batch.derive_status()
         await self.crud.db_session.commit()
 
         logger.info(
@@ -152,3 +153,19 @@ class BatchService:
 
 
 BatchServiceDep = Annotated[BatchService, Depends()]
+
+
+class TaskLikeContext(Protocol):
+    """Protocol for task contexts that provide session, storage, and events."""
+
+    session: AsyncSession
+    storage: StorageService
+    events: EventService
+
+
+async def recompute_batch(ctx: TaskLikeContext, batch_id: uuid.UUID) -> None:
+    """Recompute batch counters and emit SSE progress. Safe to call from any task."""
+    batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
+    batch = await batch_service.recompute_counters(batch_id)
+    if batch:
+        await batch_service.emit_progress(ctx.events, batch)

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Upload } from "lucide-react";
 import type { BatchRead } from "@packages/api-client";
+import { formatDate } from "@/lib/format";
 import {
   Table,
   TableBody,
@@ -81,7 +82,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-text-secondary">
-                      {new Date(batch.created_at).toLocaleDateString()}
+                      {formatDate(batch.created_at)}
                     </span>
                   </TableCell>
                 </TableRow>

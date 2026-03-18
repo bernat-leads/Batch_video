@@ -7,6 +7,7 @@ from collections.abc import Generator
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi.responses import StreamingResponse
 
 from api.core.exceptions import StorageError
 from api.deps.storage import S3ClientDep
@@ -110,6 +111,19 @@ class StorageService:
             deleted += len(objects)
         logger.info("Deleted %d files under prefix '%s'", deleted, prefix)
         return deleted
+
+
+    def build_zip_response(
+        self,
+        files: list[tuple[str, str]],
+        filename: str = "download.zip",
+    ) -> StreamingResponse:
+        """Build a ZIP StreamingResponse from a list of (s3_key, archive_name) tuples."""
+        return StreamingResponse(
+            self.stream_zip(files),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
 
 StorageDep = Annotated[StorageService, Depends()]

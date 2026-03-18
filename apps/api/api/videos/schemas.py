@@ -3,12 +3,22 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from api.core.schemas import AICost
 from api.events.schemas import BaseEvent, EventType
+from api.shots.models.shot import Shot
 from api.shots.schemas import ShotRead
 from api.videos.enums import VideoStage, VideoStatus
+
+
+class ShotWithImage(BaseModel):
+    """Transient container for shot + image bytes during assembly. Not persisted."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    shot: Shot
+    image_bytes: bytes
 
 
 class VideoStatusCounts(BaseModel):

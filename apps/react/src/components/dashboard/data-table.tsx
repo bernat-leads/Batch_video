@@ -10,8 +10,10 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ColumnDef variance requires any for the value type parameter
-type AnyColumnDef<T> = ColumnDef<T, any>;
+// TanStack Table's ColumnDef requires `any` for the value type parameter due to
+// accessor variance — ColumnDef<T, string> is not assignable to ColumnDef<T, unknown>.
+// This is a known limitation: https://github.com/TanStack/table/issues/4241
+type AnyColumnDef<T> = ColumnDef<T, never> | ColumnDef<T, unknown>;
 import { ArrowUpDown, Search } from "lucide-react";
 import {
   Table,

@@ -20,10 +20,14 @@ const PIPELINE_STAGES = [
   "done",
 ] as const;
 
-const STAGE_META: Record<
-  string,
-  { label: string; icon: React.ElementType }
-> = {
+type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+interface StageMeta {
+  label: string;
+  icon: React.ElementType;
+}
+
+const STAGE_META: Record<string, StageMeta> = {
   queued: { label: "Queued", icon: Clock },
   tts: { label: "Audio (TTS)", icon: Mic },
   segmentation: { label: "Segmentation", icon: SplitSquareVertical },
@@ -32,6 +36,49 @@ const STAGE_META: Record<
   upload: { label: "Upload", icon: Upload },
   done: { label: "Done", icon: CheckCircle2 },
 };
+
+type StageStatus = "completed" | "current" | "upcoming";
+
+interface StageStatusInfo {
+  stage: PipelineStage;
+  meta: StageMeta;
+  status: StageStatus;
+  isFailed: boolean;
+}
+
+/**
+ * Computes the status of each pipeline stage based on the current stage and
+ * overall video status. Shared between compact and full rendering variants.
+ */
+export function getStageStatuses(
+  currentStage: string,
+  status: string,
+): StageStatusInfo[] {
+  const currentIndex = PIPELINE_STAGES.indexOf(currentStage as PipelineStage);
+  const isCompleted = status === "finished";
+  const isFailed = status === "failed";
+
+  return PIPELINE_STAGES.map((stage, index) => {
+    const meta = STAGE_META[stage]!;
+    const isPast = index < currentIndex;
+
+    let stageStatus: StageStatus;
+    if (isCompleted || isPast) {
+      stageStatus = "completed";
+    } else if (index === currentIndex) {
+      stageStatus = "current";
+    } else {
+      stageStatus = "upcoming";
+    }
+
+    return {
+      stage,
+      meta,
+      status: stageStatus,
+      isFailed: index === currentIndex && isFailed,
+    };
+  });
+}
 
 interface StageIndicatorProps {
   currentStage: string;
@@ -49,23 +96,16 @@ export function StageIndicator({
   status,
   variant = "compact",
 }: StageIndicatorProps) {
-  const currentIndex = PIPELINE_STAGES.indexOf(
-    currentStage as (typeof PIPELINE_STAGES)[number],
-  );
+  const stages = getStageStatuses(currentStage, status);
 
   if (variant === "compact") {
     return (
       <div className="flex items-center gap-1">
-        {PIPELINE_STAGES.map((stage, index) => {
-          const isPast = index < currentIndex;
-          const isCurrent = index === currentIndex;
-          const isCompleted = status === "finished";
-          const isFailed = status === "failed";
-
+        {stages.map(({ stage, meta, status: stageStatus, isFailed }) => {
           let bgClass = "bg-border";
-          if (isCompleted || isPast) bgClass = "bg-status-success";
-          else if (isCurrent && isFailed) bgClass = "bg-status-error";
-          else if (isCurrent) bgClass = "bg-brand";
+          if (stageStatus === "completed") bgClass = "bg-status-success";
+          else if (stageStatus === "current" && isFailed) bgClass = "bg-status-error";
+          else if (stageStatus === "current") bgClass = "bg-brand";
 
           return (
             <div
@@ -74,8 +114,8 @@ export function StageIndicator({
                 "h-1.5 w-8 rounded-full transition-colors",
                 bgClass,
               )}
-              title={STAGE_META[stage]?.label}
-              aria-label={STAGE_META[stage]?.label}
+              title={meta.label}
+              aria-label={meta.label}
             />
           );
         })}
@@ -85,17 +125,11 @@ export function StageIndicator({
 
   return (
     <div className="flex w-full items-center gap-0">
-      {PIPELINE_STAGES.map((stage, index) => {
-        const meta = STAGE_META[stage]!;
+      {stages.map(({ stage, meta, status: stageStatus, isFailed }, index) => {
         const Icon = meta.icon;
-        const isPast = index < currentIndex;
-        const isCurrent = index === currentIndex;
-        const isCompleted = status === "finished";
-        const isFailed = status === "failed";
-
-        const done = isCompleted || isPast;
-        const active = isCurrent && !isCompleted;
-        const failed = isCurrent && isFailed;
+        const done = stageStatus === "completed";
+        const active = stageStatus === "current";
+        const failed = isFailed;
 
         return (
           <div key={stage} className="flex min-w-0 flex-1 items-center">

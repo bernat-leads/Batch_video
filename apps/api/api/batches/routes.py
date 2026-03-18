@@ -94,17 +94,11 @@ async def export_batch_zip(
     finished = await video_crud.get_finished_by_batch(batch.id)
     if not finished:
         raise HTTPException(status_code=400, detail="No finished videos to export")
-
     files = [
-        (video.output_s3_key, f"video-{index:03d}-{str(video.id)[:8]}.mp4")
-        for index, video in enumerate(finished, 1)
+        (v.output_s3_key, f"video-{i:03d}-{str(v.id)[:8]}.mp4")
+        for i, v in enumerate(finished, 1)
     ]
-
-    return StreamingResponse(
-        storage.stream_zip(files),
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{batch.name}.zip"'},
-    )
+    return storage.build_zip_response(files, filename=f"{batch.name}.zip")
 
 
 @batches_router.delete("/{batch_id}", status_code=204)

@@ -1,4 +1,4 @@
-"""Pre-built video templates."""
+"""Pre-built video templates and template registry."""
 
 from api.videos.pipeline.image_generation.schemas import ImageConfig
 from api.videos.pipeline.video_editor.schemas import TextStyle, VideoTemplate
@@ -34,3 +34,18 @@ TIKTOK_AD_TEMPLATE = VideoTemplate(
         Image prompts should describe vivid, full-frame 9:16 portrait scenes with the subject centered in the safe middle zone.
         Captions show 1-3 words at a time in TikTok style.""",
 )
+
+# ── Template registry ──────────────────────────────────────────────
+
+TEMPLATES: dict[str, VideoTemplate] = {
+    "tiktok_ad": TIKTOK_AD_TEMPLATE,
+}
+
+DEFAULT_TEMPLATE_NAME = "tiktok_ad"
+
+
+def get_template(name: str) -> VideoTemplate:
+    """Look up a template by name. Raises ValueError for unknown names."""
+    if name not in TEMPLATES:
+        raise ValueError(f"Unknown template: {name}. Available: {list(TEMPLATES)}")
+    return TEMPLATES[name]
