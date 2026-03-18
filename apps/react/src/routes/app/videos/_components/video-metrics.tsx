@@ -70,15 +70,18 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
 
   return (
     <div className="flex min-w-[320px] flex-1 flex-col gap-5">
-      {/* Input Details */}
+      {/* Video Details — input, prompt/script, model costs, technical */}
       <div>
-        <p className="mb-2 text-sm font-medium text-text-primary">Input</p>
+        <p className="mb-2 text-sm font-medium text-text-primary">Video Details</p>
         <SectionCard>
+          {/* Input */}
           <div className="space-y-2 text-sm">
             <StatRow label="Style" value={video.style ?? "\u2014"} valueClassName="capitalize" />
             <StatRow label="Voice ID" value={video.voice_id || "\u2014"} valueClassName="break-all" />
             <StatRow label="Top Text" value={video.top_text ?? "\u2014"} />
           </div>
+
+          {/* Prompt & Script */}
           {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentionally treat empty string as falsy */}
           {(video.prompt || video.script_text) && (
             <>
@@ -91,71 +94,66 @@ export function VideoMetrics({ video, shots }: VideoMetricsProps) {
               </div>
             </>
           )}
+
+          {/* Technical */}
+          <div className="my-3 h-px bg-border" />
+          <div className="space-y-2 text-sm">
+            <StatRow
+              label="Duration"
+              value={video.duration_ms ? formatDuration(video.duration_ms) : "\u2014"}
+              valueClassName="tabular-nums"
+            />
+            <StatRow label="Shots" value={String(shots.length)} valueClassName="tabular-nums" />
+            <StatRow
+              label="File Size"
+              value={video.file_size_bytes ? formatFileSize(video.file_size_bytes) : "\u2014"}
+              valueClassName="tabular-nums"
+            />
+          </div>
         </SectionCard>
       </div>
 
-      {/* Pipeline Cost + Technical Details */}
-      <div className="flex flex-wrap items-stretch gap-5">
-        <div className="flex min-w-[280px] flex-1 flex-col">
-          <p className="mb-2 text-sm font-medium text-text-primary">Pipeline Cost</p>
-          <div className="flex-1 overflow-hidden rounded-xl border border-border bg-card-bg">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border bg-content-bg">
-                  <TableHead className="text-text-secondary">Model</TableHead>
-                  <TableHead className="text-right text-text-secondary">Usage</TableHead>
-                  <TableHead className="text-right text-text-secondary">Cost</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(modelCosts).map(([model, cost]) => (
-                  <TableRow key={model} className="border-border">
-                    <TableCell className="font-mono text-xs text-text-primary">
-                      {model}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
-                      {formatUsage(cost.token_count, getUsageUnit(model))}
-                    </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums text-text-secondary">
-                      {formatCostPrecise(cost.cost_usd)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow className="border-border">
-                  <TableCell colSpan={2} className="text-sm font-medium text-text-primary">Total</TableCell>
-                  <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
-                    {formatCostPrecise(totalCostUsd)}
+      {/* Model Cost */}
+      <div>
+        <p className="mb-2 text-sm font-medium text-text-primary">Model Cost</p>
+        <div className="overflow-hidden rounded-xl border border-border bg-card-bg">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border bg-content-bg">
+                <TableHead className="text-text-secondary">Model</TableHead>
+                <TableHead className="text-right text-text-secondary">Usage</TableHead>
+                <TableHead className="text-right text-text-secondary">Cost</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(modelCosts).map(([model, cost]) => (
+                <TableRow key={model} className="border-border">
+                  <TableCell className="font-mono text-xs text-text-primary">
+                    {model}
+                  </TableCell>
+                  <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                    {formatUsage(cost.token_count, getUsageUnit(model))}
+                  </TableCell>
+                  <TableCell className="text-right text-sm tabular-nums text-text-secondary">
+                    {formatCostPrecise(cost.cost_usd)}
                   </TableCell>
                 </TableRow>
-              </TableFooter>
-            </Table>
-            {totalCostUsd > 0 && video.duration_ms ? (
-              <div className="border-t border-border px-3 py-2 text-right text-xs text-text-muted">
-                {formatCostPrecise(totalCostUsd / (video.duration_ms / 60000))}/min
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex min-w-[180px] flex-1 flex-col">
-          <p className="mb-2 text-sm font-medium text-text-primary">Technical</p>
-          <SectionCard className="flex-1">
-            <div className="space-y-2 text-sm">
-              <StatRow
-                label="Duration"
-                value={video.duration_ms ? formatDuration(video.duration_ms) : "\u2014"}
-                valueClassName="tabular-nums"
-              />
-              <StatRow label="Shots" value={String(shots.length)} valueClassName="tabular-nums" />
-              <StatRow
-                label="File Size"
-                value={video.file_size_bytes ? formatFileSize(video.file_size_bytes) : "\u2014"}
-                valueClassName="tabular-nums"
-              />
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow className="border-border">
+                <TableCell colSpan={2} className="text-sm font-medium text-text-primary">Total</TableCell>
+                <TableCell className="text-right text-sm font-medium tabular-nums text-text-primary">
+                  {formatCostPrecise(totalCostUsd)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+          {totalCostUsd > 0 && video.duration_ms ? (
+            <div className="border-t border-border px-3 py-2 text-right text-xs text-text-muted">
+              {formatCostPrecise(totalCostUsd / (video.duration_ms / 60000))}/min
             </div>
-          </SectionCard>
+          ) : null}
         </div>
       </div>
     </div>

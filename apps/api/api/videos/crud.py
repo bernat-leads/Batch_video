@@ -96,10 +96,14 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
 
         # Aggregate model_costs from individual videos
         video_costs = (
-            await self.db_session.execute(
-                select(Video.model_costs).where(Video.batch_id == batch_id)
+            (
+                await self.db_session.execute(
+                    select(Video.model_costs).where(Video.batch_id == batch_id)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         merged: dict[str, dict[str, float | int]] = {}
         for mc in video_costs:

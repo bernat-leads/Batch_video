@@ -21,8 +21,13 @@
 |----------|-----------|
 | **ElevenLabs for TTS** | High-quality voices, word-level timestamps for caption sync. |
 | **Claude for segmentation** | LLM understands narrative flow — visual breaks, image prompts, camera directions. |
-| **Gemini Imagen 3 for images** | 1080x1920 portrait images at high quality. |
+| **Gemini Imagen 4 Fast for images** | 1080x1920 portrait images at high quality. |
 | **Per-stage artifact storage in R2** | Enables retry of individual stages without full pipeline re-run. |
+| **LiteLLM for cost lookup** | Single source for model pricing across providers. Auto-updates when models change. No hardcoded cost constants. |
+| **Per-model cost tracking** (not per-stage) | `model_costs` JSON column stores `{model: {token_count, cost_usd}}`. When models are swapped, costs automatically track the new model name — no schema migration needed. |
+| **No summed token totals** | Each model has different usage units (tokens for Claude, characters for ElevenLabs, flat per-image for Imagen). Only `total_cost_usd` is aggregated — usage counts stay per-model. |
+| **Usage from API responses** | Claude: `input_tokens` + `output_tokens` from response. ElevenLabs: character count from `alignment.characters`. Imagen: no usage data returned — API is flat per-image with no token/usage metadata. |
+| **OpenAI TTS removed** | Dead code path — was never wired into the pipeline. ElevenLabs is the only TTS provider. |
 
 ## Frontend
 

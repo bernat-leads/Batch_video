@@ -114,8 +114,7 @@ class Video(BaseModel):
     def recompute_totals(self) -> None:
         """Recompute total_cost_usd from model_costs."""
         self.total_cost_usd = sum(
-            entry.get("cost_usd", 0.0)
-            for entry in (self.model_costs or {}).values()
+            entry.get("cost_usd", 0.0) for entry in (self.model_costs or {}).values()
         )
 
     batch: Mapped[Batch | None] = relationship(back_populates="videos")  # noqa: F821

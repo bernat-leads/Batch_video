@@ -50,8 +50,8 @@ class DashboardCrud:
 
         # Aggregate model_costs from all videos
         all_model_costs = (
-            await self._session.execute(select(Video.model_costs))
-        ).scalars().all()
+            (await self._session.execute(select(Video.model_costs))).scalars().all()
+        )
 
         merged: dict[str, dict[str, float | int]] = {}
         for mc in all_model_costs:
