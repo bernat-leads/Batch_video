@@ -36,7 +36,7 @@ catalogs:
     "react-day-picker": ^9.9.0
     "react-moveable": ^0.56.0
     "react-resizable-panels": ^3.0.2
-    recharts: ^2.15.3
+    recharts: ^3.8.0
     glob: ^11.0.3
     "server-only": ^0.0.1
 
