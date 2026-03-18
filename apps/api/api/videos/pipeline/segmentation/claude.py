@@ -38,10 +38,11 @@ class _UsageCallback(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs) -> None:
         for generations in response.generations:
             for gen in generations:
-                usage = getattr(gen, "generation_info", {}) or {}
-                usage_meta = usage.get("usage_metadata") or {}
-                self.input_tokens += usage_meta.get("input_tokens", 0)
-                self.output_tokens += usage_meta.get("output_tokens", 0)
+                # LangChain Anthropic stores usage on the message object
+                msg = getattr(gen, "message", None)
+                usage = getattr(msg, "usage_metadata", None) or {}
+                self.input_tokens += usage.get("input_tokens", 0)
+                self.output_tokens += usage.get("output_tokens", 0)
 
 
 class ClaudeSegmentationService(SegmentationService):

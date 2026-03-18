@@ -132,6 +132,13 @@ class Segment(BaseModel):
     effect: AnySegmentEffect
 
 
+SENTENCE_ENDERS = frozenset(".!?")
+# Max time a single caption group can span (seconds)
+MAX_GROUP_DURATION = 2.0
+# Pause between words that forces a group break (seconds)
+PAUSE_BREAK_THRESHOLD = 0.4
+
+
 class CaptionGroup(BaseModel):
     """A group of words displayed together as a single subtitle line."""
 
@@ -141,14 +148,20 @@ class CaptionGroup(BaseModel):
 
     @classmethod
     def from_word_timestamps(
-        cls, words: list[WordTimestamp], max_chars: int, max_words: int = 3
+        cls, words: list[WordTimestamp], max_chars: int, max_words: int = 4
     ) -> list["CaptionGroup"]:
-        """Group words into TikTok-style caption chunks.
+        """Group words into timing-aware caption chunks.
 
-        Each group is limited by both max_chars and max_words,
-        producing short punchy captions (1-3 words) that pop on screen.
+        Grouping rules (in priority order):
+        1. Never cross a sentence boundary (. ! ?)
+        2. Break on pauses > 400ms between words
+        3. Break when group duration exceeds 2s
+        4. Break when max_chars or max_words exceeded
+        5. Long words (7+ chars) prefer to stand alone
+
         Groups are extended to meet the next group's start so captions
         stay on screen during pauses (no blank frames).
+        Dots/periods are stripped from display text.
         """
         if not words:
             return []
@@ -159,36 +172,54 @@ class CaptionGroup(BaseModel):
         group_start = words[0].start
         last_word_end = words[0].end
 
-        for word in words:
-            word_len = len(word.word)
+        def _flush() -> None:
+            if not current_words:
+                return
+            text = " ".join(current_words)
+            # Strip sentence-ending punctuation from display
+            text = text.rstrip("".join(SENTENCE_ENDERS))
+            if text:
+                groups.append(cls(text=text, start=group_start, end=last_word_end))
+
+        for i, word in enumerate(words):
+            word_text = word.word
+            word_len = len(word_text)
             new_len = current_len + word_len + (1 if current_words else 0)
             word_count = len(current_words) + 1
+            group_duration = word.end - group_start
 
-            if (new_len > max_chars or word_count > max_words) and current_words:
-                groups.append(
-                    cls(
-                        text=" ".join(current_words),
-                        start=group_start,
-                        end=last_word_end,
-                    )
-                )
-                current_words = [word.word]
+            # Check if previous word ended a sentence
+            prev_ends_sentence = (
+                i > 0 and current_words and current_words[-1][-1] in SENTENCE_ENDERS
+            )
+
+            # Check for pause between this word and the previous
+            has_pause = i > 0 and (word.start - last_word_end) > PAUSE_BREAK_THRESHOLD
+
+            # Check if this long word should stand alone
+            long_word_break = word_len >= 7 and current_words and len(current_words) >= 1
+
+            should_break = (
+                prev_ends_sentence
+                or has_pause
+                or group_duration > MAX_GROUP_DURATION
+                or new_len > max_chars
+                or word_count > max_words
+                or long_word_break
+            ) and current_words
+
+            if should_break:
+                _flush()
+                current_words = [word_text]
                 current_len = word_len
                 group_start = word.start
                 last_word_end = word.end
             else:
-                current_words.append(word.word)
+                current_words.append(word_text)
                 current_len = new_len
                 last_word_end = word.end
 
-        if current_words:
-            groups.append(
-                cls(
-                    text=" ".join(current_words),
-                    start=group_start,
-                    end=words[-1].end,
-                )
-            )
+        _flush()
 
         # Extend each group to meet the next so captions hold during pauses
         for i in range(len(groups) - 1):
