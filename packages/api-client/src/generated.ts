@@ -1650,6 +1650,9 @@ export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<Re
 
 /**
  * Retry a failed video from the stage that failed.
+
+Sets status to processing and emits progress events immediately,
+then dispatches the pipeline task in the background.
  * @summary Retry Video
  */
 export const retryVideoApiV1VideosVideoIdRetryPost = (

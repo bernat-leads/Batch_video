@@ -59,7 +59,7 @@ async def process_video(
             logger.info(
                 "Task complete (video=%s, cost=$%.4f)",
                 result.video_id,
-                result.total.cost_usd,
+                result.total_cost_usd,
             )
             return result
         except Exception:
@@ -106,7 +106,7 @@ async def retry_video(
             logger.info(
                 "Retry complete (video=%s, cost=$%.4f)",
                 result.video_id,
-                result.total.cost_usd,
+                result.total_cost_usd,
             )
             return result
         except Exception:

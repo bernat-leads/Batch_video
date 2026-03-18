@@ -8,10 +8,8 @@ from elevenlabs import ElevenLabs
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
 from api.settings import settings
-from api.videos.pipeline.config import (
-    ELEVENLABS_MODEL_ID,
-    ELEVENLABS_TTS_COST_PER_CHAR,
-)
+from api.videos.pipeline.config import ELEVENLABS_MODEL_ID
+from api.videos.pipeline.costs import get_tts_char_cost
 from api.videos.pipeline.rate_limiter import elevenlabs_limiter, wait_for_slot
 from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
@@ -54,11 +52,19 @@ class ElevenLabsTTSService(TTSService):
         audio_bytes = base64.b64decode(response.audio_base_64)
         word_timestamps = self._parse_word_timestamps(response.alignment)
         duration_ms = int(word_timestamps[-1].end * 1000) if word_timestamps else 0
-        cost_usd = len(tts_input.script_text) * ELEVENLABS_TTS_COST_PER_CHAR
+
+        # Character count from alignment = actual characters billed
+        char_count = (
+            len(response.alignment.characters)
+            if response.alignment and response.alignment.characters
+            else len(tts_input.script_text)
+        )
+        cost_usd = char_count * get_tts_char_cost(ELEVENLABS_MODEL_ID)
 
         logger.info(
-            "ElevenLabs TTS complete (%d words, %dms, $%.4f)",
+            "ElevenLabs TTS complete (%d words, %d chars, %dms, $%.4f)",
             len(word_timestamps),
+            char_count,
             duration_ms,
             cost_usd,
         )
@@ -68,7 +74,7 @@ class ElevenLabsTTSService(TTSService):
             content_type="audio/mpeg",
             audio_duration_ms=duration_ms,
             word_timestamps=word_timestamps,
-            cost=AICost(cost_usd=cost_usd),
+            cost=AICost(cost_usd=cost_usd, token_count=char_count),
         )
 
     @staticmethod

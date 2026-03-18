@@ -116,14 +116,8 @@ class BatchService:
 
         totals = await video_crud.get_cost_totals_by_batch(batch_id)
         batch.duration_ms = totals.duration_ms
-        batch.tts_cost_usd = totals.tts.cost_usd
-        batch.tts_token_count = totals.tts.token_count
-        batch.segmentation_cost_usd = totals.segmentation.cost_usd
-        batch.segmentation_token_count = totals.segmentation.token_count
-        batch.image_generation_cost_usd = totals.image_generation.cost_usd
-        batch.image_generation_token_count = totals.image_generation.token_count
-        batch.total_cost_usd = totals.total.cost_usd
-        batch.total_token_count = totals.total.token_count
+        batch.model_costs = {k: v.model_dump() for k, v in totals.model_costs.items()}
+        batch.total_cost_usd = totals.total_cost_usd
 
         batch.status = batch.derive_status()
         await self.crud.db_session.commit()

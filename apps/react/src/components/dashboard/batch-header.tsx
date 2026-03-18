@@ -14,9 +14,8 @@ export function BatchStats({ batch }: BatchStatsProps) {
   const completed = batch.completed_count ?? 0;
   const failed = batch.failed_count ?? 0;
 
-  const totalTokens = batch.total?.token_count ?? 0;
   const totalTime = batch.duration_ms ?? 0;
-  const totalCost = batch.total?.cost_usd ?? 0;
+  const totalCost = batch.total_cost_usd ?? 0;
   return (
     <div className="flex flex-wrap gap-4">
       <div className="min-w-[420px] flex-[3] flex flex-col gap-2">
@@ -42,7 +41,6 @@ export function BatchStats({ batch }: BatchStatsProps) {
             </div>
             <div className="w-px self-stretch bg-border" />
             <div className="flex-1 space-y-2 text-sm">
-              <StatRow label="Tokens" value={totalTokens.toLocaleString()} />
               <StatRow label="Video Length" value={formatDuration(totalTime)} />
               <StatRow label="Cost" value={formatCurrency(totalCost)} />
             </div>
@@ -53,10 +51,6 @@ export function BatchStats({ batch }: BatchStatsProps) {
         <p className="text-sm font-medium text-text-primary">Average per Video</p>
         <div className="flex-1 flex items-center rounded-xl border border-border bg-card-bg p-4">
           <div className="w-full space-y-2 text-sm">
-            <StatRow
-              label="Tokens"
-              value={Math.round(totalTokens / total).toLocaleString()}
-            />
             <StatRow
               label="Video Length"
               value={formatDuration(Math.round(totalTime / total))}

@@ -7,10 +7,12 @@
 import type { KenBurnsDirection } from './kenBurnsDirection';
 
 /**
- * Ken Burns pan/zoom camera movement applied to a still image.
+ * Ken Burns pan/zoom camera movement for a segment image.
  */
 export interface KenBurnsEffect {
+  /** Always 'ken_burns' */
   type?: 'ken_burns';
+  /** Camera movement direction */
   direction: KenBurnsDirection;
   /** Zoom scale factor, ideally between 1.1 and 1.4 */
   scale: number;

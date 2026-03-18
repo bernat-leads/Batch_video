@@ -38,24 +38,7 @@ class DashboardCrud:
         aggs = await self._session.execute(
             select(
                 func.coalesce(func.sum(Video.duration_ms), 0).label("total_duration"),
-                func.coalesce(func.sum(Video.tts_cost_usd), 0.0).label("tts_cost"),
-                func.coalesce(func.sum(Video.tts_token_count), 0).label("tts_tokens"),
-                func.coalesce(func.sum(Video.segmentation_cost_usd), 0.0).label(
-                    "seg_cost"
-                ),
-                func.coalesce(func.sum(Video.segmentation_token_count), 0).label(
-                    "seg_tokens"
-                ),
-                func.coalesce(func.sum(Video.image_generation_cost_usd), 0.0).label(
-                    "img_cost"
-                ),
-                func.coalesce(func.sum(Video.image_generation_token_count), 0).label(
-                    "img_tokens"
-                ),
                 func.coalesce(func.sum(Video.total_cost_usd), 0.0).label("total_cost"),
-                func.coalesce(func.sum(Video.total_token_count), 0).label(
-                    "total_tokens"
-                ),
             )
         )
         agg = aggs.one()
@@ -65,12 +48,29 @@ class DashboardCrud:
 
         video_count = counts.total or 1
 
-        def _avg(cost: float, tokens: int) -> AICost:
-            return AICost(
-                token_count=round(tokens / video_count),
-                cost_usd=round(cost / video_count, 6),
-            )
+        # Aggregate model_costs from all videos
+        all_model_costs = (
+            await self._session.execute(select(Video.model_costs))
+        ).scalars().all()
 
+        merged: dict[str, dict[str, float | int]] = {}
+        for mc in all_model_costs:
+            for model, costs in (mc or {}).items():
+                if model not in merged:
+                    merged[model] = {"token_count": 0, "cost_usd": 0.0}
+                merged[model]["token_count"] += costs.get("token_count", 0)
+                merged[model]["cost_usd"] += costs.get("cost_usd", 0.0)
+
+        model_costs = {k: AICost(**v) for k, v in merged.items()}
+        avg_model_costs = {
+            k: AICost(
+                token_count=round(v.token_count / video_count),
+                cost_usd=round(v.cost_usd / video_count, 6),
+            )
+            for k, v in model_costs.items()
+        }
+
+        total_cost = float(agg.total_cost)
         return DashboardStats(
             total_videos=counts.total,
             completed_videos=counts.completed,
@@ -78,18 +78,10 @@ class DashboardCrud:
             processing_videos=counts.processing,
             total_batches=total_batches,
             total_duration_ms=agg.total_duration,
-            tts=AICost(token_count=agg.tts_tokens, cost_usd=float(agg.tts_cost)),
-            segmentation=AICost(
-                token_count=agg.seg_tokens, cost_usd=float(agg.seg_cost)
-            ),
-            image_generation=AICost(
-                token_count=agg.img_tokens, cost_usd=float(agg.img_cost)
-            ),
-            total=AICost(token_count=agg.total_tokens, cost_usd=float(agg.total_cost)),
-            avg_tts=_avg(float(agg.tts_cost), agg.tts_tokens),
-            avg_segmentation=_avg(float(agg.seg_cost), agg.seg_tokens),
-            avg_image_generation=_avg(float(agg.img_cost), agg.img_tokens),
-            avg_total=_avg(float(agg.total_cost), agg.total_tokens),
+            model_costs=model_costs,
+            total_cost_usd=total_cost,
+            avg_model_costs=avg_model_costs,
+            avg_cost_usd=round(total_cost / video_count, 6),
             avg_duration_ms=round(agg.total_duration / video_count, 1),
         )
 

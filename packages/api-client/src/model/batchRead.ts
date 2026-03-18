@@ -8,7 +8,7 @@ import type { BatchStatus } from './batchStatus';
 import type { BatchReadColumnMapping } from './batchReadColumnMapping';
 import type { BatchReadFileName } from './batchReadFileName';
 import type { BatchReadErrorMessage } from './batchReadErrorMessage';
-import type { AICost } from './aICost';
+import type { BatchReadModelCosts } from './batchReadModelCosts';
 import type { BatchReadUpdatedAt } from './batchReadUpdatedAt';
 
 /**
@@ -26,10 +26,8 @@ export interface BatchRead {
   column_mapping?: BatchReadColumnMapping;
   file_name?: BatchReadFileName;
   error_message?: BatchReadErrorMessage;
-  tts?: AICost;
-  segmentation?: AICost;
-  image_generation?: AICost;
-  total?: AICost;
+  model_costs?: BatchReadModelCosts;
+  total_cost_usd?: number;
   created_at: string;
   updated_at?: BatchReadUpdatedAt;
 }

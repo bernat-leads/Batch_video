@@ -40,10 +40,8 @@ class BatchRead(BaseModel):
     file_name: str | None = None
     error_message: str | None = None
 
-    tts: AICost = AICost()
-    segmentation: AICost = AICost()
-    image_generation: AICost = AICost()
-    total: AICost = AICost()
+    model_costs: dict[str, AICost] = {}
+    total_cost_usd: float = 0.0
 
     created_at: datetime
     updated_at: datetime | None = None

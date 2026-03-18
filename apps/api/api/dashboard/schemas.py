@@ -15,15 +15,11 @@ class DashboardStats(BaseModel):
     total_batches: int
     total_duration_ms: int
 
-    tts: AICost = AICost()
-    segmentation: AICost = AICost()
-    image_generation: AICost = AICost()
-    total: AICost = AICost()
+    model_costs: dict[str, AICost] = {}
+    total_cost_usd: float = 0.0
 
-    avg_tts: AICost = AICost()
-    avg_segmentation: AICost = AICost()
-    avg_image_generation: AICost = AICost()
-    avg_total: AICost = AICost()
+    avg_model_costs: dict[str, AICost] = {}
+    avg_cost_usd: float = 0.0
     avg_duration_ms: float
 
 

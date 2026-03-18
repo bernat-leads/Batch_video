@@ -33,10 +33,8 @@ class VideoCostTotals(BaseModel):
     """Aggregated cost and duration totals for a batch."""
 
     duration_ms: int = 0
-    tts: AICost = AICost()
-    segmentation: AICost = AICost()
-    image_generation: AICost = AICost()
-    total: AICost = AICost()
+    model_costs: dict[str, AICost] = {}
+    total_cost_usd: float = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -89,10 +87,8 @@ class VideoRead(BaseModel):
     duration_ms: int = 0
     file_size_bytes: int = 0
 
-    tts: AICost = AICost()
-    segmentation: AICost = AICost()
-    image_generation: AICost = AICost()
-    total: AICost = AICost()
+    model_costs: dict[str, AICost] = {}
+    total_cost_usd: float = 0.0
 
     created_at: datetime
     updated_at: datetime | None = None
@@ -117,7 +113,7 @@ class VideoGenerationResult(BaseModel):
     video_id: str
     duration_ms: int
     num_shots: int
-    total: AICost
+    total_cost_usd: float
 
     model_config = {"frozen": True}
 
