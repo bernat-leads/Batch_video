@@ -14,7 +14,7 @@ export function useDeleteBatch(options?: { onSuccess?: () => void }) {
   return useDeleteBatchApiV1BatchesBatchIdDelete({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({
+        void queryClient.invalidateQueries({
           queryKey: getListBatchesApiV1BatchesGetQueryKey(),
         });
         toast.success("Batch deleted");

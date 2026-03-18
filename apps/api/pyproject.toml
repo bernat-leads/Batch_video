@@ -102,6 +102,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__tests__/**" = ["ARG"]  # unused args are common in test fixtures
+"**/routes.py" = ["ARG001"]  # request param required by slowapi limiter
+"**/tasks.py" = ["ARG001"]  # self param required by celery bind=True
+"**/pipeline/**" = ["ARG002"]  # interface methods must match parent signature
+"api/app.py" = ["ARG001"]  # app param required by FastAPI lifespan
+"api/exceptions.py" = ["ARG001"]  # request param required by exception handler signature
 
 [tool.ruff.lint.isort]
 known-first-party = ["api", "graphs", "__tests__"]

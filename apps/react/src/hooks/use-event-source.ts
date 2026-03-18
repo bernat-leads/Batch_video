@@ -21,7 +21,7 @@ export function useEventSource(
 
     const invalidate = () => {
       for (const key of stableKeys.current) {
-        queryClient.invalidateQueries({ queryKey: key });
+        void queryClient.invalidateQueries({ queryKey: key });
       }
     };
 

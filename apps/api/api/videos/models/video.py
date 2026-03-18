@@ -66,7 +66,7 @@ class Video(BaseModel):
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     @classmethod
-    def from_parsed_row(cls, row: ParsedRow, batch_id: uuid.UUID) -> "Video":
+    def from_parsed_row(cls, row: ParsedRow, batch_id: uuid.UUID) -> Video:
         """Create a Video from a parsed spreadsheet row."""
         return cls(
             batch_id=batch_id,
@@ -135,8 +135,8 @@ class Video(BaseModel):
     def total(self) -> AICost:
         return AICost(token_count=self.total_token_count, cost_usd=self.total_cost_usd)
 
-    batch: Mapped["Batch | None"] = relationship(back_populates="videos")  # noqa: F821
-    shots: Mapped[list["Shot"]] = relationship(  # noqa: F821
+    batch: Mapped[Batch | None] = relationship(back_populates="videos")  # noqa: F821
+    shots: Mapped[list[Shot]] = relationship(
         back_populates="video",
         cascade="all, delete-orphan",
         order_by="Shot.order",

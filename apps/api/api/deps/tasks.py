@@ -1,7 +1,7 @@
 """Scheduled Celery tasks — retention cleanup and stale task recovery."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 
@@ -27,7 +27,7 @@ async def recover_stale_videos(self) -> int:
     (e.g. during deployment). Uses updated_at to detect staleness.
     """
     async with task_context() as ctx:
-        cutoff = datetime.now(timezone.utc) - timedelta(
+        cutoff = datetime.now(UTC) - timedelta(
             minutes=STALE_PROCESSING_MINUTES
         )
 
@@ -85,7 +85,7 @@ async def cleanup_expired_videos(self) -> dict[str, int]:
     async with task_context() as ctx:
         app_settings = await AppSettingsCrud(ctx.session).get()
         retention_days = app_settings.retention_days
-        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
 
         logger.info(
             "Retention cleanup starting (retention=%d days, cutoff=%s)",

@@ -16,11 +16,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
+import type { ColumnMapping, ColumnDefaults } from "./column-mapper";
+import type { ParsedFile } from "./file-upload";
 import { Stepper } from "@/components/ui/stepper";
 import { useDialogForm } from "@/hooks/use-dialog-form";
-import { ColumnMapper, type ColumnMapping } from "./column-mapper";
-import type { ColumnDefaults } from "./column-mapper";
-import { FileUpload, type ParsedFile } from "./file-upload";
+import { ColumnMapper } from "./column-mapper";
+import { FileUpload } from "./file-upload";
 import { ReviewStep } from "./review-step";
 
 const DEFAULT_COLUMN_DEFAULTS: ColumnDefaults = {
@@ -73,7 +74,7 @@ const INITIAL_DIALOG_STATE: DialogFormState = {
 export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatchDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { open, setOpen, state, setState, onOpenChange } =
+  const { open, state, setState, onOpenChange } =
     useDialogForm<DialogFormState>(INITIAL_DIALOG_STATE);
   const { step, parsedFile, mapping, batchName, isSubmitting } = state;
 
@@ -113,12 +114,12 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
         },
       });
 
-      queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
       onOpenChange(false);
       toast.success(`Batch "${finalName}" uploaded — processing started`);
       onBatchCreated?.();
-      navigate({ to: "/app/batches/$batchId", params: { batchId: batch.id } });
+      void navigate({ to: "/app/batches/$batchId", params: { batchId: batch.id } });
     } catch {
       toast.error("Failed to upload batch");
       setIsSubmitting(false);

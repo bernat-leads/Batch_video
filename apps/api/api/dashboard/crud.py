@@ -1,6 +1,6 @@
 """Dashboard CRUD — read-only aggregate queries."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends
@@ -94,7 +94,7 @@ class DashboardCrud:
         )
 
     async def get_daily_stats(self, days: int = 7) -> list[DailyStats]:
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=UTC) - timedelta(days=days)
         result = await self._session.execute(
             select(
                 func.date(Video.created_at).label("date"),

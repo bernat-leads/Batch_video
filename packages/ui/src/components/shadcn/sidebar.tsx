@@ -8,13 +8,6 @@ import { PanelLeftIcon } from "lucide-react";
 import { Button } from "@packages/ui/components/shadcn/button";
 import { Input } from "@packages/ui/components/shadcn/input";
 import { Separator } from "@packages/ui/components/shadcn/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@packages/ui/components/shadcn/sheet";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
 import {
   Tooltip,
@@ -28,7 +21,7 @@ import { cn } from "@packages/ui/lib/utils";
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
+const _SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
@@ -160,7 +153,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile: _isMobile, state, openMobile: _openMobile, setOpenMobile: _setOpenMobile } = useSidebar();
 
   if (collapsible === "none") {
     return (

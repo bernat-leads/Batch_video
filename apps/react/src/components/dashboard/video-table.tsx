@@ -36,7 +36,7 @@ function VideoActions({ video }: { video: VideoRead }) {
         <DropdownMenuItem
           onClick={(e) => {
             e.stopPropagation();
-            downloadVideo(video.id);
+            void downloadVideo(video.id);
           }}
           className="text-text-secondary"
         >
@@ -133,7 +133,7 @@ function getVideoColumns(options: {
             cell: (info) => {
               const batchId = info.getValue();
               if (!batchId) return <span className="text-sm text-text-muted">{"\u2014"}</span>;
-              const batch = options.batches![batchId];
+              const batch = options.batches?.[batchId];
               return (
                 <p className="text-sm font-medium text-text-primary">
                   {batch?.name ?? `Batch ${batchId.slice(0, 8)}`}

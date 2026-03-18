@@ -83,7 +83,7 @@ function SettingsPage() {
   const updateSettings = useUpdateSettingsApiV1SettingsPut({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSettingsApiV1SettingsGetQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetSettingsApiV1SettingsGetQueryKey() });
         toast.success("Settings saved");
       },
       onError: () => {

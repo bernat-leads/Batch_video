@@ -8,11 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from api.core.crud import BaseCrud
-from api.core.schemas import PageResponse
+from api.core.schemas import AICost, PageResponse
 from api.deps.db import SessionDep
 from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
-from api.core.schemas import AICost
 from api.videos.schemas import (
     VideoCostTotals,
     VideoCreate,

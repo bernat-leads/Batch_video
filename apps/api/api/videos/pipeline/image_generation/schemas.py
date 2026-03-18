@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 from api.core.schemas import AICost
 
-
 _SIZE_MAP = {
     "1K": 1024,
     "2K": 2048,

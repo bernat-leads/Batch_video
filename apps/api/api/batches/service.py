@@ -8,7 +8,7 @@ from typing import Annotated, Protocol
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.batches.crud import BatchCrudDep
+from api.batches.crud import BatchCrud, BatchCrudDep
 from api.batches.models.batch import Batch
 from api.batches.schemas import BatchCreate, BatchProgressEvent, BatchRead
 from api.constants import UPLOAD_CONTENT_TYPES

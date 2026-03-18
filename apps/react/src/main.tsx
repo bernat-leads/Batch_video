@@ -14,6 +14,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root element always exists in index.html
 const rootElement = document.getElementById("root")!;
 
 createRoot(rootElement).render(

@@ -5,12 +5,10 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
-from fastapi.responses import RedirectResponse, Response, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 
-from api.batches.service import recompute_batch
 from api.core.schemas import PageResponse
 from api.deps.auth import get_current_session
-from api.deps.celery import task_context
 from api.deps.db import SessionDep
 from api.events.schemas import EventChannel
 from api.events.service import EventServiceDep

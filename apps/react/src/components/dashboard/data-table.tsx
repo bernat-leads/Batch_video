@@ -5,9 +5,11 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   flexRender,
-  type ColumnDef,
-  type SortingState,
-  type RowSelectionState,
+} from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  SortingState,
+  RowSelectionState,
 } from "@tanstack/react-table";
 
 // TanStack Table's ColumnDef uses `any` for the value type parameter.

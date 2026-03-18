@@ -63,7 +63,6 @@ describe("SelectionToolbar", () => {
     expect(screen.getByText("Delete 3 batches?")).toBeInTheDocument();
 
     // Confirm deletion
-    const confirmButton = screen.getByRole("button", { name: "Delete" });
     // There are two "Delete" buttons — the trigger and the confirm. Click the dialog one.
     const allDeletes = screen.getAllByText("Delete");
     const dialogConfirm = allDeletes.find((el) =>

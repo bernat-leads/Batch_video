@@ -46,7 +46,7 @@ function BatchesPage() {
   };
 
   const handleBatchCreated = () => {
-    queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
   };
 
   const batches = batchesResponse?.items ?? [];

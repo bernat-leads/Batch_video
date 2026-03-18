@@ -16,7 +16,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(
-        request: Request,  # noqa: ARG001
+        request: Request,
         exc: HTTPException,
     ) -> JSONResponse:
         return JSONResponse(
@@ -26,7 +26,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
-        request: Request,  # noqa: ARG001
+        request: Request,
         exc: RequestValidationError,
     ) -> JSONResponse:
         return JSONResponse(
@@ -38,7 +38,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(
-        request: Request,  # noqa: ARG001
+        request: Request,
         exc: Exception,
     ) -> JSONResponse:
         logger.exception("Unhandled exception: %s", exc)

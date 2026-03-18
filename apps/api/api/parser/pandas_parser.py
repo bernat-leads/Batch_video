@@ -144,5 +144,5 @@ class PandasFileParser(FileParser):
                 if not valid
                 else None,
             )
-            for record, valid, error in zip(records, valid_list, error_list)
+            for record, valid, error in zip(records, valid_list, error_list, strict=False)
         ]

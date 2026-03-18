@@ -59,7 +59,7 @@ export function getStageStatuses(
   const isFailed = status === "failed";
 
   return PIPELINE_STAGES.map((stage, index) => {
-    const meta = STAGE_META[stage]!;
+    const meta = STAGE_META[stage] ?? { label: stage, icon: Clock };
     const isPast = index < currentIndex;
 
     let stageStatus: StageStatus;
