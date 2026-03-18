@@ -20,11 +20,7 @@ class ShotCrud(BaseCrud[Shot, ShotCreate, ShotUpdate]):
 
     async def get_by_video(self, video_id: uuid.UUID) -> list[Shot]:
         """Get all shots for a video, ordered by sequence."""
-        stmt = (
-            select(self.model)
-            .where(Shot.video_id == video_id)
-            .order_by(Shot.order)
-        )
+        stmt = select(self.model).where(Shot.video_id == video_id).order_by(Shot.order)
         result = await self.db_session.execute(stmt)
         return list(result.scalars().all())
 

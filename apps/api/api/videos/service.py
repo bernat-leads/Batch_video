@@ -132,13 +132,9 @@ class VideoService:
 
         # Stage 3: Image generation (skips shots that already have images)
         if start_index <= stages.index(VideoStage.image_generation.value):
-            shots_with_images = await self._run_image_generation(
-                video, shots, template
-            )
+            shots_with_images = await self._run_image_generation(video, shots, template)
         else:
-            shots_with_images = await asyncio.to_thread(
-                self._load_shot_images, shots
-            )
+            shots_with_images = await asyncio.to_thread(self._load_shot_images, shots)
 
         # Stage 4: Assembly
         edit_result = await self._run_assembly(
@@ -300,9 +296,7 @@ class VideoService:
                 image_bytes = await asyncio.to_thread(
                     self._generate_shot_image, video, shot, template.image_config
                 )
-            shots_with_images.append(
-                ShotWithImage(shot=shot, image_bytes=image_bytes)
-            )
+            shots_with_images.append(ShotWithImage(shot=shot, image_bytes=image_bytes))
 
         image_cost = video.shots_cost(shots)
         video.image_generation_cost_usd = image_cost.cost_usd
