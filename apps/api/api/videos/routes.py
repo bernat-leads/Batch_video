@@ -7,8 +7,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 
+from api.batches.service import recompute_batch
 from api.core.schemas import PageResponse
 from api.deps.auth import get_current_session
+from api.deps.celery import task_context
+from api.deps.db import SessionDep
+from api.events.schemas import EventChannel
+from api.events.service import EventServiceDep
 from api.rate_limit import limiter
 from api.storage import StorageDep
 from api.videos.crud import VideoCrud, VideoCrudDep
@@ -16,6 +21,7 @@ from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 from api.videos.schemas import (
     VideoCreate,
+    VideoProgressEvent,
     VideoRead,
     VideoReadWithShots,
     VideoUpdate,
@@ -131,11 +137,42 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
 
 
 @videos_router.post("/{video_id}/retry", response_model=VideoRead)
-async def retry_video(video: VideoDep) -> VideoRead:
-    """Retry a failed video from the stage that failed."""
+async def retry_video(
+    video: VideoDep,
+    session: SessionDep,
+    events: EventServiceDep,
+) -> VideoRead:
+    """Retry a failed video from the stage that failed.
+
+    Sets status to processing and emits progress events immediately,
+    then dispatches the pipeline task in the background.
+    """
     if video.status != VideoStatus.failed:
         raise HTTPException(status_code=400, detail="Only failed videos can be retried")
 
+    # Update status immediately so the UI reflects it
+    video.status = VideoStatus.processing
+    video.error_message = None
+    await session.commit()
+    await session.refresh(video)
+
+    # Emit SSE events so dashboards update in real-time
+    try:
+        event = VideoProgressEvent(
+            video_id=str(video.id),
+            batch_id=str(video.batch_id) if video.batch_id else None,
+            status=video.status,
+            stage=video.current_stage,
+        )
+        channel = EventChannel.video.value.format(video_id=video.id)
+        await events.emit(channel, event)
+        if video.batch_id:
+            batch_channel = EventChannel.batch.value.format(batch_id=video.batch_id)
+            await events.emit(batch_channel, event)
+    except Exception:
+        logger.debug("Failed to emit retry event for video %s", video.id)
+
+    # Dispatch the pipeline task
     from api.videos.tasks import retry_video as retry_video_task
 
     retry_video_task.delay(video_id=str(video.id))

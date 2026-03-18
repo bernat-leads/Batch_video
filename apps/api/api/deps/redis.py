@@ -24,6 +24,11 @@ async def get_async_redis():
         await client.aclose()
 
 
+def get_sync_redis() -> redis.Redis:
+    """Get a sync Redis client from the shared pool (for Celery worker threads)."""
+    return redis.Redis(connection_pool=sync_pool)
+
+
 def create_async_redis() -> aioredis.Redis:
     """Create a standalone async Redis client for Celery tasks.
 

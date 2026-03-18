@@ -1,9 +1,12 @@
 """Gemini Imagen image generation service."""
 
 import logging
+import re
+import time
 
 from google import genai
 from google.genai import types as genai_types
+from google.genai.errors import ClientError
 
 from api.core.exceptions import PipelineStageError
 from api.core.schemas import AICost
@@ -16,6 +19,18 @@ from api.videos.pipeline.rate_limiter import gemini_limiter, wait_for_slot
 from api.videos.utils import pipeline_retry
 
 logger = logging.getLogger(__name__)
+
+# Matches "Please retry in 57.943882059s" or "retryDelay': '57s'"
+_RETRY_DELAY_PATTERN = re.compile(r"retry\s*(?:in|Delay['\"]:\s*['\"])\s*([\d.]+)s")
+_DEFAULT_429_WAIT_SECONDS = 60
+
+
+def _parse_retry_delay(error_message: str) -> float:
+    """Extract the retry delay from a Gemini 429 error message."""
+    match = _RETRY_DELAY_PATTERN.search(error_message)
+    if match:
+        return float(match.group(1))
+    return _DEFAULT_429_WAIT_SECONDS
 
 
 class GeminiImageGenService(ImageGenService):
@@ -32,7 +47,7 @@ class GeminiImageGenService(ImageGenService):
 
     @pipeline_retry()
     def _call_api(self, image_prompt: str, config: ImageConfig) -> ImageGenResult:
-        """Call the Gemini API (retries on transient errors)."""
+        """Call the Gemini API. Handles 429 rate limits by sleeping and re-raising for retry."""
         logger.info("Imagen: generating image")
 
         try:
@@ -46,6 +61,18 @@ class GeminiImageGenService(ImageGenService):
                     include_safety_attributes=True,
                 ),
             )
+        except ClientError as error:
+            error_str = str(error)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                delay = _parse_retry_delay(error_str)
+                logger.warning(
+                    "Imagen: rate limited, sleeping %.1fs before retry", delay
+                )
+                time.sleep(delay)
+                raise  # Re-raise ClientError — pipeline_retry will retry
+            raise PipelineStageError(
+                "image_generation", f"Imagen API call failed: {error}"
+            ) from error
         except Exception as error:
             raise PipelineStageError(
                 "image_generation", f"Imagen API call failed: {error}"

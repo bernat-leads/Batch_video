@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetVideoApiV1VideosVideoIdGet,
   useGetBatchApiV1BatchesBatchIdGet,
   useRetryVideoApiV1VideosVideoIdRetryPost,
   getGetVideoApiV1VideosVideoIdGetQueryKey,
+  getGetBatchApiV1BatchesBatchIdGetQueryKey,
+  getListBatchesApiV1BatchesGetQueryKey,
+  getListVideosApiV1VideosGetQueryKey,
 } from "@packages/api-client";
 import { videoEventsUrl } from "@packages/api-client/urls";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
@@ -39,6 +43,7 @@ function buildBreadcrumbs(videoId: string, batchId: string, batchName: string | 
 
 function VideoDetailPage() {
   const { videoId } = Route.useParams();
+  const queryClient = useQueryClient();
 
   const [retryRequested, setRetryRequested] = useState(false);
   const { mutateAsync: retryVideo } = useRetryVideoApiV1VideosVideoIdRetryPost();
@@ -61,8 +66,15 @@ function VideoDetailPage() {
   });
 
   // Subscribe to SSE while processing or while waiting for retry task to start
+  // Invalidate video detail, batch detail, and list queries on every progress event
+  const sseQueryKeys = [
+    videoQueryKey,
+    getListVideosApiV1VideosGetQueryKey(),
+    getListBatchesApiV1BatchesGetQueryKey(),
+    ...(batchId ? [getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId)] : []),
+  ];
   const isActive = video?.status === "processing" || retryRequested;
-  useEventSource(videoEventsUrl(videoId), !!isActive, [videoQueryKey]);
+  useEventSource(videoEventsUrl(videoId), !!isActive, sseQueryKeys);
 
   if (isLoading) return <VideoDetailSkeleton />;
 
@@ -88,6 +100,12 @@ function VideoDetailPage() {
         onRetry={async () => {
           await retryVideo({ videoId });
           setRetryRequested(true);
+          // Invalidate related queries so lists and batch detail reflect the retry
+          queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+          if (batchId) {
+            queryClient.invalidateQueries({ queryKey: getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId) });
+          }
         }}
       />
 

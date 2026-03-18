@@ -8,8 +8,8 @@ import {
   getGetBatchApiV1BatchesBatchIdGetQueryKey,
   getListVideosApiV1VideosGetQueryKey,
 } from "@packages/api-client";
-import { Button } from "@packages/ui/components/shadcn/button";
 import { Skeleton } from "@packages/ui/components/shadcn/skeleton";
+import { AsyncButton } from "@/components/ui/async-button";
 import { BatchStats } from "@/components/dashboard/batch-header";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
 import { VideoTable } from "@/components/dashboard/video-table";
@@ -58,16 +58,13 @@ function BatchDetailPage() {
         title={batchName}
         description={batch?.created_at ? `Created ${new Date(batch.created_at).toLocaleDateString()}` : ""}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
+          <AsyncButton
             disabled={!batch || (batch.completed_count ?? 0) === 0}
             onClick={() => exportBatchZip(batchId, batch?.name ?? "batch")}
-            className="border-border text-text-secondary"
-          >
-            <Download size={14} className="mr-1.5" />
-            Export Batch ZIP
-          </Button>
+            icon={<Download size={14} />}
+            label="Export Batch ZIP"
+            loadingLabel="Exporting..."
+          />
         }
       />
       {isLoading ? (
