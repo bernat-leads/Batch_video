@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     PIPELINE_MAX_RETRIES: int = 5
     PIPELINE_RETRY_WAIT_SECONDS: int = 2
 
+    # ─── Rate Limits (per provider, requests per minute, 0 = unlimited) ─
+    GEMINI_RATE_LIMIT: int = 10
+    OPENAI_RATE_LIMIT: int = 0
+    ELEVENLABS_RATE_LIMIT: int = 0
+
     # ─── File uploads ─────────────────────────────────────────────────────
     UPLOAD_ALLOWED_EXTENSIONS: list[str] = [".xlsx", ".xls", ".csv"]
     UPLOAD_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
