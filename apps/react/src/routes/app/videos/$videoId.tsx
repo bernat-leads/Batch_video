@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   useGetVideoApiV1VideosVideoIdGet,
@@ -39,18 +40,28 @@ function buildBreadcrumbs(videoId: string, batchId: string, batchName: string | 
 function VideoDetailPage() {
   const { videoId } = Route.useParams();
 
-  const { data: video, isLoading } = useGetVideoApiV1VideosVideoIdGet(videoId);
+  const [retryRequested, setRetryRequested] = useState(false);
+  const { mutateAsync: retryVideo } = useRetryVideoApiV1VideosVideoIdRetryPost();
+
+  const { data: video, isLoading } = useGetVideoApiV1VideosVideoIdGet(videoId, {
+    query: { refetchInterval: retryRequested ? 2000 : false },
+  });
   const videoQueryKey = getGetVideoApiV1VideosVideoIdGetQueryKey(videoId);
 
-  const { mutateAsync: retryVideo, isPending: isRetrying } =
-    useRetryVideoApiV1VideosVideoIdRetryPost();
+  // Clear retryRequested once the video status changes to processing (task picked it up)
+  useEffect(() => {
+    if (retryRequested && video?.status === "processing") {
+      setRetryRequested(false);
+    }
+  }, [retryRequested, video?.status]);
+
   const batchId = video?.batch_id ?? "";
   const { data: batch } = useGetBatchApiV1BatchesBatchIdGet(batchId, {
     query: { enabled: !!batchId },
   });
 
-  // Subscribe to SSE while processing or during retry
-  const isActive = video?.status === "processing" || isRetrying;
+  // Subscribe to SSE while processing or while waiting for retry task to start
+  const isActive = video?.status === "processing" || retryRequested;
   useEventSource(videoEventsUrl(videoId), !!isActive, [videoQueryKey]);
 
   if (isLoading) return <VideoDetailSkeleton />;
@@ -74,7 +85,10 @@ function VideoDetailPage() {
         videoId={videoId}
         video={video}
         onDownload={() => downloadVideo(videoId)}
-        onRetry={async () => { await retryVideo({ videoId }); }}
+        onRetry={async () => {
+          await retryVideo({ videoId });
+          setRetryRequested(true);
+        }}
       />
 
       {video.error_message && (
