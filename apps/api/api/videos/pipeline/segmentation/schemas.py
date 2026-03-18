@@ -97,9 +97,7 @@ class SegmentationInput(BaseModel):
             for index, word in enumerate(self.word_timestamps)
         )
 
-        schema_json = json.dumps(
-            SegmentationOutput.model_json_schema(), indent=2
-        )
+        schema_json = json.dumps(SegmentationOutput.model_json_schema(), indent=2)
 
         system_prompt = (
             f"{self.prompt}\n\n"
@@ -109,7 +107,7 @@ class SegmentationInput(BaseModel):
         )
 
         messages = [
-            ("system", system_prompt),
+            ("system", system_prompt.replace("$", "$$")),
             (
                 "human",
                 f"## Script\n\nThe full ad script to segment into visual scenes:\n\n{self.script_text}",
