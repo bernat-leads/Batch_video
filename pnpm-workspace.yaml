@@ -65,7 +65,7 @@ catalogs:
     "astro-icon": ^1.1.5
     "astro-navbar": ^2.3.9
     "astro-og-canvas": ^0.7.0
-    "astro-seo": ^0.8.4
+    "astro-seo": ^1.1.0
 
   # UI component system (shadcn/ui)
   shadcn-v2:
