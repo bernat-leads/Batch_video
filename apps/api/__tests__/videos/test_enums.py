@@ -1,47 +1,27 @@
 """Tests for enum consistency — catch mismatches between video/batch status values."""
 
+import pytest
+
 from api.batches.enums import BatchStatus
 from api.videos.enums import VideoStage, VideoStatus
 
 
-class TestVideoStatusValues:
-    def test_no_pending_status(self):
-        """'pending' was removed — ensure it doesn't exist."""
-        values = [s.value for s in VideoStatus]
-        assert "pending" not in values
-
-    def test_no_completed_status(self):
-        """'completed' was renamed to 'finished' — ensure old value doesn't exist."""
-        values = [s.value for s in VideoStatus]
-        assert "completed" not in values
-
-    def test_expected_statuses(self):
-        assert set(s.value for s in VideoStatus) == {"processing", "finished", "failed"}
+@pytest.mark.parametrize("removed_value", ["pending", "completed"])
+def test_video_status_excludes_removed_values(removed_value):
+    """Ensure removed status values don't reappear."""
+    assert removed_value not in {s.value for s in VideoStatus}
 
 
-class TestVideoStageValues:
-    def test_done_stage_exists(self):
-        """The final stage must be 'done', not 'completed' or 'finished'."""
-        assert VideoStage.done.value == "done"
-
-    def test_stage_order(self):
-        """Stages should follow the pipeline order."""
-        stages = [s.value for s in VideoStage]
-        assert stages == [
-            "queued",
-            "tts",
-            "segmentation",
-            "image_generation",
-            "assembly",
-            "upload",
-            "done",
-        ]
+def test_video_status_expected_values():
+    assert {s.value for s in VideoStatus} == {"processing", "finished", "failed"}
 
 
-class TestBatchStatusValues:
-    def test_expected_statuses(self):
-        assert set(s.value for s in BatchStatus) == {
-            "processing",
-            "completed",
-            "failed",
-        }
+def test_batch_status_expected_values():
+    assert {s.value for s in BatchStatus} == {"processing", "completed", "failed"}
+
+
+def test_video_stage_pipeline_order():
+    """Stages must follow the pipeline order."""
+    assert [s.value for s in VideoStage] == [
+        "queued", "tts", "segmentation", "image_generation", "assembly", "upload", "done",
+    ]

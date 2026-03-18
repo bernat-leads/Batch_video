@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
 import { VideoTable } from "@/components/dashboard/video-table";
 import { VideoTableSkeleton } from "@/components/dashboard/video-table-skeleton";
+import { usePaginationState } from "@/hooks/use-pagination-state";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const Route = createFileRoute("/app/videos/")({
@@ -19,12 +20,16 @@ export const Route = createFileRoute("/app/videos/")({
 });
 
 function VideosPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const { page, pageSize, paginationProps: rawPagination } = usePaginationState(20);
   const { data: videosResponse, isLoading: videosLoading } = useListVideosApiV1VideosGet({
     page,
     page_size: pageSize,
   });
+  const paginationProps = {
+    ...rawPagination,
+    totalPages: videosResponse?.total_pages ?? 1,
+    total: videosResponse?.total ?? 0,
+  };
   const { data: batchesResponse } = useListBatchesApiV1BatchesGet({ page_size: 1000 });
   const [selectedVideos, setSelectedVideos] = useState<VideoRead[]>([]);
 
@@ -63,17 +68,7 @@ function VideosPage() {
           batches={batchInfo}
           showIndex={false}
           onSelectionChange={setSelectedVideos}
-          pagination={{
-            page,
-            totalPages: videosResponse?.total_pages ?? 1,
-            total: videosResponse?.total ?? 0,
-            pageSize,
-            onPageChange: setPage,
-            onPageSizeChange: (size) => {
-              setPageSize(size);
-              setPage(1);
-            },
-          }}
+          pagination={paginationProps}
           toolbar={
             hasSelection ? (
               <SelectionToolbar

@@ -4,13 +4,10 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
 
 from api.deps.auth import AuthDep
-from api.deps.db import SessionDep
 from api.deps.storage import S3ClientDep
 from api.shots.crud import ShotCrudDep
-from api.shots.models.shot import Shot
 from api.shots.schemas import ShotCreate, ShotRead, ShotUpdate
 from api.storage import StorageService
 from api.videos.crud import VideoCrudDep
@@ -35,12 +32,10 @@ async def create_shot(
 
 @shots_router.get("/", response_model=list[ShotRead])
 async def list_shots(
-    video_id: uuid.UUID, db: SessionDep, _auth: AuthDep
+    video_id: uuid.UUID, crud: ShotCrudDep, _auth: AuthDep
 ) -> list[ShotRead]:
     """List all shots for a video, ordered by sequence."""
-    statement = select(Shot).where(Shot.video_id == video_id).order_by(Shot.order)
-    result = await db.execute(statement)
-    return list(result.scalars().all())
+    return await crud.get_by_video(video_id)
 
 
 @shots_router.get("/{shot_id}", response_model=ShotRead)

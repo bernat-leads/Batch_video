@@ -125,6 +125,16 @@ class VideoCrud(BaseCrud[Video, VideoCreate, VideoUpdate]):
             total=AICost(cost_usd=float(row.total_cost), token_count=row.total_tokens),
         )
 
+    async def get_finished_by_ids(self, video_ids: list[uuid.UUID]) -> list[Video]:
+        """Get finished videos by a list of IDs."""
+        stmt = select(Video).where(
+            Video.id.in_(video_ids),
+            Video.status == VideoStatus.finished,
+            Video.output_url.is_not(None),
+        )
+        result = await self.db_session.execute(stmt)
+        return list(result.scalars().all())
+
     async def get_finished_by_batch(self, batch_id: uuid.UUID) -> list[Video]:
         """Get all finished videos for a batch."""
         stmt = (

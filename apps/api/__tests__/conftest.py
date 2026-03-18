@@ -11,9 +11,12 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app import create_application
 from api.core import router as core_router
+from api.events.service import EventService
+from api.storage import StorageService
 
 # ---------------------------------------------------------------------------
 # Core-only fixtures
@@ -81,7 +84,7 @@ def authed_client(app: FastAPI) -> TestClient:
 @pytest.fixture
 def mock_session() -> AsyncMock:
     """Provide a mocked AsyncSession with standard DB operations stubbed."""
-    session = AsyncMock()
+    session = AsyncMock(spec=AsyncSession)
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
     session.delete = AsyncMock()
@@ -89,3 +92,19 @@ def mock_session() -> AsyncMock:
     session.close = AsyncMock()
     session.add = MagicMock()
     return session
+
+
+@pytest.fixture
+def mock_storage() -> MagicMock:
+    """StorageService mock."""
+    storage = MagicMock(spec=StorageService)
+    storage.upload_file.return_value = None
+    storage.download_file.return_value = b"mock file data"
+    storage.delete_prefix.return_value = 3
+    return storage
+
+
+@pytest.fixture
+def mock_events() -> AsyncMock:
+    """EventService mock."""
+    return AsyncMock(spec=EventService)

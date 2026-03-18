@@ -1,8 +1,4 @@
-"""Tests for batch input validation rules.
-
-Verifies that schema-level and route-level constraints reject invalid data
-and accept valid data for batch-related endpoints.
-"""
+"""Tests for batch input validation rules."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -11,99 +7,62 @@ from pydantic import ValidationError
 
 from api.batches.schemas import BatchCreate, BatchUpdate
 
-
-# ---------------------------------------------------------------------------
-# BatchCreate validation
-# ---------------------------------------------------------------------------
+VALID_BATCH = dict(name="Campaign Q1", column_mapping={"script": "script_text"}, file_name="scripts.xlsx")
 
 
-class TestBatchCreateValidation:
-    """Business rules for creating a batch."""
-
-    def test_empty_name_is_rejected(self):
-        with pytest.raises(ValidationError, match="name"):
-            BatchCreate(
-                name="",
-                column_mapping={"script": "script_text"},
-                file_name="test.xlsx",
-            )
-
-    def test_name_over_255_chars_is_rejected(self):
-        with pytest.raises(ValidationError, match="name"):
-            BatchCreate(
-                name="x" * 256,
-                column_mapping={"script": "script_text"},
-                file_name="test.xlsx",
-            )
-
-    def test_name_at_255_chars_is_accepted(self):
-        batch = BatchCreate(
-            name="x" * 255,
-            column_mapping={"script": "script_text"},
-            file_name="test.xlsx",
-        )
-        assert len(batch.name) == 255
-
-    def test_empty_file_name_is_rejected(self):
-        with pytest.raises(ValidationError, match="file_name"):
-            BatchCreate(
-                name="My Batch",
-                column_mapping={"script": "script_text"},
-                file_name="",
-            )
-
-    def test_file_name_over_255_chars_is_rejected(self):
-        with pytest.raises(ValidationError, match="file_name"):
-            BatchCreate(
-                name="My Batch",
-                column_mapping={"script": "script_text"},
-                file_name="x" * 256,
-            )
-
-    def test_valid_batch_create_is_accepted(self):
-        batch = BatchCreate(
-            name="Campaign Q1",
-            column_mapping={"script": "script_text"},
-            file_name="scripts.xlsx",
-        )
-        assert batch.name == "Campaign Q1"
-        assert batch.file_name == "scripts.xlsx"
+@pytest.mark.parametrize(
+    "kwargs, match",
+    [
+        pytest.param({**VALID_BATCH, "name": ""}, "name", id="empty-name"),
+        pytest.param({**VALID_BATCH, "name": "x" * 256}, "name", id="name-too-long"),
+        pytest.param({**VALID_BATCH, "file_name": ""}, "file_name", id="empty-file-name"),
+        pytest.param({**VALID_BATCH, "file_name": "x" * 256}, "file_name", id="file-name-too-long"),
+    ],
+)
+def test_batch_create_rejects_invalid(kwargs, match):
+    with pytest.raises(ValidationError, match=match):
+        BatchCreate(**kwargs)
 
 
-# ---------------------------------------------------------------------------
-# BatchUpdate validation
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "kwargs, assertions",
+    [
+        pytest.param(VALID_BATCH, {"name": "Campaign Q1", "file_name": "scripts.xlsx"}, id="valid"),
+        pytest.param({**VALID_BATCH, "name": "x" * 255}, {"name": "x" * 255}, id="name-at-limit"),
+    ],
+)
+def test_batch_create_accepts_valid(kwargs, assertions):
+    batch = BatchCreate(**kwargs)
+    for field, expected in assertions.items():
+        assert getattr(batch, field) == expected
 
 
-class TestBatchUpdateValidation:
-    """Business rules for updating a batch."""
-
-    def test_empty_name_update_is_rejected(self):
-        with pytest.raises(ValidationError, match="name"):
-            BatchUpdate(name="")
-
-    def test_name_over_255_chars_is_rejected(self):
-        with pytest.raises(ValidationError, match="name"):
-            BatchUpdate(name="x" * 256)
-
-    def test_none_name_is_accepted(self):
-        """None means 'do not update this field'."""
-        update = BatchUpdate(name=None)
-        assert update.name is None
-
-    def test_valid_name_update_is_accepted(self):
-        update = BatchUpdate(name="Renamed Batch")
-        assert update.name == "Renamed Batch"
+@pytest.mark.parametrize(
+    "kwargs, match",
+    [
+        pytest.param(dict(name=""), "name", id="empty-name"),
+        pytest.param(dict(name="x" * 256), "name", id="name-too-long"),
+    ],
+)
+def test_batch_update_rejects_invalid(kwargs, match):
+    with pytest.raises(ValidationError, match=match):
+        BatchUpdate(**kwargs)
 
 
-# ---------------------------------------------------------------------------
-# Route-level pagination validation (via test client)
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "kwargs, assertions",
+    [
+        pytest.param(dict(name=None), {"name": None}, id="none-is-accepted"),
+        pytest.param(dict(name="Renamed"), {"name": "Renamed"}, id="valid-name"),
+    ],
+)
+def test_batch_update_accepts_valid(kwargs, assertions):
+    update = BatchUpdate(**kwargs)
+    for field, expected in assertions.items():
+        assert getattr(update, field) == expected
 
 
 class TestBatchPaginationValidation:
-    """Pagination query parameters enforce bounds at the route level."""
-
     @pytest.fixture(scope="class")
     def authed_client(self):
         from api.app import create_application
@@ -116,21 +75,17 @@ class TestBatchPaginationValidation:
         yield client
         app.dependency_overrides.clear()
 
-    def test_page_zero_returns_422(self, authed_client):
-        resp = authed_client.get("/api/v1/batches/?page=0")
-        assert resp.status_code == 422
-
-    def test_page_negative_returns_422(self, authed_client):
-        resp = authed_client.get("/api/v1/batches/?page=-1")
-        assert resp.status_code == 422
-
-    def test_page_size_zero_returns_422(self, authed_client):
-        resp = authed_client.get("/api/v1/batches/?page_size=0")
-        assert resp.status_code == 422
-
-    def test_page_size_over_100_returns_422(self, authed_client):
-        resp = authed_client.get("/api/v1/batches/?page_size=101")
-        assert resp.status_code == 422
+    @pytest.mark.parametrize(
+        "params",
+        [
+            pytest.param("page=0", id="page-zero"),
+            pytest.param("page=-1", id="page-negative"),
+            pytest.param("page_size=0", id="page-size-zero"),
+            pytest.param("page_size=101", id="page-size-over-100"),
+        ],
+    )
+    def test_invalid_pagination_returns_422(self, authed_client, params):
+        assert authed_client.get(f"/api/v1/batches/?{params}").status_code == 422
 
     def test_page_size_at_100_is_accepted(self, authed_client):
         with patch(

@@ -5,9 +5,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update
 
-from api.batches.crud import BatchCrud
 from api.batches.models.batch import Batch
-from api.batches.service import BatchService
+from api.batches.service import recompute_batch
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
 from api.videos.enums import VideoStatus
@@ -64,12 +63,9 @@ async def recover_stale_videos(self) -> int:
 
         # Recompute batch counters for affected batches
         if affected_batch_ids:
-            batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
             for batch_id in affected_batch_ids:
                 try:
-                    batch = await batch_service.recompute_counters(batch_id)
-                    if batch:
-                        await batch_service.emit_progress(ctx.events, batch)
+                    await recompute_batch(ctx, batch_id)
                 except Exception:
                     logger.exception(
                         "Failed to update batch %s after stale recovery", batch_id

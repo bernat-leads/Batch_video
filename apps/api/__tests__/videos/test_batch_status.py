@@ -1,6 +1,8 @@
-"""Tests for Batch.derive_status() edge cases."""
+"""Tests for Batch.derive_status() — all combinations via parametrize."""
 
 from unittest.mock import MagicMock
+
+import pytest
 
 from api.batches.enums import BatchStatus
 from api.batches.models.batch import Batch
@@ -16,60 +18,20 @@ def _fake_batch(*, completed_count=0, failed_count=0, pending_count=0, total_vid
     return b
 
 
-class TestDeriveBatchStatus:
-    def test_all_processing_returns_processing(self):
-        assert (
-            _fake_batch(pending_count=5, total_videos=5).derive_status()
-            == BatchStatus.processing
-        )
-
-    def test_all_finished_returns_completed(self):
-        assert (
-            _fake_batch(completed_count=5, total_videos=5).derive_status()
-            == BatchStatus.completed
-        )
-
-    def test_all_failed_returns_failed(self):
-        assert (
-            _fake_batch(failed_count=5, total_videos=5).derive_status()
-            == BatchStatus.failed
-        )
-
-    def test_mixed_finished_and_failed_returns_completed(self):
-        assert (
-            _fake_batch(
-                completed_count=3, failed_count=2, total_videos=5
-            ).derive_status()
-            == BatchStatus.completed
-        )
-
-    def test_one_still_pending_returns_processing(self):
-        assert (
-            _fake_batch(
-                completed_count=4, pending_count=1, total_videos=5
-            ).derive_status()
-            == BatchStatus.processing
-        )
-
-    def test_zero_total_videos_returns_failed(self):
-        assert _fake_batch(total_videos=0).derive_status() == BatchStatus.failed
-
-    def test_single_video_finished(self):
-        assert (
-            _fake_batch(completed_count=1, total_videos=1).derive_status()
-            == BatchStatus.completed
-        )
-
-    def test_single_video_failed(self):
-        assert (
-            _fake_batch(failed_count=1, total_videos=1).derive_status()
-            == BatchStatus.failed
-        )
-
-    def test_some_failed_some_completed(self):
-        assert (
-            _fake_batch(
-                completed_count=1, failed_count=4, total_videos=5
-            ).derive_status()
-            == BatchStatus.completed
-        )
+@pytest.mark.parametrize(
+    "counts, expected",
+    [
+        # (completed, failed, pending, total) → expected status
+        pytest.param(dict(pending_count=5, total_videos=5), BatchStatus.processing, id="all-processing"),
+        pytest.param(dict(completed_count=4, pending_count=1, total_videos=5), BatchStatus.processing, id="one-pending"),
+        pytest.param(dict(completed_count=5, total_videos=5), BatchStatus.completed, id="all-finished"),
+        pytest.param(dict(completed_count=1, total_videos=1), BatchStatus.completed, id="single-finished"),
+        pytest.param(dict(completed_count=3, failed_count=2, total_videos=5), BatchStatus.completed, id="mixed-finished-failed"),
+        pytest.param(dict(completed_count=1, failed_count=4, total_videos=5), BatchStatus.completed, id="mostly-failed-one-done"),
+        pytest.param(dict(failed_count=5, total_videos=5), BatchStatus.failed, id="all-failed"),
+        pytest.param(dict(failed_count=1, total_videos=1), BatchStatus.failed, id="single-failed"),
+        pytest.param(dict(total_videos=0), BatchStatus.failed, id="zero-total"),
+    ],
+)
+def test_derive_status(counts, expected):
+    assert _fake_batch(**counts).derive_status() == expected

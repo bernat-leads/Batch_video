@@ -1,6 +1,9 @@
 """Video SQLAlchemy model."""
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -10,6 +13,9 @@ from api.core.models import BaseModel
 from api.core.schemas import AICost
 from api.parser import ParsedRow
 from api.videos.enums import VideoStage, VideoStatus
+
+if TYPE_CHECKING:
+    from api.shots.models.shot import Shot
 
 
 class Video(BaseModel):
@@ -103,7 +109,7 @@ class Video(BaseModel):
         return f"videos/{video_id}/shots/{order:03d}.png"
 
     @staticmethod
-    def shots_cost(shots: list) -> AICost:
+    def shots_cost(shots: list[Shot]) -> AICost:
         """Calculate combined AI cost across all shots."""
         return AICost(cost_usd=sum(shot.cost_usd for shot in shots))
 

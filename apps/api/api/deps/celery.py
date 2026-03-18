@@ -3,14 +3,13 @@
 import json
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 
 from asgiref.sync import async_to_sync
 from celery import Celery, Task
 from kombu.serialization import register
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps.db import async_session_factory
@@ -117,9 +116,10 @@ def async_task(app: Celery, *args: Any, **kwargs: Any):
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class TaskContext:
+class TaskContext(BaseModel):
     """Shared resources for Celery task execution."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     session: AsyncSession
     storage: StorageService

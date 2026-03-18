@@ -33,6 +33,28 @@ Read these when working on the relevant area:
 - **[Backend Patterns](.claude/docs/backend-patterns.md)** — async/sync rules, DB engines, module structure, services, settings, error handling, types
 - **[Frontend Patterns](.claude/docs/frontend-patterns.md)** — file org, API calls, code splitting, SSE, transitions, styling
 
+## SOPs — Reusable Patterns & Standards
+
+Reference these when building new features, refactoring, or starting new projects:
+
+| SOP | Read when... |
+|-----|-------------|
+| **[Backend SOP](.claude/docs/sops/backend-sop.md)** | Adding routes, models, schemas, CRUD, services, Celery tasks, DI, auth, storage, Redis, SSE |
+| **[Frontend SOP](.claude/docs/sops/frontend-sop.md)** | Adding pages, dialogs, tables, hooks, API calls, SSE, file upload, theming, components |
+| **[Infrastructure SOP](.claude/docs/sops/infrastructure-sop.md)** | Setting up monorepo, Docker, CI/CD, Alembic, env vars, git workflow |
+| **[Claude Agent SOP](.claude/docs/sops/claude-agent-sop.md)** | Starting any task — mandatory workflow, checklists, anti-patterns, file naming |
+| **[Design Patterns SOP](.claude/docs/sops/design-patterns-sop.md)** | Choosing architecture: Facade, Strategy, Builder, Factory, Observer, Adapter, Template Method, Command |
+| **[Refactoring SOP](.claude/docs/sops/refactoring-sop.md)** | Cleaning up code: extracting methods/classes, simplifying conditionals, organizing data, React-specific refactoring |
+
+### When to read which SOP
+
+- **Building a new feature end-to-end:** Claude Agent SOP (workflow) → Backend SOP (API layer) → Frontend SOP (UI layer)
+- **Adding a new domain/entity:** Backend SOP §2-8 (model → schema → crud → route → migration)
+- **Choosing between patterns:** Design Patterns SOP cheat sheet (bottom of file)
+- **Code review / cleanup:** Refactoring SOP decision tree (bottom of file)
+- **New project from template:** Infrastructure SOP + Claude Agent SOP §2 (init checklist)
+- **Swapping an external provider:** Design Patterns SOP §2 (Strategy pattern)
+
 ## Git
 
 Conventional Commits. Branch: `hyp-123-short-description`. PR flow: branch → `dev` → `main`.

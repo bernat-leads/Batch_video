@@ -49,7 +49,6 @@ def _make_crud(mock_session: AsyncMock) -> BaseCrud:
 class TestBaseCrudCreate:
     """Verify BaseCrud.create persists a new record and returns the model instance."""
 
-    @pytest.mark.asyncio
     async def test_create_returns_model_instance(self, mock_session: AsyncMock):
         """Creating a record should return a Video instance and call save."""
         crud = _make_crud(mock_session)
@@ -61,7 +60,6 @@ class TestBaseCrudCreate:
         assert isinstance(result, Video)
         mock_save.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_create_excludes_none_values(self, mock_session: AsyncMock):
         """Fields set to None should be excluded so SQLAlchemy uses column defaults."""
         crud = _make_crud(mock_session)
@@ -77,7 +75,7 @@ class TestBaseCrudCreate:
         with patch("api.core.crud.save", new_callable=AsyncMock) as mock_save:
             result = await crud.create(schema)
 
-        assert result is not None
+        assert isinstance(result, Video)
         mock_save.assert_awaited_once()
 
 
@@ -89,7 +87,6 @@ class TestBaseCrudCreate:
 class TestBaseCrudGet:
     """Verify BaseCrud.get retrieves a single record by primary key."""
 
-    @pytest.mark.asyncio
     async def test_get_existing_record(self, mock_session: AsyncMock):
         """Fetching an existing record should return the matching object."""
         crud = _make_crud(mock_session)
@@ -102,7 +99,6 @@ class TestBaseCrudGet:
         assert result == expected
         mock_session.get.assert_awaited_once_with(Video, record_id)
 
-    @pytest.mark.asyncio
     async def test_get_nonexistent_returns_none(self, mock_session: AsyncMock):
         """Fetching a non-existent record should return None."""
         crud = _make_crud(mock_session)
@@ -121,7 +117,6 @@ class TestBaseCrudGet:
 class TestBaseCrudGetMulti:
     """Verify BaseCrud.get_multi returns a paginated response."""
 
-    @pytest.mark.asyncio
     async def test_get_multi_returns_paginated_response(self, mock_session: AsyncMock):
         """Should return a PageResponse with items, total, and page info."""
         crud = _make_crud(mock_session)
@@ -136,7 +131,6 @@ class TestBaseCrudGetMulti:
         assert result.page_size == 50
         assert result.total_pages == 1
 
-    @pytest.mark.asyncio
     async def test_get_multi_empty_table(self, mock_session: AsyncMock):
         """Should return a PageResponse with empty items when no records exist."""
         crud = _make_crud(mock_session)
@@ -157,7 +151,6 @@ class TestBaseCrudGetMulti:
 class TestBaseCrudUpdate:
     """Verify BaseCrud.update modifies an existing record."""
 
-    @pytest.mark.asyncio
     async def test_update_existing_record(self, mock_session: AsyncMock):
         """Updating an existing record should apply the new field values."""
         crud = _make_crud(mock_session)
@@ -172,7 +165,6 @@ class TestBaseCrudUpdate:
         assert result is not None
         assert result.script_text == "New"
 
-    @pytest.mark.asyncio
     async def test_update_nonexistent_returns_none(self, mock_session: AsyncMock):
         """Updating a non-existent record should return None."""
         crud = _make_crud(mock_session)
@@ -191,7 +183,6 @@ class TestBaseCrudUpdate:
 class TestBaseCrudDelete:
     """Verify BaseCrud.delete removes a record and returns success status."""
 
-    @pytest.mark.asyncio
     async def test_delete_existing_returns_true(self, mock_session: AsyncMock):
         """Deleting an existing record should return True and call session.delete."""
         crud = _make_crud(mock_session)
@@ -205,7 +196,6 @@ class TestBaseCrudDelete:
         mock_session.delete.assert_awaited_once_with(existing)
         mock_session.commit.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_delete_nonexistent_returns_false(self, mock_session: AsyncMock):
         """Deleting a non-existent record should return False without calling delete."""
         crud = _make_crud(mock_session)
@@ -225,25 +215,24 @@ class TestBaseCrudDelete:
 class TestBaseCrudCount:
     """Verify BaseCrud.count returns the number of records."""
 
-    @pytest.mark.asyncio
-    async def test_count_returns_integer(self, mock_session: AsyncMock):
-        """Should return the correct count of records."""
+    @pytest.mark.parametrize(
+        "db_count,expected",
+        [
+            pytest.param(5, 5, id="populated-table"),
+            pytest.param(0, 0, id="empty-table"),
+            pytest.param(1, 1, id="single-record"),
+        ],
+    )
+    async def test_count_returns_correct_value(
+        self, mock_session: AsyncMock, db_count: int, expected: int
+    ):
+        """Should return the exact count from the database."""
         crud = _make_crud(mock_session)
-        mock_scalar_count(5, session=mock_session)
+        mock_scalar_count(db_count, session=mock_session)
 
         result = await crud.count()
 
-        assert result == 5
-
-    @pytest.mark.asyncio
-    async def test_count_empty_table_returns_zero(self, mock_session: AsyncMock):
-        """Should return zero for an empty table."""
-        crud = _make_crud(mock_session)
-        mock_scalar_count(0, session=mock_session)
-
-        result = await crud.count()
-
-        assert result == 0
+        assert result == expected
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +243,6 @@ class TestBaseCrudCount:
 class TestBaseCrudExists:
     """Verify BaseCrud.exists checks for record presence by primary key."""
 
-    @pytest.mark.asyncio
     async def test_exists_true_when_found(self, mock_session: AsyncMock):
         """Should return True when a record with the given ID exists."""
         crud = _make_crud(mock_session)
@@ -264,7 +252,6 @@ class TestBaseCrudExists:
 
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_exists_false_when_not_found(self, mock_session: AsyncMock):
         """Should return False when no record matches the given ID."""
         crud = _make_crud(mock_session)

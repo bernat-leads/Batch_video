@@ -77,25 +77,14 @@ async def export_selected_videos_zip(
     if not video_ids:
         raise HTTPException(status_code=400, detail="No video IDs provided")
 
-    finished = []
-    for video_id in video_ids:
-        video = await crud.get(video_id)
-        if video and video.status == VideoStatus.finished and video.output_url:
-            finished.append(video)
-
+    finished = await crud.get_finished_by_ids(video_ids)
     if not finished:
         raise HTTPException(status_code=400, detail="No finished videos to export")
-
     files = [
-        (video.output_s3_key, f"video-{index:03d}-{str(video.id)[:8]}.mp4")
-        for index, video in enumerate(finished, 1)
+        (v.output_s3_key, f"video-{i:03d}-{str(v.id)[:8]}.mp4")
+        for i, v in enumerate(finished, 1)
     ]
-
-    return StreamingResponse(
-        storage.stream_zip(files),
-        media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="videos.zip"'},
-    )
+    return storage.build_zip_response(files)
 
 
 @videos_router.get("/{video_id}", response_model=VideoReadWithShots)

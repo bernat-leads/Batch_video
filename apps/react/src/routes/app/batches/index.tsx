@@ -12,6 +12,7 @@ import { CreateBatchDialog } from "@/components/dashboard/create-batch-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
 import { useDeleteBatch } from "@/hooks/use-delete-batch";
+import { usePaginationState } from "@/hooks/use-pagination-state";
 import { exportBatchZip } from "@/lib/download";
 import { PageHeader } from "@/components/layout/page-header";
 
@@ -20,13 +21,17 @@ export const Route = createFileRoute("/app/batches/")({
 });
 
 function BatchesPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const { page, pageSize, paginationProps: rawPagination } = usePaginationState(20);
   const queryClient = useQueryClient();
   const { data: batchesResponse, isLoading } = useListBatchesApiV1BatchesGet({
     page,
     page_size: pageSize,
   });
+  const paginationProps = {
+    ...rawPagination,
+    totalPages: batchesResponse?.total_pages ?? 1,
+    total: batchesResponse?.total ?? 0,
+  };
   const [selectedBatches, setSelectedBatches] = useState<BatchRead[]>([]);
   const deleteBatch = useDeleteBatch({
     onSuccess: () => setSelectedBatches([]),
@@ -74,17 +79,7 @@ function BatchesPage() {
           batches={batches}
           onSelectionChange={setSelectedBatches}
           onDelete={handleDelete}
-          pagination={{
-            page,
-            totalPages: batchesResponse?.total_pages ?? 1,
-            total: batchesResponse?.total ?? 0,
-            pageSize,
-            onPageChange: setPage,
-            onPageSizeChange: (size) => {
-              setPageSize(size);
-              setPage(1);
-            },
-          }}
+          pagination={paginationProps}
           toolbar={
             hasSelection ? (
               <SelectionToolbar
