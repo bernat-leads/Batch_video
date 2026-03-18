@@ -30,6 +30,13 @@ class PageResponse(BaseModel, Generic[T]):
         )
 
 
+class AICost(BaseModel):
+    """Reusable cost + token count for a pipeline stage or aggregate."""
+
+    token_count: int = 0
+    cost_usd: float = 0.0
+
+
 class ErrorResponse(BaseModel):
     """Standard error response returned by the global exception handler."""
 

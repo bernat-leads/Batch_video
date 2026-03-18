@@ -66,6 +66,7 @@
     "react-day-picker": "catalog:default",
     "react-moveable": "catalog:default",
     "react-resizable-panels": "catalog:default",
+    "react-hook-form": "catalog:shadcn-v2",
     "recharts": "catalog:default",
     "sonner": "catalog:shadcn-v2",
     "tailwind-merge": "catalog:default",

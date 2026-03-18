@@ -6,7 +6,16 @@
  */
 
 export type ListVideosApiV1VideosGetParams = {
+/**
+ * Page number
+ * @minimum 1
+ */
 page?: number;
+/**
+ * Items per page
+ * @minimum 1
+ * @maximum 100
+ */
 page_size?: number;
 batch_id?: string | null;
 };

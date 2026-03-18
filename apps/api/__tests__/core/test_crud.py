@@ -14,7 +14,6 @@ from __tests__.helpers import fake_db_obj, mock_paginated_result, mock_scalar_co
 from api.core.crud import BaseCrud
 from api.videos.models.video import Video
 
-
 # ---------------------------------------------------------------------------
 # Schemas for testing
 # ---------------------------------------------------------------------------

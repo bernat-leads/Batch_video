@@ -56,9 +56,7 @@ class TestLogin:
         assert "session" in response.cookies
 
     def test_login_wrong_password(self, auth_client: TestClient):
-        response = auth_client.post(
-            "/api/v1/auth/login", json={"password": "wrong"}
-        )
+        response = auth_client.post("/api/v1/auth/login", json={"password": "wrong"})
         assert response.status_code == 401
         assert "session" not in response.cookies
 
@@ -93,16 +91,18 @@ class TestLogout:
 class TestProtectedRoutes:
     """Every protected endpoint must return 401 without a session cookie."""
 
-    @pytest.mark.parametrize("method, path", PROTECTED_ROUTES, ids=[
-        f"{m} {p}" for m, p in PROTECTED_ROUTES
-    ])
+    @pytest.mark.parametrize(
+        "method, path", PROTECTED_ROUTES, ids=[f"{m} {p}" for m, p in PROTECTED_ROUTES]
+    )
     def test_requires_auth(self, auth_client: TestClient, method: str, path: str):
         response = auth_client.request(method, path)
         assert response.status_code == 401, f"{method} {path} should require auth"
 
-    @pytest.mark.parametrize("method, path", PUBLIC_ROUTES, ids=[
-        f"{m} {p}" for m, p in PUBLIC_ROUTES
-    ])
-    def test_public_routes_accessible(self, auth_client: TestClient, method: str, path: str):
+    @pytest.mark.parametrize(
+        "method, path", PUBLIC_ROUTES, ids=[f"{m} {p}" for m, p in PUBLIC_ROUTES]
+    )
+    def test_public_routes_accessible(
+        self, auth_client: TestClient, method: str, path: str
+    ):
         response = auth_client.request(method, path)
         assert response.status_code != 401, f"{method} {path} should be public"

@@ -5,13 +5,14 @@ import {
   useListVideosApiV1VideosGet,
   useListBatchesApiV1BatchesGet,
 } from "@packages/api-client";
+
 import { CreateVideoDialog } from "@/components/dashboard/create-video-dialog";
+import { exportSelectedVideosZip } from "@/lib/download";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
 import { VideoTable } from "@/components/dashboard/video-table";
 import { VideoTableSkeleton } from "@/components/dashboard/video-table-skeleton";
 import { PageHeader } from "@/components/layout/page-header";
-import { useDeleteVideo } from "@/hooks/use-delete-video";
 
 export const Route = createFileRoute("/app/videos/")({
   component: VideosPage,
@@ -27,23 +28,14 @@ function VideosPage() {
   const { data: batchesResponse } = useListBatchesApiV1BatchesGet({ page_size: 1000 });
   const [selectedVideos, setSelectedVideos] = useState<VideoRead[]>([]);
 
-  const deleteVideo = useDeleteVideo();
-
-  const handleDeleteSelected = () => {
-    for (const video of selectedVideos) {
-      deleteVideo.mutate({ videoId: video.id });
-    }
-    setSelectedVideos([]);
-  };
-
   const videos = videosResponse?.items ?? [];
 
   const batchInfo = useMemo(() => {
     const batches = batchesResponse?.items;
     if (!batches) return undefined;
-    const map: Record<string, { name: string; fileName: string }> = {};
+    const map: Record<string, { name: string }> = {};
     for (const b of batches) {
-      map[b.id] = { name: b.name, fileName: b.name };
+      map[b.id] = { name: b.name };
     }
     return map;
   }, [batchesResponse]);
@@ -63,6 +55,7 @@ function VideosPage() {
         <EmptyState
           title="No videos yet"
           description="Create a batch to start generating videos"
+          action={<CreateVideoDialog />}
         />
       ) : (
         <VideoTable
@@ -70,7 +63,6 @@ function VideosPage() {
           batches={batchInfo}
           showIndex={false}
           onSelectionChange={setSelectedVideos}
-          onDelete={(videoId) => deleteVideo.mutate({ videoId })}
           pagination={{
             page,
             totalPages: videosResponse?.total_pages ?? 1,
@@ -86,8 +78,8 @@ function VideosPage() {
             hasSelection ? (
               <SelectionToolbar
                 count={selectedVideos.length}
-                onExport={() => {}}
-                onDelete={handleDeleteSelected}
+                exportLabel="Export Selected Videos"
+                onExport={() => exportSelectedVideosZip(selectedVideos.map((v) => v.id))}
               />
             ) : (
               <CreateVideoDialog />

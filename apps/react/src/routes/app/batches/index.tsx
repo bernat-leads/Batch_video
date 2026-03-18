@@ -11,8 +11,9 @@ import { BatchTable } from "@/components/dashboard/batch-table";
 import { CreateBatchDialog } from "@/components/dashboard/create-batch-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { SelectionToolbar } from "@/components/dashboard/selection-toolbar";
-import { PageHeader } from "@/components/layout/page-header";
 import { useDeleteBatch } from "@/hooks/use-delete-batch";
+import { exportBatchZip } from "@/lib/download";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const Route = createFileRoute("/app/batches/")({
   component: BatchesPage,
@@ -27,18 +28,20 @@ function BatchesPage() {
     page_size: pageSize,
   });
   const [selectedBatches, setSelectedBatches] = useState<BatchRead[]>([]);
+  const deleteBatch = useDeleteBatch({
+    onSuccess: () => setSelectedBatches([]),
+  });
 
-  const deleteBatch = useDeleteBatch();
+  const handleDelete = (batchId: string) => {
+    deleteBatch.mutate({ batchId });
+  };
+
+  const handleBulkDelete = () => {
+    selectedBatches.forEach((batch) => deleteBatch.mutate({ batchId: batch.id }));
+  };
 
   const handleBatchCreated = () => {
     queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
-  };
-
-  const handleDeleteSelected = () => {
-    for (const batch of selectedBatches) {
-      deleteBatch.mutate({ batchId: batch.id });
-    }
-    setSelectedBatches([]);
   };
 
   const batches = batchesResponse?.items ?? [];
@@ -64,15 +67,13 @@ function BatchesPage() {
         <EmptyState
           title="No batches yet"
           description="Upload an Excel file to start generating videos"
+          action={<CreateBatchDialog onBatchCreated={handleBatchCreated} />}
         />
       ) : (
         <BatchTable
           batches={batches}
           onSelectionChange={setSelectedBatches}
-          onDelete={(batchId) => deleteBatch.mutate({ batchId })}
-          onRename={(_id, _newName) => {
-            // TODO: add batch update/rename endpoint
-          }}
+          onDelete={handleDelete}
           pagination={{
             page,
             totalPages: batchesResponse?.total_pages ?? 1,
@@ -88,8 +89,8 @@ function BatchesPage() {
             hasSelection ? (
               <SelectionToolbar
                 count={selectedBatches.length}
-                onExport={() => {}}
-                onDelete={handleDeleteSelected}
+                onExport={() => exportBatchZip(selectedBatches[0]?.id ?? "", selectedBatches[0]?.name ?? "batch")}
+                onDelete={handleBulkDelete}
               />
             ) : (
               <CreateBatchDialog onBatchCreated={handleBatchCreated} />

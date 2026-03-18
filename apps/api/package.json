@@ -1,10 +1,11 @@
 {
   "name": "fastapi",
+  "description": "Turborepo task registration for the FastAPI backend — this package.json exists so pnpm/turbo can run scripts like test/lint/build for the Python API.",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "poetry run start",
+    "dev": "poetry run dev",
     "start": "poetry run start",
     "db:generate": "poetry run alembic revision --autogenerate -m 'auto'",
     "db:migrate": "poetry run alembic upgrade head",

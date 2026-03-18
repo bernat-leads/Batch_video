@@ -6,6 +6,7 @@ interface StatRowProps {
   valueClassName?: string;
 }
 
+/** Horizontal label–value pair used in statistics and detail cards. */
 export function StatRow({ label, value, valueClassName }: StatRowProps) {
   return (
     <div className="flex items-center justify-between">

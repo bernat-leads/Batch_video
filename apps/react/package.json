@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
@@ -23,9 +25,11 @@
     "@tanstack/react-router-devtools": "^1.131.50",
     "@tanstack/react-table": "^8.21.3",
     "framer-motion": "catalog:",
+    "lucide-react": "catalog:",
     "react": "catalog:react-v19",
     "react-dom": "catalog:react-v19",
     "react-hook-form": "^7.71.2",
+    "recharts": "catalog:",
     "sonner": "^2.0.7",
     "xlsx": "^0.18.5",
     "zod": "catalog:default"
@@ -34,14 +38,20 @@
     "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "catalog:tailwind",
     "@tanstack/router-plugin": "catalog:tanstack",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
     "@types/react": "catalog:react-v19",
     "@types/react-dom": "catalog:react-v19",
     "@vitejs/plugin-react": "catalog:keycloak",
+    "jsdom": "^29.0.0",
     "tailwindcss": "catalog:tailwind",
     "typescript": "catalog:default",
-    "vite": "catalog:build"
+    "vite": "catalog:build",
+    "vitest": "catalog:"
   },
   "prettier": "@tooling/prettier-config"
 }

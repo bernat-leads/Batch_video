@@ -4,7 +4,7 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
-import type { ShotReadKenBurnsConfig } from './shotReadKenBurnsConfig';
+import type { ShotReadEffectConfig } from './shotReadEffectConfig';
 import type { ShotReadImageUrl } from './shotReadImageUrl';
 import type { ShotReadUpdatedAt } from './shotReadUpdatedAt';
 
@@ -12,17 +12,35 @@ import type { ShotReadUpdatedAt } from './shotReadUpdatedAt';
  * Schema for reading a shot.
  */
 export interface ShotRead {
+  /**
+   * Shot sequence order (zero-based)
+   * @minimum 0
+   */
   order: number;
+  /**
+   * Script text for this shot
+   * @minLength 1
+   */
   text: string;
+  /**
+   * Prompt for image generation
+   * @minLength 1
+   */
   image_prompt: string;
-  ken_burns_config?: ShotReadKenBurnsConfig;
+  effect_config?: ShotReadEffectConfig;
+  /**
+   * Start time in seconds
+   * @minimum 0
+   */
   start_time: number;
+  /**
+   * End time in seconds
+   * @minimum 0
+   */
   end_time: number;
   id: string;
   video_id: string;
   image_url?: ShotReadImageUrl;
-  tokens_used?: number;
-  generation_time_ms?: number;
   cost_usd?: number;
   created_at: string;
   updated_at?: ShotReadUpdatedAt;

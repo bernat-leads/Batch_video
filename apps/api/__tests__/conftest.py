@@ -15,7 +15,6 @@ from fastapi.testclient import TestClient
 from api.app import create_application
 from api.core import router as core_router
 
-
 # ---------------------------------------------------------------------------
 # Core-only fixtures
 # ---------------------------------------------------------------------------
@@ -24,8 +23,29 @@ from api.core import router as core_router
 @pytest.fixture
 def app_core_only() -> FastAPI:
     """Create a minimal FastAPI app with only core routes (no DB/lifespan)."""
+    from api.deps.db import get_db
+    from api.deps.redis import get_async_redis
+
     app = FastAPI(title="Test API")
     app.include_router(core_router)
+
+    # Mock DB session that responds to execute(text("SELECT 1"))
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(return_value=None)
+
+    async def _mock_get_db():
+        yield mock_db
+
+    # Mock Redis that responds to ping()
+    mock_redis = AsyncMock()
+    mock_redis.ping = AsyncMock(return_value=True)
+    mock_redis.aclose = AsyncMock()
+
+    async def _mock_get_redis():
+        yield mock_redis
+
+    app.dependency_overrides[get_db] = _mock_get_db
+    app.dependency_overrides[get_async_redis] = _mock_get_redis
     return app
 
 

@@ -11,7 +11,6 @@
 export interface DailyStats {
   date: string;
   videos: number;
-  tokens: number;
-  generation_time_ms: number;
   cost_usd: number;
+  duration_ms: number;
 }

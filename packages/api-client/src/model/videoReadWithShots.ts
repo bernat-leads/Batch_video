@@ -4,14 +4,15 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
-import type { VideoReadWithShotsVoiceId } from './videoReadWithShotsVoiceId';
+import type { VideoReadWithShotsBatchId } from './videoReadWithShotsBatchId';
 import type { VideoReadWithShotsStyle } from './videoReadWithShotsStyle';
 import type { VideoReadWithShotsTopText } from './videoReadWithShotsTopText';
-import type { VideoReadWithShotsBatchId } from './videoReadWithShotsBatchId';
+import type { VideoReadWithShotsPrompt } from './videoReadWithShotsPrompt';
 import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
 import type { VideoReadWithShotsErrorMessage } from './videoReadWithShotsErrorMessage';
 import type { VideoReadWithShotsOutputUrl } from './videoReadWithShotsOutputUrl';
+import type { AICost } from './aICost';
 import type { VideoReadWithShotsUpdatedAt } from './videoReadWithShotsUpdatedAt';
 import type { ShotRead } from './shotRead';
 
@@ -19,27 +20,24 @@ import type { ShotRead } from './shotRead';
  * Schema for reading a video with its shots.
  */
 export interface VideoReadWithShots {
-  script_text: string;
-  prompt?: string;
-  voice_id?: VideoReadWithShotsVoiceId;
-  style?: VideoReadWithShotsStyle;
-  top_text?: VideoReadWithShotsTopText;
   id: string;
   batch_id?: VideoReadWithShotsBatchId;
+  script_text: string;
+  voice_id: string;
+  style?: VideoReadWithShotsStyle;
+  top_text?: VideoReadWithShotsTopText;
+  prompt?: VideoReadWithShotsPrompt;
   status: VideoStatus;
   current_stage: VideoStage;
   error_message?: VideoReadWithShotsErrorMessage;
   output_url?: VideoReadWithShotsOutputUrl;
-  tokens_used?: number;
-  generation_time_ms?: number;
-  total_cost_usd?: number;
-  avg_cost_per_shot_usd?: number;
+  duration_ms?: number;
   file_size_bytes?: number;
-  width?: number;
-  height?: number;
+  tts?: AICost;
+  segmentation?: AICost;
+  image_generation?: AICost;
+  total?: AICost;
   created_at: string;
   updated_at?: VideoReadWithShotsUpdatedAt;
   shots?: ShotRead[];
-  avg_tokens_per_shot?: number;
-  avg_generation_time_per_shot_ms?: number;
 }

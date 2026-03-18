@@ -4,17 +4,37 @@
  * API
  * OpenAPI spec version: 0.1.0
  */
-import type { ShotCreateKenBurnsConfig } from './shotCreateKenBurnsConfig';
+import type { ShotCreateEffectConfig } from './shotCreateEffectConfig';
 
 /**
  * Schema for creating a shot.
  */
 export interface ShotCreate {
+  /**
+   * Shot sequence order (zero-based)
+   * @minimum 0
+   */
   order: number;
+  /**
+   * Script text for this shot
+   * @minLength 1
+   */
   text: string;
+  /**
+   * Prompt for image generation
+   * @minLength 1
+   */
   image_prompt: string;
-  ken_burns_config?: ShotCreateKenBurnsConfig;
+  effect_config?: ShotCreateEffectConfig;
+  /**
+   * Start time in seconds
+   * @minimum 0
+   */
   start_time: number;
+  /**
+   * End time in seconds
+   * @minimum 0
+   */
   end_time: number;
   video_id: string;
 }

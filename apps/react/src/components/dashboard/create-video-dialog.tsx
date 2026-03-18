@@ -17,13 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@packages/ui/components/shadcn/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@packages/ui/components/shadcn/select";
 import { cn } from "@packages/ui/lib/utils";
 import { Stepper } from "@/components/ui/stepper";
 
@@ -34,17 +27,14 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "prompt", label: "Generation Prompt" },
 ];
 
-const STYLE_OPTIONS = [
-  { value: "professional", label: "Professional" },
-  { value: "energetic", label: "Energetic" },
-  { value: "cinematic", label: "Cinematic" },
-  { value: "minimal", label: "Minimal" },
-];
-
 interface CreateVideoDialogProps {
   onVideoCreated?: () => void;
 }
 
+/**
+ * Two-step dialog for creating a single video: Details → Prompt.
+ * Pre-fills the generation prompt from app settings.
+ */
 export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -53,7 +43,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
 
   const [scriptText, setScriptText] = useState("");
   const [voiceId, setVoiceId] = useState("");
-  const [style, setStyle] = useState("professional");
+  const [style, setStyle] = useState("");
   const [topText, setTopText] = useState("");
   const [prompt, setPrompt] = useState<string | null>(null);
 
@@ -80,13 +70,13 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
     setStep("details");
     setScriptText("");
     setVoiceId("");
-    setStyle("professional");
+    setStyle("");
     setTopText("");
     setPrompt(null);
   };
 
   const handleNext = () => {
-    if (!scriptText.trim()) return;
+    if (!scriptText.trim() || !voiceId.trim()) return;
     if (prompt === null) {
       setPrompt(settings?.master_prompt ?? "");
     }
@@ -98,7 +88,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
       data: {
         script_text: scriptText,
         prompt: prompt ?? settings?.master_prompt ?? "",
-        voice_id: voiceId || undefined,
+        voice_id: voiceId || "",
         style: style || undefined,
         top_text: topText || undefined,
       },
@@ -151,24 +141,18 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
               <label className="mb-1.5 block text-sm font-medium text-text-primary">
                 Style
               </label>
-              <Select value={style} onValueChange={setStyle}>
-                <SelectTrigger className="h-9 w-full border-border bg-content-bg text-text-primary">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STYLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <textarea
+                value={style}
+                onChange={(e) => setStyle(e.target.value)}
+                placeholder="Additional style instructions for this video, e.g. warm golden tones, cinematic lighting, luxury brand feel..."
+                className="min-h-[60px] w-full resize-y rounded-lg border border-border bg-content-bg px-3 py-2 text-sm text-text-primary outline-none"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-text-primary">
-                  Voice ID
+                  Voice ID <span className="text-status-error">*</span>
                 </label>
                 <input
                   value={voiceId}
@@ -193,10 +177,10 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
             <div className="flex justify-end pt-1">
               <Button
                 onClick={handleNext}
-                disabled={!scriptText.trim()}
+                disabled={!scriptText.trim() || !voiceId.trim()}
                 className={cn(
                   "bg-brand text-white",
-                  !scriptText.trim() && "opacity-50",
+                  (!scriptText.trim() || !voiceId.trim()) && "opacity-50",
                 )}
               >
                 Next

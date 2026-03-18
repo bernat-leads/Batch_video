@@ -27,9 +27,10 @@ import type {
   AppSettingsRead,
   AppSettingsUpdate,
   AuthStatus,
-  BatchCreate,
   BatchRead,
+  BodyUploadBatchApiV1BatchesUploadPost,
   DashboardResponse,
+  ExportSelectedVideosZipApiV1VideosExportZipGetParams,
   HTTPValidationError,
   HealthCheckHealthGet200,
   ListBatchesApiV1BatchesGetParams,
@@ -153,7 +154,7 @@ export function useRootGet<TData = Awaited<ReturnType<typeof rootGet>>, TError =
 
 
 /**
- * Health check endpoint.
+ * Health check endpoint — verifies DB and Redis connectivity.
  * @summary Health Check
  */
 export const healthCheckHealthGet = (
@@ -256,7 +257,7 @@ export const loginApiV1AuthLoginPost = (
 ) => {
       
       
-      return customInstance<AuthStatus>(
+      return customInstance<unknown>(
       {url: `/api/v1/auth/login`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: loginRequest, signal
@@ -322,7 +323,7 @@ export const logoutApiV1AuthLogoutPost = (
 ) => {
       
       
-      return customInstance<AuthStatus>(
+      return customInstance<unknown>(
       {url: `/api/v1/auth/logout`, method: 'POST', signal
     },
       options);
@@ -471,30 +472,128 @@ export function useMeApiV1AuthMeGet<TData = Awaited<ReturnType<typeof meApiV1Aut
 
 
 /**
- * Create a new batch with videos.
- * @summary Create Batch
+ * Get aggregated dashboard statistics.
+ * @summary Get Dashboard Stats
  */
-export const createBatchApiV1BatchesPost = (
-    batchCreate: BodyType<BatchCreate>,
+export const getDashboardStatsApiV1DashboardStatsGet = (
+    
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<BatchRead>(
-      {url: `/api/v1/batches/`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: batchCreate, signal
+      return customInstance<DashboardResponse>(
+      {url: `/api/v1/dashboard/stats`, method: 'GET', signal
     },
       options);
     }
   
 
 
-export const getCreateBatchApiV1BatchesPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext> => {
 
-const mutationKey = ['createBatchApiV1BatchesPost'];
+export const getGetDashboardStatsApiV1DashboardStatsGetQueryKey = () => {
+    return [
+    `/api/v1/dashboard/stats`
+    ] as const;
+    }
+
+    
+export const getGetDashboardStatsApiV1DashboardStatsGetQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError = ErrorType<HTTPValidationError>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardStatsApiV1DashboardStatsGetQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>> = ({ signal }) => getDashboardStatsApiV1DashboardStatsGet(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetDashboardStatsApiV1DashboardStatsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>>
+export type GetDashboardStatsApiV1DashboardStatsGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function useGetDashboardStatsApiV1DashboardStatsGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError = ErrorType<HTTPValidationError>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDashboardStatsApiV1DashboardStatsGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError = ErrorType<HTTPValidationError>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDashboardStatsApiV1DashboardStatsGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError = ErrorType<HTTPValidationError>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Get Dashboard Stats
+ */
+
+export function useGetDashboardStatsApiV1DashboardStatsGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError = ErrorType<HTTPValidationError>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1DashboardStatsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetDashboardStatsApiV1DashboardStatsGetQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * Upload an Excel/CSV file to create a batch. Processing happens in background.
+ * @summary Upload Batch
+ */
+export const uploadBatchApiV1BatchesUploadPost = (
+    bodyUploadBatchApiV1BatchesUploadPost: BodyType<BodyUploadBatchApiV1BatchesUploadPost>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      const formData = new FormData();
+formData.append(`batch_name`, bodyUploadBatchApiV1BatchesUploadPost.batch_name)
+formData.append(`column_mapping`, bodyUploadBatchApiV1BatchesUploadPost.column_mapping)
+formData.append(`file`, bodyUploadBatchApiV1BatchesUploadPost.file)
+
+      return customInstance<BatchRead>(
+      {url: `/api/v1/batches/upload`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData, signal
+    },
+      options);
+    }
+  
+
+
+export const getUploadBatchApiV1BatchesUploadPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext> => {
+
+const mutationKey = ['uploadBatchApiV1BatchesUploadPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -504,10 +603,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, {data: BodyType<BatchCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, {data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createBatchApiV1BatchesPost(data,requestOptions)
+          return  uploadBatchApiV1BatchesUploadPost(data,requestOptions)
         }
 
         
@@ -515,29 +614,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateBatchApiV1BatchesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>>
-    export type CreateBatchApiV1BatchesPostMutationBody = BodyType<BatchCreate>
-    export type CreateBatchApiV1BatchesPostMutationError = ErrorType<HTTPValidationError>
+    export type UploadBatchApiV1BatchesUploadPostMutationResult = NonNullable<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>>
+    export type UploadBatchApiV1BatchesUploadPostMutationBody = BodyType<BodyUploadBatchApiV1BatchesUploadPost>
+    export type UploadBatchApiV1BatchesUploadPostMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Create Batch
+ * @summary Upload Batch
  */
-export const useCreateBatchApiV1BatchesPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>, TError,{data: BodyType<BatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUploadBatchApiV1BatchesUploadPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>, TError,{data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createBatchApiV1BatchesPost>>,
+        Awaited<ReturnType<typeof uploadBatchApiV1BatchesUploadPost>>,
         TError,
-        {data: BodyType<BatchCreate>},
+        {data: BodyType<BodyUploadBatchApiV1BatchesUploadPost>},
         TContext
       > => {
 
-      const mutationOptions = getCreateBatchApiV1BatchesPostMutationOptions(options);
+      const mutationOptions = getUploadBatchApiV1BatchesUploadPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
     
 /**
- * List batches with computed video stats (paginated).
+ * List batches (paginated).
  * @summary List Batches
  */
 export const listBatchesApiV1BatchesGet = (
@@ -632,7 +731,7 @@ export function useListBatchesApiV1BatchesGet<TData = Awaited<ReturnType<typeof 
 
 
 /**
- * Get a batch by ID with computed video stats.
+ * Get a batch by ID.
  * @summary Get Batch
  */
 export const getBatchApiV1BatchesBatchIdGet = (
@@ -726,7 +825,7 @@ export function useGetBatchApiV1BatchesBatchIdGet<TData = Awaited<ReturnType<typ
 
 
 /**
- * Delete a batch and all its videos.
+ * Delete a batch, its videos, and S3 files.
  * @summary Delete Batch
  */
 export const deleteBatchApiV1BatchesBatchIdDelete = (
@@ -789,17 +888,17 @@ export const useDeleteBatchApiV1BatchesBatchIdDelete = <TError = ErrorType<HTTPV
     }
     
 /**
- * Get aggregated dashboard statistics.
- * @summary Get Dashboard Stats
+ * Download all completed videos in a batch as a ZIP file.
+ * @summary Export Batch Zip
  */
-export const getDashboardStatsApiV1VideosStatsDashboardGet = (
-    
+export const exportBatchZipApiV1BatchesBatchIdExportZipGet = (
+    batchId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<DashboardResponse>(
-      {url: `/api/v1/videos/stats/dashboard`, method: 'GET', signal
+      return customInstance<unknown>(
+      {url: `/api/v1/batches/${batchId}/export-zip`, method: 'GET', signal
     },
       options);
     }
@@ -807,69 +906,69 @@ export const getDashboardStatsApiV1VideosStatsDashboardGet = (
 
 
 
-export const getGetDashboardStatsApiV1VideosStatsDashboardGetQueryKey = () => {
+export const getExportBatchZipApiV1BatchesBatchIdExportZipGetQueryKey = (batchId?: string,) => {
     return [
-    `/api/v1/videos/stats/dashboard`
+    `/api/v1/batches/${batchId}/export-zip`
     ] as const;
     }
 
     
-export const getGetDashboardStatsApiV1VideosStatsDashboardGetQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError = ErrorType<HTTPValidationError>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getExportBatchZipApiV1BatchesBatchIdExportZipGetQueryOptions = <TData = Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError = ErrorType<HTTPValidationError>>(batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDashboardStatsApiV1VideosStatsDashboardGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getExportBatchZipApiV1BatchesBatchIdExportZipGetQueryKey(batchId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>> = ({ signal }) => getDashboardStatsApiV1VideosStatsDashboardGet(requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>> = ({ signal }) => exportBatchZipApiV1BatchesBatchIdExportZipGet(batchId, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+   return  { queryKey, queryFn, enabled: !!(batchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
 }
 
-export type GetDashboardStatsApiV1VideosStatsDashboardGetQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>>
-export type GetDashboardStatsApiV1VideosStatsDashboardGetQueryError = ErrorType<HTTPValidationError>
+export type ExportBatchZipApiV1BatchesBatchIdExportZipGetQueryResult = NonNullable<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>>
+export type ExportBatchZipApiV1BatchesBatchIdExportZipGetQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetDashboardStatsApiV1VideosStatsDashboardGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError = ErrorType<HTTPValidationError>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData>> & Pick<
+export function useExportBatchZipApiV1BatchesBatchIdExportZipGet<TData = Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>,
+          Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>,
           TError,
-          Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>
+          Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDashboardStatsApiV1VideosStatsDashboardGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError = ErrorType<HTTPValidationError>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData>> & Pick<
+export function useExportBatchZipApiV1BatchesBatchIdExportZipGet<TData = Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>,
+          Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>,
           TError,
-          Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>
+          Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDashboardStatsApiV1VideosStatsDashboardGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError = ErrorType<HTTPValidationError>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useExportBatchZipApiV1BatchesBatchIdExportZipGet<TData = Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get Dashboard Stats
+ * @summary Export Batch Zip
  */
 
-export function useGetDashboardStatsApiV1VideosStatsDashboardGet<TData = Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError = ErrorType<HTTPValidationError>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardStatsApiV1VideosStatsDashboardGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useExportBatchZipApiV1BatchesBatchIdExportZipGet<TData = Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportBatchZipApiV1BatchesBatchIdExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const queryOptions = getGetDashboardStatsApiV1VideosStatsDashboardGetQueryOptions(options)
+  const queryOptions = getExportBatchZipApiV1BatchesBatchIdExportZipGetQueryOptions(batchId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
@@ -1031,6 +1130,101 @@ export function useListVideosApiV1VideosGet<TData = Awaited<ReturnType<typeof li
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
   const queryOptions = getListVideosApiV1VideosGetQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * Download selected videos as a ZIP file.
+ * @summary Export Selected Videos Zip
+ */
+export const exportSelectedVideosZipApiV1VideosExportZipGet = (
+    params: ExportSelectedVideosZipApiV1VideosExportZipGetParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/videos/export-zip`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+
+
+export const getExportSelectedVideosZipApiV1VideosExportZipGetQueryKey = (params?: ExportSelectedVideosZipApiV1VideosExportZipGetParams,) => {
+    return [
+    `/api/v1/videos/export-zip`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getExportSelectedVideosZipApiV1VideosExportZipGetQueryOptions = <TData = Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError = ErrorType<HTTPValidationError>>(params: ExportSelectedVideosZipApiV1VideosExportZipGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportSelectedVideosZipApiV1VideosExportZipGetQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>> = ({ signal }) => exportSelectedVideosZipApiV1VideosExportZipGet(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type ExportSelectedVideosZipApiV1VideosExportZipGetQueryResult = NonNullable<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>>
+export type ExportSelectedVideosZipApiV1VideosExportZipGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function useExportSelectedVideosZipApiV1VideosExportZipGet<TData = Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ params: ExportSelectedVideosZipApiV1VideosExportZipGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>,
+          TError,
+          Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useExportSelectedVideosZipApiV1VideosExportZipGet<TData = Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ params: ExportSelectedVideosZipApiV1VideosExportZipGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>,
+          TError,
+          Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useExportSelectedVideosZipApiV1VideosExportZipGet<TData = Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ params: ExportSelectedVideosZipApiV1VideosExportZipGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Export Selected Videos Zip
+ */
+
+export function useExportSelectedVideosZipApiV1VideosExportZipGet<TData = Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError = ErrorType<HTTPValidationError>>(
+ params: ExportSelectedVideosZipApiV1VideosExportZipGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportSelectedVideosZipApiV1VideosExportZipGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getExportSelectedVideosZipApiV1VideosExportZipGetQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
@@ -1262,6 +1456,258 @@ export const useDeleteVideoApiV1VideosVideoIdDelete = <TError = ErrorType<HTTPVa
       > => {
 
       const mutationOptions = getDeleteVideoApiV1VideosVideoIdDeleteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * Redirect to a fresh presigned URL for video preview.
+ * @summary Preview Video
+ */
+export const previewVideoApiV1VideosVideoIdPreviewGet = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/videos/${videoId}/preview`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getPreviewVideoApiV1VideosVideoIdPreviewGetQueryKey = (videoId?: string,) => {
+    return [
+    `/api/v1/videos/${videoId}/preview`
+    ] as const;
+    }
+
+    
+export const getPreviewVideoApiV1VideosVideoIdPreviewGetQueryOptions = <TData = Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError = ErrorType<HTTPValidationError>>(videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewVideoApiV1VideosVideoIdPreviewGetQueryKey(videoId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>> = ({ signal }) => previewVideoApiV1VideosVideoIdPreviewGet(videoId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(videoId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type PreviewVideoApiV1VideosVideoIdPreviewGetQueryResult = NonNullable<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>>
+export type PreviewVideoApiV1VideosVideoIdPreviewGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function usePreviewVideoApiV1VideosVideoIdPreviewGet<TData = Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>,
+          TError,
+          Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function usePreviewVideoApiV1VideosVideoIdPreviewGet<TData = Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>,
+          TError,
+          Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function usePreviewVideoApiV1VideosVideoIdPreviewGet<TData = Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Preview Video
+ */
+
+export function usePreviewVideoApiV1VideosVideoIdPreviewGet<TData = Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewVideoApiV1VideosVideoIdPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getPreviewVideoApiV1VideosVideoIdPreviewGetQueryOptions(videoId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * Download a video MP4 file.
+ * @summary Download Video
+ */
+export const downloadVideoApiV1VideosVideoIdDownloadGet = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/videos/${videoId}/download`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getDownloadVideoApiV1VideosVideoIdDownloadGetQueryKey = (videoId?: string,) => {
+    return [
+    `/api/v1/videos/${videoId}/download`
+    ] as const;
+    }
+
+    
+export const getDownloadVideoApiV1VideosVideoIdDownloadGetQueryOptions = <TData = Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError = ErrorType<HTTPValidationError>>(videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadVideoApiV1VideosVideoIdDownloadGetQueryKey(videoId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>> = ({ signal }) => downloadVideoApiV1VideosVideoIdDownloadGet(videoId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(videoId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type DownloadVideoApiV1VideosVideoIdDownloadGetQueryResult = NonNullable<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>>
+export type DownloadVideoApiV1VideosVideoIdDownloadGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>,
+          TError,
+          Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>,
+          TError,
+          Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Download Video
+ */
+
+export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadVideoApiV1VideosVideoIdDownloadGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getDownloadVideoApiV1VideosVideoIdDownloadGetQueryOptions(videoId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * Retry a failed video from the stage that failed.
+ * @summary Retry Video
+ */
+export const retryVideoApiV1VideosVideoIdRetryPost = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VideoRead>(
+      {url: `/api/v1/videos/${videoId}/retry`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getRetryVideoApiV1VideosVideoIdRetryPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext> => {
+
+const mutationKey = ['retryVideoApiV1VideosVideoIdRetryPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, {videoId: string}> = (props) => {
+          const {videoId} = props ?? {};
+
+          return  retryVideoApiV1VideosVideoIdRetryPost(videoId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryVideoApiV1VideosVideoIdRetryPostMutationResult = NonNullable<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>>
+    
+    export type RetryVideoApiV1VideosVideoIdRetryPostMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Retry Video
+ */
+export const useRetryVideoApiV1VideosVideoIdRetryPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof retryVideoApiV1VideosVideoIdRetryPost>>,
+        TError,
+        {videoId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRetryVideoApiV1VideosVideoIdRetryPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -1660,6 +2106,107 @@ export const useDeleteShotApiV1VideosVideoIdShotsShotIdDelete = <TError = ErrorT
     }
     
 /**
+ * Redirect to a fresh presigned URL for shot image preview.
+ * @summary Preview Shot
+ */
+export const previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet = (
+    videoId: string,
+    shotOrder: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/videos/${videoId}/shots/${shotOrder}/preview`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getPreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryKey = (videoId?: string,
+    shotOrder?: number,) => {
+    return [
+    `/api/v1/videos/${videoId}/shots/${shotOrder}/preview`
+    ] as const;
+    }
+
+    
+export const getPreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryOptions = <TData = Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError = ErrorType<HTTPValidationError>>(videoId: string,
+    shotOrder: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryKey(videoId,shotOrder);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>> = ({ signal }) => previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet(videoId,shotOrder, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(videoId && shotOrder), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type PreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryResult = NonNullable<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>>
+export type PreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function usePreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGet<TData = Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string,
+    shotOrder: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>,
+          TError,
+          Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function usePreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGet<TData = Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string,
+    shotOrder: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>,
+          TError,
+          Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function usePreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGet<TData = Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string,
+    shotOrder: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Preview Shot
+ */
+
+export function usePreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGet<TData = Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string,
+    shotOrder: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof previewShotApiV1VideosVideoIdShotsShotOrderPreviewGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getPreviewShotApiV1VideosVideoIdShotsShotOrderPreviewGetQueryOptions(videoId,shotOrder,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
  * Get current app settings.
  * @summary Get Settings
  */
@@ -1817,3 +2364,187 @@ export const useUpdateSettingsApiV1SettingsPut = <TError = ErrorType<HTTPValidat
 
       return useMutation(mutationOptions, queryClient);
     }
+    
+/**
+ * Stream pipeline progress for a single video.
+ * @summary Stream Video
+ */
+export const streamVideoApiV1EventsVideosVideoIdGet = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/events/videos/${videoId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getStreamVideoApiV1EventsVideosVideoIdGetQueryKey = (videoId?: string,) => {
+    return [
+    `/api/v1/events/videos/${videoId}`
+    ] as const;
+    }
+
+    
+export const getStreamVideoApiV1EventsVideosVideoIdGetQueryOptions = <TData = Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError = ErrorType<HTTPValidationError>>(videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamVideoApiV1EventsVideosVideoIdGetQueryKey(videoId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>> = ({ signal }) => streamVideoApiV1EventsVideosVideoIdGet(videoId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(videoId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type StreamVideoApiV1EventsVideosVideoIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>>
+export type StreamVideoApiV1EventsVideosVideoIdGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function useStreamVideoApiV1EventsVideosVideoIdGet<TData = Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>,
+          TError,
+          Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useStreamVideoApiV1EventsVideosVideoIdGet<TData = Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>,
+          TError,
+          Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useStreamVideoApiV1EventsVideosVideoIdGet<TData = Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Stream Video
+ */
+
+export function useStreamVideoApiV1EventsVideosVideoIdGet<TData = Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ videoId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamVideoApiV1EventsVideosVideoIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getStreamVideoApiV1EventsVideosVideoIdGetQueryOptions(videoId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+
+/**
+ * Stream progress for a batch (video + batch events).
+ * @summary Stream Batch
+ */
+export const streamBatchApiV1EventsBatchesBatchIdGet = (
+    batchId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/v1/events/batches/${batchId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getStreamBatchApiV1EventsBatchesBatchIdGetQueryKey = (batchId?: string,) => {
+    return [
+    `/api/v1/events/batches/${batchId}`
+    ] as const;
+    }
+
+    
+export const getStreamBatchApiV1EventsBatchesBatchIdGetQueryOptions = <TData = Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError = ErrorType<HTTPValidationError>>(batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamBatchApiV1EventsBatchesBatchIdGetQueryKey(batchId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>> = ({ signal }) => streamBatchApiV1EventsBatchesBatchIdGet(batchId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(batchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type StreamBatchApiV1EventsBatchesBatchIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>>
+export type StreamBatchApiV1EventsBatchesBatchIdGetQueryError = ErrorType<HTTPValidationError>
+
+
+export function useStreamBatchApiV1EventsBatchesBatchIdGet<TData = Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>,
+          TError,
+          Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useStreamBatchApiV1EventsBatchesBatchIdGet<TData = Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>,
+          TError,
+          Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useStreamBatchApiV1EventsBatchesBatchIdGet<TData = Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Stream Batch
+ */
+
+export function useStreamBatchApiV1EventsBatchesBatchIdGet<TData = Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError = ErrorType<HTTPValidationError>>(
+ batchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamBatchApiV1EventsBatchesBatchIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getStreamBatchApiV1EventsBatchesBatchIdGetQueryOptions(batchId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
