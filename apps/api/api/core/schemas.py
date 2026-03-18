@@ -37,7 +37,6 @@ class AICost(BaseModel):
     cost_usd: float = 0.0
 
 
-
 class ErrorResponse(BaseModel):
     """Standard error response returned by the global exception handler."""
 

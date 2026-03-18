@@ -39,10 +39,10 @@ class KenBurnsDirection(str, Enum):
 
 
 class KenBurnsEffect(SegmentEffect):
-    """Ken Burns pan/zoom camera movement applied to a still image."""
+    """Ken Burns pan/zoom camera movement for a segment image."""
 
-    type: Literal["ken_burns"] = "ken_burns"
-    direction: KenBurnsDirection
+    type: Literal["ken_burns"] = Field(default="ken_burns", description="Always 'ken_burns'")
+    direction: KenBurnsDirection = Field(description="Camera movement direction")
     scale: float = Field(description="Zoom scale factor, ideally between 1.1 and 1.4")
 
 
@@ -55,18 +55,14 @@ AnySegmentEffect = KenBurnsEffect
 
 
 class SegmentResult(BaseModel):
-    """A single visual segment output by the segmentation LLM.
+    """A single visual segment of the ad script."""
 
-    Contains timing boundaries, an image generation prompt, and
-    the visual effect to apply during video assembly.
-    """
-
-    order: int
-    text: str
-    start_time: float
-    end_time: float
-    image_prompt: str
-    effect: KenBurnsEffect
+    order: int = Field(description="Segment number starting from 1")
+    text: str = Field(description="The script text spoken during this segment")
+    start_time: float = Field(description="Start time in seconds from the word timestamps")
+    end_time: float = Field(description="End time in seconds from the word timestamps")
+    image_prompt: str = Field(description="Detailed image generation prompt for this segment's visual")
+    effect: KenBurnsEffect = Field(description="Ken Burns camera movement effect for this segment")
 
     model_config = {"frozen": True}
 
@@ -138,6 +134,8 @@ class SegmentationResult(BaseModel):
 
 
 class SegmentationOutput(BaseModel):
-    """LLM structured output wrapper for parsing the raw model response."""
+    """The segmented ad script with visual scene descriptions and camera movements."""
 
-    segments: list[SegmentResult]
+    segments: list[SegmentResult] = Field(
+        description="List of visual segments covering the entire script from start to end"
+    )
