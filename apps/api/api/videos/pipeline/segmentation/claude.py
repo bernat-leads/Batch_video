@@ -67,7 +67,7 @@ class ClaudeSegmentationService(SegmentationService):
             segmentation_input.style or "default",
         )
 
-        prompt_messages = segmentation_input.build_prompt().format_messages()
+        prompt_messages = segmentation_input.build_messages()
         usage_cb = _UsageCallback()
 
         try:

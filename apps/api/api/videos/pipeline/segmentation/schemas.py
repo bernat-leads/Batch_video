@@ -4,7 +4,7 @@ import json
 from enum import Enum
 from typing import Literal
 
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from api.core.schemas import AICost
@@ -90,8 +90,8 @@ class SegmentationInput(BaseModel):
     prompt: str = ""
     template_context: str = ""
 
-    def build_prompt(self) -> ChatPromptTemplate:
-        """Build a structured ChatPromptTemplate for the segmentation LLM."""
+    def build_messages(self) -> list[SystemMessage | HumanMessage]:
+        """Build message list for the segmentation LLM."""
         word_list = "\n".join(
             word.to_indexed_str(index)
             for index, word in enumerate(self.word_timestamps)
@@ -106,35 +106,31 @@ class SegmentationInput(BaseModel):
             f"```json\n{schema_json}\n```"
         )
 
-        messages = [
-            ("system", system_prompt.replace("$", "$$")),
-            (
-                "human",
-                f"## Script\n\nThe full ad script to segment into visual scenes:\n\n{self.script_text}",
+        messages: list[SystemMessage | HumanMessage] = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(
+                content=f"## Script\n\nThe full ad script to segment into visual scenes:\n\n{self.script_text}"
             ),
-            (
-                "human",
-                f"## Word List\n\nWords with TTS timing — use these timestamps for `start_time` and `end_time`:\n\n{word_list}",
+            HumanMessage(
+                content=f"## Word List\n\nWords with TTS timing — use these timestamps for `start_time` and `end_time`:\n\n{word_list}"
             ),
         ]
 
         if self.style:
             messages.append(
-                (
-                    "human",
-                    f"## Style\n\nVisual style and mood for the image prompts:\n\n**{self.style}**",
+                HumanMessage(
+                    content=f"## Style\n\nVisual style and mood for the image prompts:\n\n**{self.style}**"
                 )
             )
 
         if self.template_context:
             messages.append(
-                (
-                    "human",
-                    f"## Video Template\n\nOutput format constraints — image prompts must respect these safe zones:\n\n{self.template_context}",
+                HumanMessage(
+                    content=f"## Video Template\n\nOutput format constraints — image prompts must respect these safe zones:\n\n{self.template_context}"
                 )
             )
 
-        return ChatPromptTemplate.from_messages(messages)
+        return messages
 
 
 class SegmentationResult(BaseModel):
