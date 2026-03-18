@@ -56,7 +56,7 @@ catalogs:
 
   # Astro ecosystem
   astro-v5:
-    astro: ^5.5.2
+    astro: ^6.0.5
     "@astrojs/mdx": ^4.2.0
     "@astrojs/react": ^4.3.0
     "@astrojs/sitemap": ^3.2.1
