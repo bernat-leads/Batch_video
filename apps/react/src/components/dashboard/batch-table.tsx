@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Download, MoreHorizontal, Trash2 } from "lucide-react";
+import { Download, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import type { BatchRead } from "@packages/api-client";
 import { Checkbox } from "@packages/ui/components/shadcn/checkbox";
 import {
@@ -26,6 +27,18 @@ function BatchActions({
   batch: BatchRead;
   onDelete: () => void;
 }) {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExporting(true);
+    try {
+      await exportBatchZip(batch.id, batch.name);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -33,20 +46,25 @@ function BatchActions({
           className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-black/5"
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreHorizontal size={16} className="text-text-muted" />
+          {exporting ? (
+            <Loader2 size={16} className="animate-spin text-text-muted" />
+          ) : (
+            <MoreHorizontal size={16} className="text-text-muted" />
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-card-bg border-border">
         <DropdownMenuItem
-          disabled={(batch.completed_count ?? 0) === 0}
-          onClick={(e) => {
-            e.stopPropagation();
-            exportBatchZip(batch.id, batch.name);
-          }}
+          disabled={(batch.completed_count ?? 0) === 0 || exporting}
+          onClick={handleExport}
           className="text-text-secondary"
         >
-          <Download size={14} className="mr-2" />
-          Export
+          {exporting ? (
+            <Loader2 size={14} className="mr-2 animate-spin" />
+          ) : (
+            <Download size={14} className="mr-2" />
+          )}
+          {exporting ? "Exporting..." : "Export"}
         </DropdownMenuItem>
         <ConfirmDeleteDialog
           title="Delete batch?"

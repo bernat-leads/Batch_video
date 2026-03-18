@@ -8,17 +8,15 @@ from sqlalchemy.orm import selectinload
 
 from api.batches.service import recompute_batch
 from api.deps.celery import async_task, celery_app, task_context
-from api.events.schemas import EventChannel
 from api.settings_module.crud import AppSettingsCrud
 from api.videos.crud import VideoCrud
-from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 from api.videos.pipeline.factory import create_pipeline_providers
 from api.videos.pipeline.video_editor.templates import (
     DEFAULT_TEMPLATE_NAME,
     get_template,
 )
-from api.videos.schemas import VideoCreate, VideoGenerationResult, VideoProgressEvent
+from api.videos.schemas import VideoCreate, VideoGenerationResult
 from api.videos.service import VideoService
 
 logger = logging.getLogger(__name__)
@@ -97,31 +95,8 @@ async def retry_video(
         if not video:
             raise ValueError(f"Video {video_id} not found")
 
-        # Set video to processing and emit events
-        video.status = VideoStatus.processing
-        video.error_message = None
-        await ctx.session.commit()
-
-        try:
-            event = VideoProgressEvent(
-                video_id=str(video.id),
-                batch_id=str(video.batch_id) if video.batch_id else None,
-                status=video.status,
-                stage=video.current_stage,
-            )
-            channel = EventChannel.video.value.format(video_id=video.id)
-            await ctx.events.emit(channel, event)
-        except Exception:
-            logger.debug("Failed to emit video event (video=%s)", video_id)
-
-        if video.batch_id:
-            try:
-                await recompute_batch(ctx, video.batch_id)
-            except Exception:
-                logger.exception(
-                    "Failed to update batch counters at retry start (batch=%s)",
-                    video.batch_id,
-                )
+        # Status is already set to processing by the retry route handler.
+        # The task only runs the pipeline from the failed stage.
 
         try:
             result = await service.retry_video(

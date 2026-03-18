@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     # ─── Rate Limits (per provider, requests per minute, 0 = unlimited) ─
     GEMINI_RATE_LIMIT: int = 10
     OPENAI_RATE_LIMIT: int = 0
-    ELEVENLABS_RATE_LIMIT: int = 0
+    ELEVENLABS_RATE_LIMIT: int = 12  # ~1 request every 5 seconds
 
     # ─── File uploads ─────────────────────────────────────────────────────
     UPLOAD_ALLOWED_EXTENSIONS: list[str] = [".xlsx", ".xls", ".csv"]
