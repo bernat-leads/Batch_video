@@ -1,6 +1,7 @@
 """Video generation service — orchestrates the full pipeline."""
 
 import asyncio
+import json
 import logging
 
 from sqlalchemy import delete
@@ -144,11 +145,39 @@ class VideoService:
         return await self._finalize(video, num_shots=len(shots))
 
     async def _build_tts_result_from_storage(self, video: Video) -> TTSResult:
-        """Rebuild TTSResult from S3 audio + approximate word timestamps from shots."""
+        """Rebuild TTSResult from S3 audio + persisted word timestamps."""
         audio_bytes = await asyncio.to_thread(
             self._storage.download_file, video.audio_url
         )
 
+        # Load real word timestamps persisted during TTS stage
+        try:
+            timestamps_bytes = await asyncio.to_thread(
+                self._storage.download_file, video.word_timestamps_s3_key
+            )
+            timestamps_data = json.loads(timestamps_bytes)
+            word_timestamps = [WordTimestamp(**w) for w in timestamps_data]
+        except Exception:
+            # Fallback for videos created before timestamps were persisted
+            logger.warning(
+                "Video %s: word timestamps not found in S3, using approximation",
+                video.id,
+            )
+            word_timestamps = self._approximate_word_timestamps(video)
+
+        return TTSResult(
+            audio_bytes=audio_bytes,
+            content_type="audio/mpeg",
+            audio_duration_ms=int(word_timestamps[-1].end * 1000)
+            if word_timestamps
+            else 0,
+            word_timestamps=word_timestamps,
+            cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
+        )
+
+    @staticmethod
+    def _approximate_word_timestamps(video: Video) -> list[WordTimestamp]:
+        """Fallback: approximate word timestamps from shot boundaries."""
         word_timestamps: list[WordTimestamp] = []
         for shot in sorted(video.shots, key=lambda shot: shot.order):
             words = shot.text.split()
@@ -165,16 +194,7 @@ class VideoService:
                         ),
                     )
                 )
-
-        return TTSResult(
-            audio_bytes=audio_bytes,
-            content_type="audio/mpeg",
-            audio_duration_ms=int(word_timestamps[-1].end * 1000)
-            if word_timestamps
-            else 0,
-            word_timestamps=word_timestamps,
-            cost=AICost(cost_usd=video.tts_cost_usd, token_count=video.tts_token_count),
-        )
+        return word_timestamps
 
     async def _delete_existing_shots(self, video: Video) -> None:
         """Delete any existing shots for a video (for retry)."""
@@ -198,6 +218,13 @@ class VideoService:
 
         self._storage.upload_file(
             video.audio_s3_key, tts_result.audio_bytes, tts_result.content_type
+        )
+        # Persist word timestamps for accurate caption sync on retry
+        timestamps_json = json.dumps(
+            [w.model_dump() for w in tts_result.word_timestamps]
+        ).encode()
+        self._storage.upload_file(
+            video.word_timestamps_s3_key, timestamps_json, "application/json"
         )
         video.audio_url = video.audio_s3_key
         video.tts_cost_usd = tts_result.cost.cost_usd
@@ -318,9 +345,7 @@ class VideoService:
         video.duration_ms = edit_result.duration_ms
         video.file_size_bytes = len(edit_result.video_bytes)
 
-    async def _finalize(
-        self, video: Video, num_shots: int
-    ) -> VideoGenerationResult:
+    async def _finalize(self, video: Video, num_shots: int) -> VideoGenerationResult:
         """Mark finished and return the generation result."""
         video.status = VideoStatus.finished
         video.current_stage = VideoStage.done

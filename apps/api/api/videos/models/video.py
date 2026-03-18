@@ -84,6 +84,11 @@ class Video(BaseModel):
         return f"{self.s3_prefix}/audio"
 
     @property
+    def word_timestamps_s3_key(self) -> str:
+        """S3 key for persisted word-level timestamps."""
+        return f"{self.s3_prefix}/word_timestamps.json"
+
+    @property
     def output_s3_key(self) -> str:
         """S3 key for the final rendered video."""
         return f"{self.s3_prefix}/output.mp4"
