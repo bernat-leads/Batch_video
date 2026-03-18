@@ -22,7 +22,7 @@ httptools = "^0.6.4"
 tenacity = "^9.1.2"
 boto3 = "^1.35.0"
 celery = "^5.4.0"
-redis = "^5.2.0"
+redis = "^7.3.0"
 httpx = "^0.28.1"
 itsdangerous = "^2.2.0"
 psycopg = {extras = ["binary"], version = "^3.2.12"}
