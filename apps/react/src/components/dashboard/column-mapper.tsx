@@ -161,11 +161,13 @@ function FieldMappingRow({
           </SelectTrigger>
           <SelectContent className="bg-card-bg border-border">
             <SelectItem value={UNMAPPED}>Select column...</SelectItem>
-            {headers.map((header) => (
-              <SelectItem key={header} value={header}>
-                {header}
-              </SelectItem>
-            ))}
+            {headers
+              .filter((header) => header !== "")
+              .map((header) => (
+                <SelectItem key={header} value={header}>
+                  {header}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </td>
