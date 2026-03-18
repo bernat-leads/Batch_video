@@ -107,7 +107,7 @@ export function CreateVideoDialog({ onVideoCreated }: CreateVideoDialogProps) {
     createVideo.mutate({
       data: {
         script_text: values.scriptText,
-        prompt: values.prompt || settings?.master_prompt ?? "",
+        prompt: values.prompt || (settings?.master_prompt ?? ""),
         voice_id: values.voiceId || "",
         style: values.style || undefined,
         top_text: values.topText || undefined,

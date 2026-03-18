@@ -107,6 +107,7 @@ ignore = [
 "**/pipeline/**" = ["ARG002"]  # interface methods must match parent signature
 "api/app.py" = ["ARG001"]  # app param required by FastAPI lifespan
 "api/exceptions.py" = ["ARG001"]  # request param required by exception handler signature
+"api/dashboard/crud.py" = ["DTZ003"]  # utcnow() needed for naive TIMESTAMP columns
 
 [tool.ruff.lint.isort]
 known-first-party = ["api", "graphs", "__tests__"]
