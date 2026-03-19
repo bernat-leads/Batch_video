@@ -6,7 +6,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, func, select, text
-from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from api.core.models import BaseModel
@@ -48,7 +48,7 @@ class Video(BaseModel):
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Per-model costs: {model_name: {token_count: int, cost_usd: float}}
-    model_costs: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    model_costs: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # total_cost_usd computed live from model_costs JSON — see column_property below
