@@ -71,9 +71,13 @@ def app() -> FastAPI:
 
 @pytest.fixture
 def authed_client(app: FastAPI) -> TestClient:
-    """Provide a test client with no auth restrictions."""
+    """Provide a test client with auth bypassed via dependency override."""
+    from api.deps.auth import get_current_session
+
+    app.dependency_overrides[get_current_session] = lambda: {"authenticated": True}
     client = TestClient(app)
     yield client
+    app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------------------------

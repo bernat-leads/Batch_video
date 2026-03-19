@@ -6,6 +6,7 @@
  */
 import type { VideoCreateStyle } from './videoCreateStyle';
 import type { VideoCreateTopText } from './videoCreateTopText';
+import type { VideoCreateFileName } from './videoCreateFileName';
 import type { VideoCreatePrompt } from './videoCreatePrompt';
 import type { VideoCreateBatchId } from './videoCreateBatchId';
 
@@ -26,6 +27,8 @@ export interface VideoCreate {
   voice_id: string;
   style?: VideoCreateStyle;
   top_text?: VideoCreateTopText;
+  /** Custom output filename */
+  file_name?: VideoCreateFileName;
   prompt?: VideoCreatePrompt;
   batch_id?: VideoCreateBatchId;
 }

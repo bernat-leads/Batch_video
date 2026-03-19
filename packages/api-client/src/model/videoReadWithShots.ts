@@ -7,6 +7,7 @@
 import type { VideoReadWithShotsBatchId } from './videoReadWithShotsBatchId';
 import type { VideoReadWithShotsStyle } from './videoReadWithShotsStyle';
 import type { VideoReadWithShotsTopText } from './videoReadWithShotsTopText';
+import type { VideoReadWithShotsFileName } from './videoReadWithShotsFileName';
 import type { VideoReadWithShotsPrompt } from './videoReadWithShotsPrompt';
 import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
@@ -26,6 +27,7 @@ export interface VideoReadWithShots {
   voice_id: string;
   style?: VideoReadWithShotsStyle;
   top_text?: VideoReadWithShotsTopText;
+  file_name?: VideoReadWithShotsFileName;
   prompt?: VideoReadWithShotsPrompt;
   status: VideoStatus;
   current_stage: VideoStage;

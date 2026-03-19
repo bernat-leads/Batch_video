@@ -34,6 +34,7 @@ class Video(BaseModel):
     voice_id: Mapped[str] = mapped_column(String(255), nullable=False)
     style: Mapped[str | None] = mapped_column(String(255), nullable=True)
     top_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
     prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[VideoStatus] = mapped_column(
         String(20), nullable=False, default=VideoStatus.processing, index=True
@@ -60,6 +61,7 @@ class Video(BaseModel):
             voice_id=row.data.get("voice_id") or None,
             style=row.data.get("style") or None,
             top_text=row.data.get("top_text") or None,
+            file_name=row.data.get("file_name") or None,
             status=VideoStatus.processing if row.is_valid else VideoStatus.failed,
             current_stage=VideoStage.queued,
             error_message=row.error_message,

@@ -45,7 +45,7 @@ class TestValidRowParsing:
         [
             pytest.param(
                 "script_text\nHello world",
-                {"script_text": "Hello world", "voice_id": "", "style": "", "top_text": ""},
+                {"script_text": "Hello world", "voice_id": "", "style": "", "top_text": "", "file_name": ""},
                 id="minimal-required-field-only",
             ),
             pytest.param(
@@ -55,12 +55,13 @@ class TestValidRowParsing:
                     "voice_id": "voice-1",
                     "style": "cinematic",
                     "top_text": "Buy Now",
+                    "file_name": "",
                 },
                 id="all-fields-populated",
             ),
             pytest.param(
                 "script_text,voice_id\nSome text,",
-                {"script_text": "Some text", "voice_id": "", "style": "", "top_text": ""},
+                {"script_text": "Some text", "voice_id": "", "style": "", "top_text": "", "file_name": ""},
                 id="optional-fields-default-to-empty-string",
             ),
         ],

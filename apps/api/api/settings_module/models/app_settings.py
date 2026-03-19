@@ -3,10 +3,18 @@
 import uuid
 
 from sqlalchemy import Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from api.core.models import BaseModel
+
+DEFAULT_COLUMN_DEFAULTS: dict[str, str] = {
+    "script_text": "script_text",
+    "voice_id": "voice_id",
+    "style": "style",
+    "top_text": "top_text",
+    "file_name": "file_name",
+}
 
 
 class AppSettings(BaseModel):
@@ -19,11 +27,6 @@ class AppSettings(BaseModel):
     )
     master_prompt: Mapped[str] = mapped_column(Text, default="")
     retention_days: Mapped[int] = mapped_column(Integer, default=7)
-    default_script_column: Mapped[str] = mapped_column(
-        String(100), default="script_text"
-    )
-    default_voice_column: Mapped[str] = mapped_column(String(100), default="voice_id")
-    default_style_column: Mapped[str] = mapped_column(String(100), default="style")
-    default_top_text_column: Mapped[str] = mapped_column(
-        String(100), default="top_text"
+    column_defaults: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=lambda: dict(DEFAULT_COLUMN_DEFAULTS)
     )

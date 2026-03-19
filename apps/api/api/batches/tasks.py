@@ -24,6 +24,7 @@ VIDEO_FIELDS: tuple[FieldDef, ...] = (
     FieldDef(name="voice_id"),
     FieldDef(name="style"),
     FieldDef(name="top_text"),
+    FieldDef(name="file_name"),
 )
 
 
@@ -85,6 +86,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                         voice_id=row.data.get("voice_id") or None,
                         style=row.data.get("style") or None,
                         top_text=row.data.get("top_text") or None,
+                    file_name=row.data.get("file_name") or None,
                     ).model_dump(),
                     batch_id=batch_id,
                 )

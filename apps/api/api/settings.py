@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     GEMINI_RATE_LIMIT: int = 10
     OPENAI_RATE_LIMIT: int = 0
     ELEVENLABS_RATE_LIMIT: int = 12  # ~1 request every 5 seconds
+    ELEVENLABS_VOICE_LOCK_TIMEOUT: int = 120  # Max seconds to wait for per-voice lock
 
     # ─── File uploads ─────────────────────────────────────────────────────
     UPLOAD_ALLOWED_EXTENSIONS: list[str] = [".xlsx", ".xls", ".csv"]

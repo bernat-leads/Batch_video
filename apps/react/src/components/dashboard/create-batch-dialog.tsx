@@ -29,6 +29,7 @@ const DEFAULT_COLUMN_DEFAULTS: ColumnDefaults = {
   voice_id: "voice_id",
   style: "style",
   top_text: "top_text",
+  file_name: "file_name",
 };
 
 interface CreateBatchDialogProps {
@@ -153,12 +154,7 @@ export function CreateBatchDialog({ onBatchCreated, columnDefaults }: CreateBatc
             headers={parsedFile.headers}
             rows={parsedFile.rows}
             initialMapping={mapping}
-            settingsDefaults={columnDefaults ?? (settings ? {
-              script_text: settings.default_script_column,
-              voice_id: settings.default_voice_column,
-              style: settings.default_style_column,
-              top_text: settings.default_top_text_column,
-            } : DEFAULT_COLUMN_DEFAULTS)}
+            settingsDefaults={columnDefaults ?? settings?.column_defaults ?? DEFAULT_COLUMN_DEFAULTS}
             onSubmit={handleMapped}
             onBack={() => setStep("upload")}
           />

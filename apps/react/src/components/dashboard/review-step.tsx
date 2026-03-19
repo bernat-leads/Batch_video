@@ -33,6 +33,7 @@ export function ReviewStep({
     { label: "Voice ID", col: mapping.voice_id },
     { label: "Style", col: mapping.style },
     { label: "Top Text", col: mapping.top_text },
+    { label: "File Name", col: mapping.file_name },
   ];
 
   const colIndices = mappedColumns.map((c) => parsedFile.headers.indexOf(c.col));
