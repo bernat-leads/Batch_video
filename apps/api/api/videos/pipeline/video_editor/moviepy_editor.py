@@ -48,11 +48,7 @@ class MoviePyVideoEditor(VideoEditor):
         segments = self._align_segments_to_audio(
             assembly_input.segments, assembly_input.audio_bytes
         )
-        caption_groups = CaptionGroup.from_word_timestamps(
-            assembly_input.word_timestamps,
-            max_chars=template.caption_style.max_chars,
-            max_words=template.caption_style.max_words,
-        )
+        caption_groups = assembly_input.caption_groups
         for i, group in enumerate(caption_groups):
             logger.debug(
                 "Caption[%d] %.2fs-%.2fs: %s", i, group.start, group.end, group.text

@@ -4,7 +4,6 @@ import logging
 import uuid
 
 from api.batches.crud import BatchCrud
-from api.batches.enums import BatchStatus
 from api.batches.schemas import BatchProcessResult, BatchProgressEvent
 from api.batches.service import BatchService
 from api.core.exceptions import BatchParseError
@@ -59,7 +58,6 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
             rows = parser.parse()
 
             if not rows:
-                batch.status = BatchStatus.failed
                 await crud.set_batch_error(batch.id, "No rows found in file")
                 return BatchProcessResult(batch_id=batch_id, error="empty file")
 
@@ -73,10 +71,7 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
             if failed_videos:
                 await service.create_batch_videos(batch, failed_videos)
 
-            batch.total_videos = len(rows)
-            batch.pending_count = len(valid_rows)
-            batch.failed_count = len(failed_videos)
-            await crud.db_session.commit()
+            await ctx.session.commit()
 
             dispatched = 0
             for row in valid_rows:
@@ -86,19 +81,17 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                         voice_id=row.data.get("voice_id") or None,
                         style=row.data.get("style") or None,
                         top_text=row.data.get("top_text") or None,
-                    file_name=row.data.get("file_name") or None,
+                        file_name=row.data.get("file_name") or None,
                     ).model_dump(),
                     batch_id=batch_id,
                 )
                 dispatched += 1
-            failed_count = len(failed_videos)
-
-            batch.status = BatchStatus.processing if dispatched else BatchStatus.failed
 
             try:
                 channel = EventChannel.batch.value.format(batch_id=batch_id)
+                status = "processing" if dispatched else "failed"
                 await ctx.events.emit(
-                    channel, BatchProgressEvent(batch_id=batch_id, status=batch.status)
+                    channel, BatchProgressEvent(batch_id=batch_id, status=status)
                 )
             except Exception:
                 logger.debug(
@@ -109,17 +102,15 @@ async def process_batch(self, batch_id: str) -> BatchProcessResult:
                 "Batch %s: dispatched %d tasks (%d failed)",
                 batch_id,
                 dispatched,
-                failed_count,
+                len(failed_videos),
             )
             return BatchProcessResult(batch_id=batch_id, videos_created=len(rows))
 
         except (ValueError, BatchParseError) as e:
             logger.warning("Batch %s: parse error — %s", batch_id, e)
-            batch.status = BatchStatus.failed
             await crud.set_batch_error(batch.id, str(e))
             return BatchProcessResult(batch_id=batch_id, error=str(e))
         except Exception as e:
             logger.exception("Batch %s: unexpected error", batch_id)
-            batch.status = BatchStatus.failed
             await crud.set_batch_error(batch.id, f"Processing failed: {e}")
             return BatchProcessResult(batch_id=batch_id, error=str(e))

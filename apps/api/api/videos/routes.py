@@ -84,6 +84,7 @@ async def export_selected_videos_zip(
     finished = await crud.get_finished_by_ids(video_ids)
     if not finished:
         raise HTTPException(status_code=400, detail="No finished videos to export")
+
     def _zip_name(i: int, v: Video) -> str:
         if v.file_name:
             return v.file_name if v.file_name.endswith(".mp4") else f"{v.file_name}.mp4"
@@ -129,7 +130,11 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
 
     # Use custom file_name if set, otherwise fallback to ID-based name
     if video.file_name:
-        name = video.file_name if video.file_name.endswith(".mp4") else f"{video.file_name}.mp4"
+        name = (
+            video.file_name
+            if video.file_name.endswith(".mp4")
+            else f"{video.file_name}.mp4"
+        )
     else:
         name = f"video-{str(video.id)[:8]}.mp4"
 

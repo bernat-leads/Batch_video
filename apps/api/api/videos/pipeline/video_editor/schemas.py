@@ -133,6 +133,7 @@ class Segment(BaseModel):
 
 
 SENTENCE_ENDERS = frozenset(".!?")
+QUOTE_CHARS = frozenset('"\u201c\u201d\u00ab\u00bb\u2018\u2019')
 # Max time a single caption group can span (seconds)
 MAX_GROUP_DURATION = 2.0
 # Pause between words that forces a group break (seconds)
@@ -176,7 +177,8 @@ class CaptionGroup(BaseModel):
             if not current_words:
                 return
             text = " ".join(current_words)
-            # Strip sentence-ending punctuation from display
+            # Strip sentence-ending punctuation and quotation marks from display
+            text = text.strip("".join(QUOTE_CHARS))
             text = text.rstrip("".join(SENTENCE_ENDERS))
             if text:
                 groups.append(cls(text=text, start=group_start, end=last_word_end))
@@ -346,7 +348,7 @@ class AssemblyInput(BaseModel):
     template: VideoTemplate
     segments: list[Segment]
     audio_bytes: bytes
-    word_timestamps: list[WordTimestamp]
+    caption_groups: list[CaptionGroup]
     top_text: str | None = None
 
 

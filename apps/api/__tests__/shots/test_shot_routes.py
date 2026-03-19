@@ -22,6 +22,8 @@ def _mock_shot(**kwargs) -> MagicMock:
         end_time=5.0,
         image_url=None,
         cost_usd=0.0,
+        status="pending",
+        error_message=None,
         created_at=datetime(2025, 1, 1),
         updated_at=None,
     )

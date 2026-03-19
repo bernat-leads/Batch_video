@@ -53,7 +53,9 @@ class VideoCreate(BaseModel):
     )
     style: str | None = Field(default=None, max_length=255)
     top_text: str | None = Field(default=None, max_length=500)
-    file_name: str | None = Field(default=None, max_length=500, description="Custom output filename")
+    file_name: str | None = Field(
+        default=None, max_length=500, description="Custom output filename"
+    )
     prompt: str | None = Field(default=None, max_length=5000)
     batch_id: uuid.UUID | None = None
 

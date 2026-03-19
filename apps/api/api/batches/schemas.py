@@ -6,7 +6,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from api.batches.enums import BatchStatus
-from api.core.schemas import AICost
 from api.events.schemas import BaseEvent, EventType
 
 
@@ -31,7 +30,7 @@ class BatchRead(BaseModel):
     id: uuid.UUID
     name: str
     status: BatchStatus
-    total_videos: int
+    total_videos: int = 0
     duration_ms: int = 0
     completed_count: int = 0
     failed_count: int = 0
@@ -39,8 +38,6 @@ class BatchRead(BaseModel):
     column_mapping: dict | None = None
     file_name: str | None = None
     error_message: str | None = None
-
-    model_costs: dict[str, AICost] = {}
     total_cost_usd: float = 0.0
 
     created_at: datetime

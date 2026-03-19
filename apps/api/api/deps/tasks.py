@@ -6,7 +6,6 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select, update
 
 from api.batches.models.batch import Batch
-from api.batches.service import recompute_batch
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
 from api.videos.enums import VideoStatus
@@ -29,18 +28,6 @@ async def recover_stale_videos(self) -> int:
     async with task_context() as ctx:
         cutoff = datetime.now(UTC) - timedelta(minutes=STALE_PROCESSING_MINUTES)
 
-        # Find affected batch IDs before updating
-        stale_batch_ids_result = await ctx.session.execute(
-            select(Video.batch_id)
-            .where(
-                Video.status == VideoStatus.processing,
-                Video.updated_at < cutoff,
-                Video.batch_id.is_not(None),
-            )
-            .distinct()
-        )
-        affected_batch_ids = [row[0] for row in stale_batch_ids_result.all()]
-
         # Mark stale videos as failed
         result = await ctx.session.execute(
             update(Video)
@@ -58,16 +45,6 @@ async def recover_stale_videos(self) -> int:
         recovered_count = result.rowcount
         if recovered_count:
             logger.info("Recovered %d stale processing videos", recovered_count)
-
-        # Recompute batch counters for affected batches
-        if affected_batch_ids:
-            for batch_id in affected_batch_ids:
-                try:
-                    await recompute_batch(ctx, batch_id)
-                except Exception:
-                    logger.exception(
-                        "Failed to update batch %s after stale recovery", batch_id
-                    )
 
         return recovered_count
 

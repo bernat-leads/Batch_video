@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ImageIcon, Pencil, X } from "lucide-react";
+import { Check, ImageIcon, Loader2, Pencil, X, AlertCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ShotRead } from "@packages/api-client";
 import {
@@ -24,6 +24,38 @@ interface ShotsTableProps {
   shots: ShotRead[];
   videoId: string;
   videoStatus: string;
+}
+
+function ShotStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "generating":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+          <Loader2 size={10} className="animate-spin" />
+          Generating
+        </span>
+      );
+    case "generated":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-status-success/10 px-2 py-0.5 text-xs font-medium text-status-success">
+          <Check size={10} />
+          Done
+        </span>
+      );
+    case "failed":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-status-error/10 px-2 py-0.5 text-xs font-medium text-status-error">
+          <AlertCircle size={10} />
+          Failed
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center rounded-full bg-content-bg px-2 py-0.5 text-xs font-medium text-text-muted">
+          Pending
+        </span>
+      );
+  }
 }
 
 /** Table of individual shots within a video, with expandable rows for details. */
@@ -84,6 +116,7 @@ export function ShotsTable({ shots, videoId, videoStatus }: ShotsTableProps) {
           <TableHeader>
             <TableRow className="border-border bg-content-bg">
               <TableHead className="w-10 text-text-secondary">#</TableHead>
+              <TableHead className="w-20 text-text-secondary">Status</TableHead>
               <TableHead className="w-16 text-text-secondary">Image</TableHead>
               <TableHead className="text-text-secondary">Script</TableHead>
               <TableHead className="text-text-secondary">Prompt</TableHead>
@@ -95,6 +128,7 @@ export function ShotsTable({ shots, videoId, videoStatus }: ShotsTableProps) {
           <TableBody>
             {sorted.map((shot) => {
               const isExpanded = expandedShotId === shot.id;
+              const shotStatus = (shot as ShotRead & { status?: string }).status ?? "pending";
               return (
                 <TableRow
                   key={shot.id}
@@ -103,6 +137,9 @@ export function ShotsTable({ shots, videoId, videoStatus }: ShotsTableProps) {
                 >
                   <TableCell className="text-xs text-text-muted align-top pt-3">
                     {shot.order}
+                  </TableCell>
+                  <TableCell className="align-top pt-3">
+                    <ShotStatusBadge status={shotStatus} />
                   </TableCell>
                   <TableCell className="align-top pt-3">
                     {shot.image_url ? (
@@ -118,6 +155,10 @@ export function ShotsTable({ shots, videoId, videoStatus }: ShotsTableProps) {
                           className="h-10 w-10 rounded object-cover cursor-pointer"
                         />
                       </a>
+                    ) : shotStatus === "generating" ? (
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-content-bg">
+                        <Loader2 size={14} className="animate-spin text-brand" />
+                      </div>
                     ) : (
                       <div className={cn(
                         "flex h-10 w-10 items-center justify-center rounded bg-content-bg",

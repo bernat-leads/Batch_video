@@ -1,30 +1,29 @@
-"""Batch service — upload handling, video creation, and counter management."""
+"""Batch service — upload handling and video creation."""
 
 import logging
 import uuid
 from pathlib import PurePosixPath
-from typing import Annotated, Protocol
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.batches.crud import BatchCrud, BatchCrudDep
 from api.batches.models.batch import Batch
-from api.batches.schemas import BatchCreate, BatchProgressEvent, BatchRead
+from api.batches.schemas import BatchCreate, BatchProgressEvent
 from api.constants import UPLOAD_CONTENT_TYPES
 from api.deps.celery import celery_app
 from api.events.schemas import EventChannel
 from api.events.service import EventService
 from api.storage import StorageDep, StorageService
 from api.videos.crud import VideoCrud
-from api.videos.enums import VideoStatus
 from api.videos.models.video import Video
 
 logger = logging.getLogger(__name__)
 
 
 class BatchService:
-    """Handles batch uploads, video creation, and counter updates."""
+    """Handles batch uploads and video creation."""
 
     def __init__(self, crud: BatchCrudDep, storage: StorageDep) -> None:
         """Initialize with batch CRUD and storage dependencies."""
@@ -41,7 +40,7 @@ class BatchService:
         file_name: str,
         batch_name: str,
         column_mapping: dict,
-    ) -> BatchRead:
+    ) -> Batch:
         """Store file in R2, create batch record, and launch background processing."""
         ext = PurePosixPath(file_name).suffix.lower()
 
@@ -72,7 +71,7 @@ class BatchService:
         logger.info("Batch %s: dispatched processing task", batch_id)
 
         batch = await self.crud.get(batch_id)
-        return BatchRead.model_validate(batch)
+        return batch
 
     # ------------------------------------------------------------------
     # Video creation
@@ -81,64 +80,24 @@ class BatchService:
     async def create_batch_videos(
         self, batch: Batch, videos: list[Video]
     ) -> list[Video]:
-        """Create videos for a batch and update batch counters."""
+        """Create videos for a batch."""
         video_crud = VideoCrud(self.crud.db_session)
         await video_crud.create_bulk(videos)
-
-        pending = sum(1 for video in videos if video.status == VideoStatus.processing)
-        batch.total_videos = len(videos)
-        batch.pending_count = pending
-        batch.failed_count = len(videos) - pending
-        await self.crud.db_session.commit()
-
         return videos
 
     # ------------------------------------------------------------------
-    # Counter updates
+    # SSE
     # ------------------------------------------------------------------
-
-    async def recompute_counters(self, batch_id: uuid.UUID) -> Batch | None:
-        """Recompute batch counters and costs from its videos.
-
-        Returns the updated batch, or None if it no longer exists.
-        """
-        batch = await self.crud.get(batch_id)
-        if not batch:
-            logger.warning("Batch %s not found (deleted?)", batch_id)
-            return None
-
-        video_crud = VideoCrud(self.crud.db_session)
-
-        counts = await video_crud.get_status_counts_by_batch(batch_id)
-        batch.completed_count = counts.finished
-        batch.failed_count = counts.failed
-        batch.pending_count = counts.processing
-
-        totals = await video_crud.get_cost_totals_by_batch(batch_id)
-        batch.duration_ms = totals.duration_ms
-        batch.model_costs = {k: v.model_dump() for k, v in totals.model_costs.items()}
-        batch.total_cost_usd = totals.total_cost_usd
-
-        batch.status = batch.derive_status()
-        await self.crud.db_session.commit()
-
-        logger.info(
-            "Batch %s: completed=%d failed=%d pending=%d total=%d → %s",
-            batch_id,
-            batch.completed_count,
-            batch.failed_count,
-            batch.pending_count,
-            batch.total_videos,
-            batch.status,
-        )
-        return batch
 
     async def emit_progress(self, events: EventService, batch: Batch) -> None:
         """Emit a batch progress SSE event. Failures are logged, never raised."""
         try:
             channel = EventChannel.batch.value.format(batch_id=batch.id)
+            # Refresh to get live computed status
+            await self.crud.db_session.refresh(batch)
             await events.emit(
-                channel, BatchProgressEvent(batch_id=str(batch.id), status=batch.status)
+                channel,
+                BatchProgressEvent(batch_id=str(batch.id), status=batch.status),
             )
         except Exception:
             logger.warning(
@@ -149,17 +108,15 @@ class BatchService:
 BatchServiceDep = Annotated[BatchService, Depends()]
 
 
-class TaskLikeContext(Protocol):
-    """Protocol for task contexts that provide session, storage, and events."""
-
-    session: AsyncSession
-    storage: StorageService
-    events: EventService
-
-
-async def recompute_batch(ctx: TaskLikeContext, batch_id: uuid.UUID) -> None:
-    """Recompute batch counters and emit SSE progress. Safe to call from any task."""
-    batch_service = BatchService(BatchCrud(ctx.session), ctx.storage)
-    batch = await batch_service.recompute_counters(batch_id)
+async def emit_batch_progress(
+    session: AsyncSession,
+    storage: StorageService,
+    events: EventService,
+    batch_id: uuid.UUID,
+) -> None:
+    """Emit batch progress SSE. Safe to call from any task."""
+    crud = BatchCrud(session)
+    batch = await crud.get(batch_id)
     if batch:
-        await batch_service.emit_progress(ctx.events, batch)
+        service = BatchService(crud, storage)
+        await service.emit_progress(events, batch)

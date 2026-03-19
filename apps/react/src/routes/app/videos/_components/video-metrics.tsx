@@ -27,6 +27,7 @@ function formatCostPrecise(usd?: number): string {
 
 function formatUsage(count: number | undefined, unit: string): string {
   if (count == null || count === 0) return "\u2014";
+  if (unit === "images") return `${count} \u00d7 images`;
   return `${count.toLocaleString()} ${unit}`;
 }
 
