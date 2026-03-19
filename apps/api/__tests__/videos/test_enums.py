@@ -1,8 +1,9 @@
-"""Tests for enum consistency — catch mismatches between video/batch status values."""
+"""Tests for enum consistency — catch mismatches between video/batch/shot status values."""
 
 import pytest
 
 from api.batches.enums import BatchStatus
+from api.shots.enums import ShotStatus
 from api.videos.enums import VideoStage, VideoStatus
 
 
@@ -18,6 +19,10 @@ def test_video_status_expected_values():
 
 def test_batch_status_expected_values():
     assert {s.value for s in BatchStatus} == {"processing", "completed", "failed"}
+
+
+def test_shot_status_expected_values():
+    assert {s.value for s in ShotStatus} == {"pending", "generating", "generated", "failed"}
 
 
 def test_video_stage_pipeline_order():

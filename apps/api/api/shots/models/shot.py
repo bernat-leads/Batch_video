@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.core.models import BaseModel
 from api.core.schemas import AICost
+from api.shots.enums import ShotStatus
 
 
 class Shot(BaseModel):
@@ -30,6 +31,10 @@ class Shot(BaseModel):
     end_time: Mapped[float] = mapped_column(Float, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    status: Mapped[ShotStatus] = mapped_column(
+        String(20), nullable=False, default=ShotStatus.pending
+    )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     @property
     def cost(self) -> AICost:

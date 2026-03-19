@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.batches.service import recompute_batch
+from api.batches.service import emit_batch_progress
 from api.deps.celery import async_task, celery_app, task_context
 from api.settings_module.crud import AppSettingsCrud
 from api.videos.crud import VideoCrud
@@ -68,10 +68,12 @@ async def process_video(
         finally:
             if batch_id:
                 try:
-                    await recompute_batch(ctx, uuid.UUID(batch_id))
+                    await emit_batch_progress(
+                        ctx.session, ctx.storage, ctx.events, uuid.UUID(batch_id)
+                    )
                 except Exception:
                     logger.exception(
-                        "Failed to update batch counters (batch=%s)", batch_id
+                        "Failed to emit batch progress (batch=%s)", batch_id
                     )
 
 
@@ -115,8 +117,10 @@ async def retry_video(
         finally:
             if video.batch_id:
                 try:
-                    await recompute_batch(ctx, video.batch_id)
+                    await emit_batch_progress(
+                        ctx.session, ctx.storage, ctx.events, video.batch_id
+                    )
                 except Exception:
                     logger.exception(
-                        "Failed to update batch counters (batch=%s)", video.batch_id
+                        "Failed to emit batch progress (batch=%s)", video.batch_id
                     )

@@ -10,7 +10,11 @@ from api.core.schemas import AICost
 from api.settings import settings
 from api.videos.pipeline.config import ELEVENLABS_MODEL_ID
 from api.videos.pipeline.costs import get_tts_char_cost
-from api.videos.pipeline.rate_limiter import elevenlabs_limiter, voice_lock, wait_for_slot
+from api.videos.pipeline.rate_limiter import (
+    elevenlabs_limiter,
+    voice_lock,
+    wait_for_slot,
+)
 from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry

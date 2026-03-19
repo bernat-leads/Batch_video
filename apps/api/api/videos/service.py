@@ -12,6 +12,7 @@ from api.core.schemas import AICost
 from api.events.schemas import EventChannel
 from api.events.service import EventService
 from api.settings_module.crud import AppSettingsCrud
+from api.shots.enums import ShotStatus
 from api.shots.models.shot import Shot
 from api.storage import StorageService
 from api.videos.crud import VideoCrud
@@ -34,7 +35,7 @@ from api.videos.pipeline.video_editor import (
     Segment,
     VideoTemplate,
 )
-from api.videos.pipeline.video_editor.schemas import AssemblyInput
+from api.videos.pipeline.video_editor.schemas import AssemblyInput, CaptionGroup
 from api.videos.schemas import (
     ShotWithImage,
     VideoCreate,
@@ -284,10 +285,12 @@ class VideoService:
                 effect_config=segment.effect.model_dump(),
                 start_time=segment.start_time,
                 end_time=segment.end_time,
+                status=ShotStatus.pending,
             )
             self._session.add(shot)
             shots.append(shot)
         await self._session.flush()
+        await self._session.commit()
         return shots
 
     async def _run_image_generation(
@@ -298,15 +301,27 @@ class VideoService:
 
         shots_with_images: list[ShotWithImage] = []
         for shot in shots:
-            if shot.image_url:
+            if shot.image_url and shot.status == ShotStatus.generated:
                 # Already generated (partial retry) — download existing image
                 image_bytes = await asyncio.to_thread(
                     self._storage.download_file, shot.image_url
                 )
             else:
-                image_bytes = await asyncio.to_thread(
-                    self._generate_shot_image, video, shot, template.image_config
-                )
+                shot.status = ShotStatus.generating
+                await self._session.commit()
+
+                try:
+                    image_bytes = await asyncio.to_thread(
+                        self._generate_shot_image, video, shot, template.image_config
+                    )
+                    shot.status = ShotStatus.generated
+                    await self._session.commit()
+                except Exception:
+                    shot.status = ShotStatus.failed
+                    shot.error_message = "Image generation failed"
+                    await self._session.commit()
+                    raise
+
             shots_with_images.append(ShotWithImage(shot=shot, image_bytes=image_bytes))
 
         image_cost = video.shots_cost(shots)
@@ -347,6 +362,16 @@ class VideoService:
         """Stage 4: Assemble final video from cached shot images and TTS audio."""
         await self._update_stage(video, VideoStage.assembly)
 
+        # Build captions from segmentation shot texts instead of word timestamps
+        caption_groups = [
+            CaptionGroup(
+                text=swi.shot.text,
+                start=swi.shot.start_time,
+                end=swi.shot.end_time,
+            )
+            for swi in shots_with_images
+        ]
+
         assembly_input = AssemblyInput(
             template=template,
             segments=[
@@ -358,7 +383,7 @@ class VideoService:
                 for swi in shots_with_images
             ],
             audio_bytes=tts_result.audio_bytes,
-            word_timestamps=tts_result.word_timestamps,
+            caption_groups=caption_groups,
             top_text=video.top_text,
         )
 

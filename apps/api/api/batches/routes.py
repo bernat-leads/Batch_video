@@ -56,12 +56,13 @@ async def upload_batch(
     except json.JSONDecodeError as error:
         raise HTTPException(400, "Invalid column_mapping JSON") from error
 
-    return await service.create_batch(
+    batch = await service.create_batch(
         contents=validated_file.contents,
         file_name=validated_file.filename,
         batch_name=batch_name,
         column_mapping=mapping,
     )
+    return BatchRead.model_validate(batch)
 
 
 @batches_router.get("/", response_model=PageResponse[BatchRead])

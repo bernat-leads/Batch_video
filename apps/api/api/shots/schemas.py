@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from api.shots.enums import ShotStatus
 from api.videos.pipeline.segmentation.schemas import AnySegmentEffect
 
 
@@ -44,6 +45,8 @@ class ShotRead(ShotBase):
     video_id: uuid.UUID
     image_url: str | None = None
     cost_usd: float = 0.0
+    status: ShotStatus = ShotStatus.pending
+    error_message: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
 
