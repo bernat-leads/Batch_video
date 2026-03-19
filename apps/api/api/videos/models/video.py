@@ -128,9 +128,7 @@ class Video(BaseModel):
 # ---------------------------------------------------------------------------
 Video.total_cost_usd = column_property(
     func.coalesce(
-        select(
-            func.sum(text("(value->>'cost_usd')::float"))
-        )
+        select(func.sum(text("(value->>'cost_usd')::float")))
         .select_from(func.jsonb_each(Video.__table__.c.model_costs))
         .correlate(Video)
         .scalar_subquery(),

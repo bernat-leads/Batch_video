@@ -321,7 +321,7 @@ class VideoService:
                         cost_usd=shot.cost_usd,
                         token_count=1,
                     )
-            
+
                     await self._session.commit()
                     await self._emit_progress(video)
                 except Exception:
