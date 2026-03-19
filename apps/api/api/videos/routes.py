@@ -84,10 +84,12 @@ async def export_selected_videos_zip(
     finished = await crud.get_finished_by_ids(video_ids)
     if not finished:
         raise HTTPException(status_code=400, detail="No finished videos to export")
-    files = [
-        (v.output_s3_key, f"video-{i:03d}-{str(v.id)[:8]}.mp4")
-        for i, v in enumerate(finished, 1)
-    ]
+    def _zip_name(i: int, v: Video) -> str:
+        if v.file_name:
+            return v.file_name if v.file_name.endswith(".mp4") else f"{v.file_name}.mp4"
+        return f"video-{i:03d}-{str(v.id)[:8]}.mp4"
+
+    files = [(_v.output_s3_key, _zip_name(_i, _v)) for _i, _v in enumerate(finished, 1)]
     return storage.build_zip_response(files)
 
 
@@ -125,12 +127,16 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
     if video.status != VideoStatus.finished or not video.output_url:
         raise HTTPException(status_code=400, detail="Video not ready for download")
 
+    # Use custom file_name if set, otherwise fallback to ID-based name
+    if video.file_name:
+        name = video.file_name if video.file_name.endswith(".mp4") else f"{video.file_name}.mp4"
+    else:
+        name = f"video-{str(video.id)[:8]}.mp4"
+
     return StreamingResponse(
         storage.stream_file(video.output_s3_key),
         media_type="video/mp4",
-        headers={
-            "Content-Disposition": f'attachment; filename="video-{str(video.id)[:8]}.mp4"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
     )
 
 

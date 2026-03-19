@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,13 +31,15 @@ import { Textarea } from "@packages/ui/components/shadcn/textarea";
 import { cn } from "@packages/ui/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 
+const columnDefaultSchema = z.object({
+  field: z.string(),
+  column: z.string(),
+});
+
 const settingsSchema = z.object({
   master_prompt: z.string(),
-  retention_days: z.number().int().min(1).max(90),
-  default_script_column: z.string(),
-  default_voice_column: z.string(),
-  default_style_column: z.string(),
-  default_top_text_column: z.string(),
+  retention_days: z.string(),
+  column_defaults: z.array(columnDefaultSchema),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -51,33 +53,59 @@ const RETENTION_OPTIONS = [
   { value: "90", label: "90 days" },
 ];
 
-const MAPPING_FIELDS = [
-  { name: "default_script_column" as const, label: "Script Text", placeholder: "e.g. script, ad_copy, text" },
-  { name: "default_voice_column" as const, label: "Voice ID", placeholder: "e.g. voice_id, voice" },
-  { name: "default_style_column" as const, label: "Style", placeholder: "e.g. style, video_style" },
-  { name: "default_top_text_column" as const, label: "Top Text", placeholder: "e.g. top_text, headline" },
-];
+const FIELD_LABELS: Record<string, string> = {
+  script_text: "Script Text",
+  voice_id: "Voice ID",
+  style: "Style",
+  top_text: "Top Text",
+  file_name: "File Name",
+};
+
+function dictToArray(dict: Record<string, string>): { field: string; column: string }[] {
+  return Object.entries(dict).map(([field, column]) => ({ field, column }));
+}
+
+function arrayToDict(arr: { field: string; column: string }[]): Record<string, string> {
+  return Object.fromEntries(arr.map((item) => [item.field, item.column]));
+}
 
 export const Route = createFileRoute("/app/settings")({
   component: SettingsPage,
 });
 
 function SettingsPage() {
+  const { data: settings, isLoading } = useGetSettingsApiV1SettingsGet();
+
+  if (isLoading || !settings) {
+    return (
+      <div>
+        <PageHeader title="Settings" description="Configure your video pipeline defaults" />
+        <div className="space-y-4">
+          <Skeleton className="h-48 w-full rounded-xl bg-border" />
+          <Skeleton className="h-32 w-full rounded-xl bg-border" />
+        </div>
+      </div>
+    );
+  }
+
+  return <SettingsForm settings={settings} />;
+}
+
+function SettingsForm({ settings }: { settings: { master_prompt: string; retention_days: number; column_defaults: Record<string, string> } }) {
   const queryClient = useQueryClient();
-  const { data: settings, isLoading } = useGetSettingsApiV1SettingsGet({
-    query: { placeholderData: (prev) => prev },
-  });
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    values: {
-      master_prompt: settings?.master_prompt ?? "",
-      retention_days: settings?.retention_days ?? 7,
-      default_script_column: settings?.default_script_column ?? "script_text",
-      default_voice_column: settings?.default_voice_column ?? "voice_id",
-      default_style_column: settings?.default_style_column ?? "style",
-      default_top_text_column: settings?.default_top_text_column ?? "top_text",
+    defaultValues: {
+      master_prompt: settings.master_prompt,
+      retention_days: String(settings.retention_days),
+      column_defaults: dictToArray(settings.column_defaults),
     },
+  });
+
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: "column_defaults",
   });
 
   const updateSettings = useUpdateSettingsApiV1SettingsPut({
@@ -96,11 +124,8 @@ function SettingsPage() {
     updateSettings.mutate({
       data: {
         master_prompt: values.master_prompt,
-        retention_days: values.retention_days,
-        default_script_column: values.default_script_column,
-        default_voice_column: values.default_voice_column,
-        default_style_column: values.default_style_column,
-        default_top_text_column: values.default_top_text_column,
+        retention_days: Number(values.retention_days),
+        column_defaults: arrayToDict(values.column_defaults),
       },
     });
   }
@@ -112,12 +137,6 @@ function SettingsPage() {
         description="Configure your video pipeline defaults"
       />
 
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-48 w-full rounded-xl bg-border" />
-          <Skeleton className="h-32 w-full rounded-xl bg-border" />
-        </div>
-      ) : (
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -173,30 +192,23 @@ function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MAPPING_FIELDS.map((mf, i) => (
-                      <FormField
-                        key={mf.name}
-                        control={form.control}
-                        name={mf.name}
-                        render={({ field }) => (
-                          <tr
-                            className={cn(
-                              i < MAPPING_FIELDS.length - 1 && "border-b border-border"
-                            )}
-                          >
-                            <td className="px-4 py-2.5 font-medium text-text-primary">
-                              {mf.label}
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <input
-                                placeholder={mf.placeholder}
-                                className="h-8 w-full rounded-md border border-border bg-content-bg px-2.5 text-sm text-text-primary outline-none"
-                                {...field}
-                              />
-                            </td>
-                          </tr>
+                    {fields.map((item, i) => (
+                      <tr
+                        key={item.id}
+                        className={cn(
+                          i < fields.length - 1 && "border-b border-border"
                         )}
-                      />
+                      >
+                        <td className="px-4 py-2.5 font-medium text-text-primary">
+                          {FIELD_LABELS[item.field] ?? item.field}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <input
+                            {...form.register(`column_defaults.${i}.column`)}
+                            className="h-8 w-full rounded-md border border-border bg-content-bg px-2.5 text-sm text-text-primary outline-none"
+                          />
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -220,8 +232,8 @@ function SettingsPage() {
                       from storage.
                     </FormDescription>
                     <Select
-                      onValueChange={(val) => field.onChange(Number(val))}
-                      value={String(field.value)}
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="w-48 bg-card-bg border-border text-text-primary">
@@ -253,7 +265,6 @@ function SettingsPage() {
             </div>
           </form>
         </Form>
-      )}
     </div>
   );
 }

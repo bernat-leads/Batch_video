@@ -10,7 +10,7 @@ from api.core.schemas import AICost
 from api.settings import settings
 from api.videos.pipeline.config import ELEVENLABS_MODEL_ID
 from api.videos.pipeline.costs import get_tts_char_cost
-from api.videos.pipeline.rate_limiter import elevenlabs_limiter, wait_for_slot
+from api.videos.pipeline.rate_limiter import elevenlabs_limiter, voice_lock, wait_for_slot
 from api.videos.pipeline.tts.base import TTSService
 from api.videos.pipeline.tts.schemas import TTSInput, TTSResult, WordTimestamp
 from api.videos.utils import pipeline_retry
@@ -27,7 +27,8 @@ class ElevenLabsTTSService(TTSService):
     def synthesize(self, tts_input: TTSInput) -> TTSResult:
         """Generate TTS audio with word-level timestamps."""
         wait_for_slot(elevenlabs_limiter, "elevenlabs:tts")
-        return self._call_api(tts_input)
+        with voice_lock(tts_input.voice_id):
+            return self._call_api(tts_input)
 
     @pipeline_retry()
     def _call_api(self, tts_input: TTSInput) -> TTSResult:

@@ -144,7 +144,7 @@ function VideoDetailPage() {
         </SectionCard>
       </div>
 
-      <ShotsTable shots={shots} />
+      <ShotsTable shots={shots} videoId={videoId} videoStatus={video.status} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import type { VideoUpdateScriptText } from './videoUpdateScriptText';
 import type { VideoUpdateVoiceId } from './videoUpdateVoiceId';
 import type { VideoUpdateStyle } from './videoUpdateStyle';
 import type { VideoUpdateTopText } from './videoUpdateTopText';
+import type { VideoUpdateFileName } from './videoUpdateFileName';
 import type { VideoUpdateStatus } from './videoUpdateStatus';
 import type { VideoUpdateCurrentStage } from './videoUpdateCurrentStage';
 import type { VideoUpdateErrorMessage } from './videoUpdateErrorMessage';
@@ -21,6 +22,7 @@ export interface VideoUpdate {
   voice_id?: VideoUpdateVoiceId;
   style?: VideoUpdateStyle;
   top_text?: VideoUpdateTopText;
+  file_name?: VideoUpdateFileName;
   status?: VideoUpdateStatus;
   current_stage?: VideoUpdateCurrentStage;
   error_message?: VideoUpdateErrorMessage;

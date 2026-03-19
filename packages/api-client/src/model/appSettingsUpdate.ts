@@ -6,10 +6,7 @@
  */
 import type { AppSettingsUpdateMasterPrompt } from './appSettingsUpdateMasterPrompt';
 import type { AppSettingsUpdateRetentionDays } from './appSettingsUpdateRetentionDays';
-import type { AppSettingsUpdateDefaultScriptColumn } from './appSettingsUpdateDefaultScriptColumn';
-import type { AppSettingsUpdateDefaultVoiceColumn } from './appSettingsUpdateDefaultVoiceColumn';
-import type { AppSettingsUpdateDefaultStyleColumn } from './appSettingsUpdateDefaultStyleColumn';
-import type { AppSettingsUpdateDefaultTopTextColumn } from './appSettingsUpdateDefaultTopTextColumn';
+import type { AppSettingsUpdateColumnDefaults } from './appSettingsUpdateColumnDefaults';
 
 /**
  * Schema for updating app settings.
@@ -17,8 +14,5 @@ import type { AppSettingsUpdateDefaultTopTextColumn } from './appSettingsUpdateD
 export interface AppSettingsUpdate {
   master_prompt?: AppSettingsUpdateMasterPrompt;
   retention_days?: AppSettingsUpdateRetentionDays;
-  default_script_column?: AppSettingsUpdateDefaultScriptColumn;
-  default_voice_column?: AppSettingsUpdateDefaultVoiceColumn;
-  default_style_column?: AppSettingsUpdateDefaultStyleColumn;
-  default_top_text_column?: AppSettingsUpdateDefaultTopTextColumn;
+  column_defaults?: AppSettingsUpdateColumnDefaults;
 }

@@ -7,6 +7,7 @@
 import type { VideoReadBatchId } from './videoReadBatchId';
 import type { VideoReadStyle } from './videoReadStyle';
 import type { VideoReadTopText } from './videoReadTopText';
+import type { VideoReadFileName } from './videoReadFileName';
 import type { VideoReadPrompt } from './videoReadPrompt';
 import type { VideoStatus } from './videoStatus';
 import type { VideoStage } from './videoStage';
@@ -25,6 +26,7 @@ export interface VideoRead {
   voice_id: string;
   style?: VideoReadStyle;
   top_text?: VideoReadTopText;
+  file_name?: VideoReadFileName;
   prompt?: VideoReadPrompt;
   status: VideoStatus;
   current_stage: VideoStage;

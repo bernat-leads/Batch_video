@@ -15,15 +15,11 @@ export interface ColumnMapping {
   voice_id: string;
   style: string;
   top_text: string;
+  file_name: string;
 }
 
 /** Per-field default column names from app settings for auto-matching. */
-export interface ColumnDefaults {
-  script_text?: string;
-  voice_id?: string;
-  style?: string;
-  top_text?: string;
-}
+export type ColumnDefaults = Record<string, string>;
 
 interface ColumnMapperProps {
   headers: string[];
@@ -72,6 +68,13 @@ const FIELDS: readonly FieldDefinition[] = [
     description: "Text overlay at top of video",
     required: false,
     autoMatch: ["top_text", "toptext", "overlay", "banner"],
+  },
+  {
+    key: "file_name",
+    label: "File Name",
+    description: "Custom output filename for the video",
+    required: false,
+    autoMatch: ["file_name", "filename", "name", "output_name"],
   },
 ] as const;
 
@@ -212,6 +215,7 @@ export function ColumnMapper({
     voice_id: initialMapping?.voice_id ?? autoMapped.voice_id ?? UNMAPPED,
     style: initialMapping?.style ?? autoMapped.style ?? UNMAPPED,
     top_text: initialMapping?.top_text ?? autoMapped.top_text ?? UNMAPPED,
+    file_name: initialMapping?.file_name ?? autoMapped.file_name ?? UNMAPPED,
   });
 
   const isValid = FIELDS.filter((f) => f.required).every(
