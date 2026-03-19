@@ -243,7 +243,7 @@ class VideoService:
             cost_usd=tts_result.cost.cost_usd,
             token_count=tts_result.cost.token_count,
         )
-        video.recompute_totals()
+
         await self._session.commit()
         return tts_result
 
@@ -267,7 +267,7 @@ class VideoService:
             cost_usd=seg_result.cost.cost_usd,
             token_count=seg_result.cost.token_count,
         )
-        video.recompute_totals()
+
         await self._session.commit()
         return seg_result
 
@@ -309,29 +309,30 @@ class VideoService:
             else:
                 shot.status = ShotStatus.generating
                 await self._session.commit()
+                await self._emit_progress(video)
 
                 try:
                     image_bytes = await asyncio.to_thread(
                         self._generate_shot_image, video, shot, template.image_config
                     )
                     shot.status = ShotStatus.generated
+                    video.record_model_cost(
+                        IMAGEN_MODEL,
+                        cost_usd=shot.cost_usd,
+                        token_count=1,
+                    )
+
                     await self._session.commit()
+                    await self._emit_progress(video)
                 except Exception:
                     shot.status = ShotStatus.failed
                     shot.error_message = "Image generation failed"
                     await self._session.commit()
+                    await self._emit_progress(video)
                     raise
 
             shots_with_images.append(ShotWithImage(shot=shot, image_bytes=image_bytes))
 
-        image_cost = video.shots_cost(shots)
-        video.record_model_cost(
-            IMAGEN_MODEL,
-            cost_usd=image_cost.cost_usd,
-            token_count=image_cost.token_count,
-        )
-        video.recompute_totals()
-        await self._session.commit()
         return shots_with_images
 
     def _generate_shot_image(
