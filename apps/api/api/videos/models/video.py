@@ -5,9 +5,9 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Integer, String, Text, func, select, text
 from sqlalchemy.dialects.postgresql import JSON, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from api.core.models import BaseModel
 from api.core.schemas import AICost
@@ -49,8 +49,9 @@ class Video(BaseModel):
 
     # Per-model costs: {model_name: {token_count: int, cost_usd: float}}
     model_costs: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # total_cost_usd computed live from model_costs JSON — see column_property below
 
     @classmethod
     def from_parsed_row(cls, row: ParsedRow, batch_id: uuid.UUID) -> Video:
@@ -113,15 +114,27 @@ class Video(BaseModel):
         }
         self.model_costs = costs
 
-    def recompute_totals(self) -> None:
-        """Recompute total_cost_usd from model_costs."""
-        self.total_cost_usd = sum(
-            entry.get("cost_usd", 0.0) for entry in (self.model_costs or {}).values()
-        )
-
     batch: Mapped[Batch | None] = relationship(back_populates="videos")  # noqa: F821
     shots: Mapped[list[Shot]] = relationship(
         back_populates="video",
         cascade="all, delete-orphan",
         order_by="Shot.order",
     )
+
+
+# ---------------------------------------------------------------------------
+# Computed column property — total_cost_usd derived from model_costs JSON.
+# Uses PostgreSQL jsonb_each to sum cost_usd from all model entries.
+# ---------------------------------------------------------------------------
+Video.total_cost_usd = column_property(
+    func.coalesce(
+        select(
+            func.sum(text("(value->>'cost_usd')::float"))
+        )
+        .select_from(func.jsonb_each(Video.__table__.c.model_costs))
+        .correlate(Video)
+        .scalar_subquery(),
+        0.0,
+    ),
+    deferred=False,
+)
