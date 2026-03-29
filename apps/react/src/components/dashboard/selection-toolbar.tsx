@@ -1,4 +1,4 @@
-import { Download, Trash2 } from "lucide-react";
+import { Download, RotateCcw, Trash2 } from "lucide-react";
 import { AsyncButton } from "@/components/ui/async-button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
@@ -7,10 +7,12 @@ interface SelectionToolbarProps {
   onExport: () => Promise<void> | void;
   exportLabel?: string;
   onDelete?: () => void;
+  onRetry?: () => Promise<void> | void;
+  retryCount?: number;
 }
 
-/** Action bar shown when rows are selected in a table. Provides export and bulk delete. */
-export function SelectionToolbar({ count, onExport, exportLabel = "Export", onDelete }: SelectionToolbarProps) {
+/** Action bar shown when rows are selected in a table. Provides export, retry, and bulk delete. */
+export function SelectionToolbar({ count, onExport, exportLabel = "Export", onDelete, onRetry, retryCount }: SelectionToolbarProps) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-text-muted">{count} selected</span>
@@ -20,6 +22,14 @@ export function SelectionToolbar({ count, onExport, exportLabel = "Export", onDe
         label={exportLabel}
         loadingLabel="Exporting..."
       />
+      {onRetry && !!retryCount && (
+        <AsyncButton
+          onClick={onRetry}
+          icon={<RotateCcw size={15} />}
+          label={`Retry ${retryCount} Failed`}
+          loadingLabel="Retrying..."
+        />
+      )}
       {onDelete && (
         <ConfirmDeleteDialog
           title={`Delete ${count} batch${count > 1 ? "es" : ""}?`}

@@ -6,6 +6,8 @@
  */
 import type { ShotReadEffectConfig } from './shotReadEffectConfig';
 import type { ShotReadImageUrl } from './shotReadImageUrl';
+import type { ShotStatus } from './shotStatus';
+import type { ShotReadErrorMessage } from './shotReadErrorMessage';
 import type { ShotReadUpdatedAt } from './shotReadUpdatedAt';
 
 /**
@@ -42,6 +44,8 @@ export interface ShotRead {
   video_id: string;
   image_url?: ShotReadImageUrl;
   cost_usd?: number;
+  status?: ShotStatus;
+  error_message?: ShotReadErrorMessage;
   created_at: string;
   updated_at?: ShotReadUpdatedAt;
 }

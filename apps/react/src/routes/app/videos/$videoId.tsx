@@ -5,6 +5,7 @@ import {
   useGetVideoApiV1VideosVideoIdGet,
   useGetBatchApiV1BatchesBatchIdGet,
   useRetryVideoApiV1VideosVideoIdRetryPost,
+  useRestartAssemblyApiV1VideosVideoIdRestartAssemblyPost,
   getGetVideoApiV1VideosVideoIdGetQueryKey,
   getGetBatchApiV1BatchesBatchIdGetQueryKey,
   getListBatchesApiV1BatchesGetQueryKey,
@@ -47,6 +48,7 @@ function VideoDetailPage() {
 
   const [retryRequested, setRetryRequested] = useState(false);
   const { mutateAsync: retryVideo } = useRetryVideoApiV1VideosVideoIdRetryPost();
+  const { mutateAsync: restartAssembly } = useRestartAssemblyApiV1VideosVideoIdRestartAssemblyPost();
 
   const { data: video, isLoading } = useGetVideoApiV1VideosVideoIdGet(videoId, {
     query: { refetchInterval: retryRequested ? 2000 : false },
@@ -100,7 +102,15 @@ function VideoDetailPage() {
         onRetry={async () => {
           await retryVideo({ videoId });
           setRetryRequested(true);
-          // Invalidate related queries so lists and batch detail reflect the retry
+          void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
+          if (batchId) {
+            void queryClient.invalidateQueries({ queryKey: getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId) });
+          }
+        }}
+        onRestartAssembly={async () => {
+          await restartAssembly({ videoId });
+          setRetryRequested(true);
           void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey() });
           void queryClient.invalidateQueries({ queryKey: getListBatchesApiV1BatchesGetQueryKey() });
           if (batchId) {

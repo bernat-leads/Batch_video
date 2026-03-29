@@ -29,6 +29,8 @@ import type {
   AuthStatus,
   BatchRead,
   BodyUploadBatchApiV1BatchesUploadPost,
+  BulkRetryRequest,
+  BulkRetryResponse,
   DashboardResponse,
   ExportSelectedVideosZipApiV1VideosExportZipGetParams,
   HTTPValidationError,
@@ -1649,6 +1651,72 @@ export function useDownloadVideoApiV1VideosVideoIdDownloadGet<TData = Awaited<Re
 
 
 /**
+ * Retry multiple failed videos at once.
+ * @summary Bulk Retry Videos
+ */
+export const bulkRetryVideosApiV1VideosBulkRetryPost = (
+    bulkRetryRequest: BodyType<BulkRetryRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BulkRetryResponse>(
+      {url: `/api/v1/videos/bulk-retry`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: bulkRetryRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getBulkRetryVideosApiV1VideosBulkRetryPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>, TError,{data: BodyType<BulkRetryRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>, TError,{data: BodyType<BulkRetryRequest>}, TContext> => {
+
+const mutationKey = ['bulkRetryVideosApiV1VideosBulkRetryPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>, {data: BodyType<BulkRetryRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkRetryVideosApiV1VideosBulkRetryPost(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkRetryVideosApiV1VideosBulkRetryPostMutationResult = NonNullable<Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>>
+    export type BulkRetryVideosApiV1VideosBulkRetryPostMutationBody = BodyType<BulkRetryRequest>
+    export type BulkRetryVideosApiV1VideosBulkRetryPostMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Bulk Retry Videos
+ */
+export const useBulkRetryVideosApiV1VideosBulkRetryPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>, TError,{data: BodyType<BulkRetryRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkRetryVideosApiV1VideosBulkRetryPost>>,
+        TError,
+        {data: BodyType<BulkRetryRequest>},
+        TContext
+      > => {
+
+      const mutationOptions = getBulkRetryVideosApiV1VideosBulkRetryPostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
  * Retry a failed video from the stage that failed.
 
 Sets status to processing and emits progress events immediately,
@@ -1711,6 +1779,70 @@ export const useRetryVideoApiV1VideosVideoIdRetryPost = <TError = ErrorType<HTTP
       > => {
 
       const mutationOptions = getRetryVideoApiV1VideosVideoIdRetryPostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+/**
+ * Restart video from the assembly stage (re-render with existing shots/audio).
+ * @summary Restart Assembly
+ */
+export const restartAssemblyApiV1VideosVideoIdRestartAssemblyPost = (
+    videoId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VideoRead>(
+      {url: `/api/v1/videos/${videoId}/restart-assembly`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getRestartAssemblyApiV1VideosVideoIdRestartAssemblyPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>, TError,{videoId: string}, TContext> => {
+
+const mutationKey = ['restartAssemblyApiV1VideosVideoIdRestartAssemblyPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>, {videoId: string}> = (props) => {
+          const {videoId} = props ?? {};
+
+          return  restartAssemblyApiV1VideosVideoIdRestartAssemblyPost(videoId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestartAssemblyApiV1VideosVideoIdRestartAssemblyPostMutationResult = NonNullable<Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>>
+    
+    export type RestartAssemblyApiV1VideosVideoIdRestartAssemblyPostMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Restart Assembly
+ */
+export const useRestartAssemblyApiV1VideosVideoIdRestartAssemblyPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>, TError,{videoId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof restartAssemblyApiV1VideosVideoIdRestartAssemblyPost>>,
+        TError,
+        {videoId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRestartAssemblyApiV1VideosVideoIdRestartAssemblyPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

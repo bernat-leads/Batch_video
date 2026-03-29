@@ -1,5 +1,5 @@
 import type { VideoReadWithShots } from "@packages/api-client";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, Film, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { formatDate } from "@/lib/format";
 import { AsyncButton } from "@/components/ui/async-button";
@@ -9,9 +9,13 @@ interface VideoHeaderProps {
   video: VideoReadWithShots;
   onDownload: () => Promise<void> | void;
   onRetry: () => Promise<void> | void;
+  onRestartAssembly: () => Promise<void> | void;
 }
 
-export function VideoHeader({ videoId, video, onDownload, onRetry }: VideoHeaderProps) {
+export function VideoHeader({ videoId, video, onDownload, onRetry, onRestartAssembly }: VideoHeaderProps) {
+  const canRestartAssembly =
+    video.status === "finished" || video.status === "failed";
+
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
@@ -32,6 +36,14 @@ export function VideoHeader({ videoId, video, onDownload, onRetry }: VideoHeader
             icon={<RotateCcw size={14} />}
             label="Retry"
             loadingLabel="Retrying..."
+          />
+        )}
+        {canRestartAssembly && (
+          <AsyncButton
+            onClick={onRestartAssembly}
+            icon={<Film size={14} />}
+            label="Re-render"
+            loadingLabel="Re-rendering..."
           />
         )}
         <AsyncButton
