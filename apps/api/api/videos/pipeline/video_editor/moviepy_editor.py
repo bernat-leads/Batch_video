@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 RENDER_CODEC = "libx264"
 RENDER_AUDIO_CODEC = "aac"
 RENDER_PRESET = "fast"
-RENDER_THREADS = 8
+RENDER_THREADS = 2
 AUDIO_SYNC_TOLERANCE = 0.05
 
 
