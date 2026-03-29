@@ -80,18 +80,33 @@ class GeminiImageGenService(ImageGenService):
 
         if not response.generated_images:
             safety = response.positive_prompt_safety_attributes
-            details = ""
+            scores = []
+            is_safety_block = False
             if safety and safety.categories:
-                all_scores = [
+                scores = [
                     f"{cat}={score:.2f}"
                     for cat, score in zip(
                         safety.categories, safety.scores or [], strict=False
                     )
                 ]
-                details = f" [{', '.join(all_scores)}]"
-            raise PipelineStageError(
-                "image_generation",
-                f"Imagen blocked image generation{details} — prompt: {image_prompt[:200]}",
+                is_safety_block = any(
+                    score > 0.0 for score in (safety.scores or [])
+                )
+
+            if is_safety_block:
+                details = f" [{', '.join(scores)}]" if scores else ""
+                raise PipelineStageError(
+                    "image_generation",
+                    f"Imagen blocked image generation{details} — prompt: {image_prompt[:200]}",
+                )
+            # All scores are zero — transient failure, not a real block. Re-raise
+            # so pipeline_retry can attempt again.
+            logger.warning(
+                "Imagen: empty response with no safety flags, retrying — prompt: %s",
+                image_prompt[:200],
+            )
+            raise ClientError(
+                f"Imagen returned no images (no safety block) — prompt: {image_prompt[:200]}"
             )
 
         generated = response.generated_images[0]
