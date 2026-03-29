@@ -412,7 +412,10 @@ class VideoService:
             video_id=str(video.id),
             duration_ms=video.duration_ms,
             num_shots=num_shots,
-            total_cost_usd=video.total_cost_usd,
+            total_cost_usd=sum(
+                entry.get("cost_usd", 0.0)
+                for entry in (video.model_costs or {}).values()
+            ),
         )
 
     # ------------------------------------------------------------------
