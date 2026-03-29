@@ -8,7 +8,6 @@ import type { BatchStatus } from './batchStatus';
 import type { BatchReadColumnMapping } from './batchReadColumnMapping';
 import type { BatchReadFileName } from './batchReadFileName';
 import type { BatchReadErrorMessage } from './batchReadErrorMessage';
-import type { BatchReadModelCosts } from './batchReadModelCosts';
 import type { BatchReadUpdatedAt } from './batchReadUpdatedAt';
 
 /**
@@ -18,7 +17,7 @@ export interface BatchRead {
   id: string;
   name: string;
   status: BatchStatus;
-  total_videos: number;
+  total_videos?: number;
   duration_ms?: number;
   completed_count?: number;
   failed_count?: number;
@@ -26,7 +25,6 @@ export interface BatchRead {
   column_mapping?: BatchReadColumnMapping;
   file_name?: BatchReadFileName;
   error_message?: BatchReadErrorMessage;
-  model_costs?: BatchReadModelCosts;
   total_cost_usd?: number;
   created_at: string;
   updated_at?: BatchReadUpdatedAt;

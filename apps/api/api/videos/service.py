@@ -363,15 +363,11 @@ class VideoService:
         """Stage 4: Assemble final video from cached shot images and TTS audio."""
         await self._update_stage(video, VideoStage.assembly)
 
-        # Build captions from segmentation shot texts instead of word timestamps
-        caption_groups = [
-            CaptionGroup(
-                text=swi.shot.text,
-                start=swi.shot.start_time,
-                end=swi.shot.end_time,
-            )
-            for swi in shots_with_images
-        ]
+        caption_groups = CaptionGroup.from_word_timestamps(
+            tts_result.word_timestamps,
+            max_chars=template.caption_style.max_chars,
+            max_words=template.caption_style.max_words,
+        )
 
         assembly_input = AssemblyInput(
             template=template,

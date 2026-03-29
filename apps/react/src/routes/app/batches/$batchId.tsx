@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, Download } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Download, RotateCcw } from "lucide-react";
 import type { VideoRead } from "@packages/api-client";
 import {
   useGetBatchApiV1BatchesBatchIdGet,
   useListVideosApiV1VideosGet,
+  useBulkRetryVideosApiV1VideosBulkRetryPost,
   getGetBatchApiV1BatchesBatchIdGetQueryKey,
   getListVideosApiV1VideosGetQueryKey,
 } from "@packages/api-client";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/app/batches/$batchId")({
 
 function BatchDetailPage() {
   const { batchId } = Route.useParams();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { data: batch, isLoading: batchLoading } = useGetBatchApiV1BatchesBatchIdGet(batchId);
@@ -35,6 +38,7 @@ function BatchDetailPage() {
     page_size: pageSize,
   });
   const [selectedVideos, setSelectedVideos] = useState<VideoRead[]>([]);
+  const { mutateAsync: bulkRetry } = useBulkRetryVideosApiV1VideosBulkRetryPost();
 
   const isActive = !!batch && batch.status === "processing";
   useEventSource(batchEventsUrl(batchId), isActive, [
@@ -45,6 +49,19 @@ function BatchDetailPage() {
   const isLoading = batchLoading || videosLoading;
   const videos = videosResponse?.items ?? [];
   const batchName = batch?.name ?? `Batch ${batchId.slice(0, 8)}`;
+  const failedVideos = videos.filter((v) => v.status === "failed");
+  const selectedFailed = selectedVideos.filter((v) => v.status === "failed");
+
+  const invalidateQueries = () => {
+    void queryClient.invalidateQueries({ queryKey: getGetBatchApiV1BatchesBatchIdGetQueryKey(batchId) });
+    void queryClient.invalidateQueries({ queryKey: getListVideosApiV1VideosGetQueryKey({ batch_id: batchId }) });
+  };
+
+  const handleBulkRetry = async (videoIds: string[]) => {
+    if (!videoIds.length) return;
+    await bulkRetry({ data: { video_ids: videoIds } });
+    invalidateQueries();
+  };
 
   return (
     <div className="space-y-6">
@@ -58,13 +75,23 @@ function BatchDetailPage() {
         title={batchName}
         description={batch?.created_at ? `Created ${new Date(batch.created_at).toLocaleDateString()}` : ""}
         actions={
-          <AsyncButton
-            disabled={!batch || (batch.completed_count ?? 0) === 0}
-            onClick={() => exportBatchZip(batchId, batch?.name ?? "batch")}
-            icon={<Download size={14} />}
-            label="Export Batch ZIP"
-            loadingLabel="Exporting..."
-          />
+          <div className="flex items-center gap-2">
+            {failedVideos.length > 0 && (
+              <AsyncButton
+                onClick={() => handleBulkRetry(failedVideos.map((v) => v.id))}
+                icon={<RotateCcw size={14} />}
+                label={`Retry ${failedVideos.length} Failed`}
+                loadingLabel="Retrying..."
+              />
+            )}
+            <AsyncButton
+              disabled={!batch || (batch.completed_count ?? 0) === 0}
+              onClick={() => exportBatchZip(batchId, batch?.name ?? "batch")}
+              icon={<Download size={14} />}
+              label="Export Batch ZIP"
+              loadingLabel="Exporting..."
+            />
+          </div>
         }
       />
       {isLoading ? (
@@ -105,6 +132,8 @@ function BatchDetailPage() {
                   count={selectedVideos.length}
                   exportLabel="Export Selected Videos"
                   onExport={() => exportSelectedVideosZip(selectedVideos.map((v) => v.id))}
+                  onRetry={() => handleBulkRetry(selectedFailed.map((v) => v.id))}
+                  retryCount={selectedFailed.length}
                 />
               ) : undefined
             }

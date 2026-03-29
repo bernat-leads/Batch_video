@@ -42,6 +42,19 @@ class VideoCostTotals(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class BulkRetryRequest(BaseModel):
+    """Request body for bulk retry of failed videos."""
+
+    video_ids: list[uuid.UUID] = Field(min_length=1)
+
+
+class BulkRetryResponse(BaseModel):
+    """Response for bulk retry — lists which videos were queued for retry."""
+
+    retried: list[uuid.UUID]
+    skipped: list[uuid.UUID]
+
+
 class VideoCreate(BaseModel):
     """Schema for creating a video (also used as pipeline input)."""
 

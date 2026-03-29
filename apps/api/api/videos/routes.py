@@ -15,9 +15,11 @@ from api.events.service import EventServiceDep
 from api.rate_limit import limiter
 from api.storage import StorageDep
 from api.videos.crud import VideoCrud, VideoCrudDep
-from api.videos.enums import VideoStatus
+from api.videos.enums import VideoStage, VideoStatus
 from api.videos.models.video import Video
 from api.videos.schemas import (
+    BulkRetryRequest,
+    BulkRetryResponse,
     VideoCreate,
     VideoProgressEvent,
     VideoRead,
@@ -145,6 +147,37 @@ async def download_video(video: VideoDep, storage: StorageDep) -> StreamingRespo
     )
 
 
+@videos_router.post("/bulk-retry", response_model=BulkRetryResponse)
+async def bulk_retry_videos(
+    body: BulkRetryRequest,
+    crud: VideoCrudDep,
+    session: SessionDep,
+    events: EventServiceDep,
+) -> BulkRetryResponse:
+    """Retry multiple failed videos at once."""
+    from api.videos.tasks import retry_video as retry_video_task
+
+    retried: list[uuid.UUID] = []
+    skipped: list[uuid.UUID] = []
+
+    for video_id in body.video_ids:
+        video = await crud.get(video_id)
+        if not video or video.status != VideoStatus.failed:
+            skipped.append(video_id)
+            continue
+
+        video.status = VideoStatus.processing
+        video.error_message = None
+        retried.append(video_id)
+
+    if retried:
+        await session.commit()
+        for video_id in retried:
+            retry_video_task.delay(video_id=str(video_id))
+
+    return BulkRetryResponse(retried=retried, skipped=skipped)
+
+
 @videos_router.post("/{video_id}/retry", response_model=VideoRead)
 async def retry_video(
     video: VideoDep,
@@ -182,6 +215,46 @@ async def retry_video(
         logger.debug("Failed to emit retry event for video %s", video.id)
 
     # Dispatch the pipeline task
+    from api.videos.tasks import retry_video as retry_video_task
+
+    retry_video_task.delay(video_id=str(video.id))
+    return VideoRead.model_validate(video)
+
+
+@videos_router.post("/{video_id}/restart-assembly", response_model=VideoRead)
+async def restart_assembly(
+    video: VideoDep,
+    session: SessionDep,
+    events: EventServiceDep,
+) -> VideoRead:
+    """Restart video from the assembly stage (re-render with existing shots/audio)."""
+    if video.status not in (VideoStatus.finished, VideoStatus.failed):
+        raise HTTPException(
+            status_code=400,
+            detail="Only finished or failed videos can restart assembly",
+        )
+
+    video.status = VideoStatus.processing
+    video.current_stage = VideoStage.assembly
+    video.error_message = None
+    await session.commit()
+    await session.refresh(video)
+
+    try:
+        event = VideoProgressEvent(
+            video_id=str(video.id),
+            batch_id=str(video.batch_id) if video.batch_id else None,
+            status=video.status,
+            stage=video.current_stage,
+        )
+        channel = EventChannel.video.value.format(video_id=video.id)
+        await events.emit(channel, event)
+        if video.batch_id:
+            batch_channel = EventChannel.batch.value.format(batch_id=video.batch_id)
+            await events.emit(batch_channel, event)
+    except Exception:
+        logger.debug("Failed to emit restart-assembly event for video %s", video.id)
+
     from api.videos.tasks import retry_video as retry_video_task
 
     retry_video_task.delay(video_id=str(video.id))
