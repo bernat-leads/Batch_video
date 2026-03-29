@@ -147,6 +147,24 @@ async def task_context() -> AsyncGenerator[TaskContext, None]:
 
 
 # ---------------------------------------------------------------------------
+# Fail stuck tasks on worker startup (catches tasks killed by deploy)
+# ---------------------------------------------------------------------------
+
+from celery.signals import worker_ready  # noqa: E402
+
+
+@worker_ready.connect
+def _on_worker_ready(**_kwargs: Any) -> None:
+    """Immediately fail any video stuck in 'processing' when a new worker starts.
+
+    After a deploy, old workers are killed mid-task. Their videos stay
+    'processing' forever. This fires once on startup and marks them failed
+    so users can retry.
+    """
+    celery_app.send_task("api.deps.tasks.fail_stuck_videos")
+
+
+# ---------------------------------------------------------------------------
 # Worker entrypoint
 # ---------------------------------------------------------------------------
 
