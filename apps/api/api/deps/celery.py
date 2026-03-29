@@ -175,7 +175,7 @@ def main() -> None:
         argv=[
             "worker",
             "--loglevel=info",
-            "--concurrency=10",
+            "--concurrency=4",
             "--pool=threads",
             "--events",
         ]
