@@ -89,9 +89,7 @@ class GeminiImageGenService(ImageGenService):
                         safety.categories, safety.scores or [], strict=False
                     )
                 ]
-                is_safety_block = any(
-                    score > 0.0 for score in (safety.scores or [])
-                )
+                is_safety_block = any(score > 0.0 for score in (safety.scores or []))
 
             if is_safety_block:
                 details = f" [{', '.join(scores)}]" if scores else ""
@@ -105,7 +103,7 @@ class GeminiImageGenService(ImageGenService):
                 "Imagen: empty response with no safety flags, retrying — prompt: %s",
                 image_prompt[:200],
             )
-            raise ClientError(
+            raise ConnectionError(
                 f"Imagen returned no images (no safety block) — prompt: {image_prompt[:200]}"
             )
 

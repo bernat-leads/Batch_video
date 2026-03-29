@@ -19,6 +19,30 @@ STALE_PROCESSING_MINUTES = 60
 
 
 @async_task(celery_app, bind=True)
+async def fail_stuck_videos(self) -> int:
+    """Mark ALL processing videos as failed — runs once on worker startup.
+
+    After a deploy, old workers are killed and their in-flight tasks are lost.
+    This immediately fails them so users can retry from the dashboard.
+    """
+    async with task_context() as ctx:
+        result = await ctx.session.execute(
+            update(Video)
+            .where(Video.status == VideoStatus.processing)
+            .values(
+                status=VideoStatus.failed,
+                error_message="Interrupted — worker was restarted during deployment",
+            )
+        )
+        await ctx.session.commit()
+
+        count = result.rowcount
+        if count:
+            logger.info("Startup: failed %d stuck processing videos", count)
+        return count
+
+
+@async_task(celery_app, bind=True)
 async def recover_stale_videos(self) -> int:
     """Mark videos stuck in 'processing' as failed.
 
