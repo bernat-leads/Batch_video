@@ -17,7 +17,7 @@ interface BatchStatsProps {
 
 /** Batch detail stats panel — completion chart, video counts, cost & length table. */
 export function BatchStats({ batch }: BatchStatsProps) {
-  const total = batch.total_videos;
+  const total = batch.total_videos ?? 0;
   const completed = batch.completed_count ?? 0;
   const failed = batch.failed_count ?? 0;
   const videoCount = total || 1;
