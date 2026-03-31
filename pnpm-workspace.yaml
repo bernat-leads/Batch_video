@@ -20,7 +20,7 @@ catalogs:
     vitest: ^3.2.1
     "lodash.merge": ^4.6.2
     "schema-dts": ^1.1.5
-    "resend": ^4.5.1
+    "resend": ^6.9.4
     "posthog-js": ^1.246.0
     "posthog-node": ^4.17.2
     "framer-motion": ^12.23.12
